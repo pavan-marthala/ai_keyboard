@@ -1,13 +1,10 @@
 package com.pk.ai_keyboard.text
 
+import android.text.InputType
 import android.view.KeyEvent
+import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 
-/**
- * TextEditor encapsulates interactions with Android's [InputConnection].
- * Performs safe text extraction, character insertion, key event sending,
- * and text replacement.
- */
 class TextEditor {
 
     private var inputConnection: InputConnection? = null
@@ -15,6 +12,8 @@ class TextEditor {
     fun setInputConnection(connection: InputConnection?) {
         this.inputConnection = connection
     }
+
+    fun hasValidInputConnection(): Boolean = inputConnection != null
 
     fun getTextBeforeCursor(length: Int = 1000): String {
         val connection = inputConnection ?: return ""
@@ -31,7 +30,7 @@ class TextEditor {
     fun getSelectedText(): String? {
         val connection = inputConnection ?: return null
         val charSequence = connection.getSelectedText(0)
-        return charSequence?.toString()
+        return charSequence?.toString()?.takeIf { it.isNotEmpty() }
     }
 
     fun commitText(text: String, newCursorPosition: Int = 1) {
@@ -55,20 +54,38 @@ class TextEditor {
         return connection.performEditorAction(actionCode)
     }
 
-    /**
-     * Replaces [charsToDelete] before the cursor with [transformedText].
-     * Deletes the target text + trigger, then commits transformedText.
-     */
     fun replaceBeforeCursor(charsToDelete: Int, transformedText: String): Boolean {
         val connection = inputConnection ?: return false
         if (charsToDelete <= 0) return false
-
-        // 1. Delete original target text + trigger
         connection.deleteSurroundingText(charsToDelete, 0)
-
-        // 2. Commit transformed replacement text with cursor at the end
         connection.commitText(transformedText, 1)
         return true
     }
-}
 
+    fun replaceSelectedText(transformedText: String): Boolean {
+        val connection = inputConnection ?: return false
+        connection.commitText(transformedText, 1)
+        return true
+    }
+
+    companion object {
+        fun isPasswordField(editorInfo: EditorInfo?): Boolean {
+            if (editorInfo == null) return false
+            val inputType = editorInfo.inputType
+            val variation = inputType and InputType.TYPE_MASK_VARIATION
+            val clazz = inputType and InputType.TYPE_MASK_CLASS
+
+            return clazz == InputType.TYPE_CLASS_TEXT && (
+                variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+            )
+        }
+
+        fun isNumericField(editorInfo: EditorInfo?): Boolean {
+            if (editorInfo == null) return false
+            val clazz = editorInfo.inputType and InputType.TYPE_MASK_CLASS
+            return clazz == InputType.TYPE_CLASS_NUMBER || clazz == InputType.TYPE_CLASS_PHONE
+        }
+    }
+}

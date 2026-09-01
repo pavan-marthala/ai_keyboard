@@ -9,6 +9,7 @@ import com.pk.ai_keyboard.MainActivity
 import com.pk.ai_keyboard.ai.AiFailure
 import com.pk.ai_keyboard.ai.AiResult
 import com.pk.ai_keyboard.command.CommandParser
+import com.pk.ai_keyboard.command.NativeCommandRegistry
 import com.pk.ai_keyboard.text.TextEditor
 import com.pk.ai_keyboard.transform.AiTextTransformer
 import kotlinx.coroutines.*
@@ -24,10 +25,25 @@ class KeyboardController(
     companion object {
         private const val TAG = "KeyboardController"
         private const val DOUBLE_TAP_TIMEOUT_MS = 300L
+        const val MAX_TRANSFORMATION_CHARS = 4000
     }
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var activeJob: Job? = null
+
+    var currentSessionId: Long = 1L
+        private set
+
+    var activeRequestContext: TransformationRequestContext? = null
+        private set
+
     var isTransforming = false
+        private set
+
+    var currentEditorInfo: EditorInfo? = null
+        private set
+
+    var isAiDisabled = false
         private set
 
     var shiftState = ShiftState.LOWERCASE
@@ -37,9 +53,27 @@ class KeyboardController(
 
     var onStatusUpdate: ((String) -> Unit)? = null
     var onShiftStateChanged: ((ShiftState) -> Unit)? = null
+    var onAiDisabledStateChanged: ((Boolean) -> Unit)? = null
 
     fun onInputConnectionChanged(inputConnection: InputConnection?) {
         textEditor.setInputConnection(inputConnection)
+    }
+
+    fun onEditorInfoChanged(editorInfo: EditorInfo?) {
+        this.currentEditorInfo = editorInfo
+        val password = TextEditor.isPasswordField(editorInfo)
+        val numeric = TextEditor.isNumericField(editorInfo)
+        isAiDisabled = password || numeric
+        onAiDisabledStateChanged?.invoke(isAiDisabled)
+    }
+
+    fun invalidateInputContext() {
+        currentSessionId++
+        activeJob?.cancel()
+        activeJob = null
+        activeRequestContext = null
+        isTransforming = false
+        onStatusUpdate?.invoke("✨ AI Keyboard")
     }
 
     fun onKeyTyped(char: String) {
@@ -74,7 +108,18 @@ class KeyboardController(
     }
 
     fun onCommandButtonClicked(trigger: String) {
-        if (isTransforming) return
+        if (isTransforming || isAiDisabled) return
+
+        val selectedText = textEditor.getSelectedText()
+        if (selectedText != null) {
+            val prompt = NativeCommandRegistry.getPrompt(trigger, emptyMap())
+            val statusMsg = NativeCommandRegistry.getStatusMessage(trigger, emptyMap())
+            if (prompt != null) {
+                executeSelectionTransformation(selectedText, prompt, statusMsg)
+            }
+            return
+        }
+
         val currentText = textEditor.getTextBeforeCursor(1000)
         val prefixSpace = if (currentText.isNotEmpty() && !currentText.endsWith(" ")) " " else ""
         textEditor.commitText("$prefixSpace$trigger ", 1)
@@ -82,11 +127,74 @@ class KeyboardController(
     }
 
     fun onTranslateLanguageSelected(langCode: String) {
-        if (isTransforming) return
+        if (isTransforming || isAiDisabled) return
+
+        val langName = NativeCommandRegistry.supportedLanguages[langCode] ?: langCode
+        val prompt = "Translate the user's text into $langName. Return ONLY the translated text without markdown wrappers, explanations, quotes, or commentary."
+
+        val selectedText = textEditor.getSelectedText()
+        if (selectedText != null) {
+            executeSelectionTransformation(selectedText, prompt, "Translating to $langName")
+            return
+        }
+
         val currentText = textEditor.getTextBeforeCursor(1000)
         val prefixSpace = if (currentText.isNotEmpty() && !currentText.endsWith(" ")) " " else ""
         textEditor.commitText("${prefixSpace}@translate:$langCode ", 1)
         checkForCommandTrigger()
+    }
+
+    private fun executeSelectionTransformation(selectedText: String, prompt: String, actionName: String) {
+        if (selectedText.length > MAX_TRANSFORMATION_CHARS) {
+            onStatusUpdate?.invoke("⚠️ Text too long")
+            return
+        }
+
+        val requestContext = TransformationRequestContext(
+            sessionId = currentSessionId,
+            submittedText = selectedText,
+            isSelectionTransform = true
+        )
+        activeRequestContext = requestContext
+        isTransforming = true
+        onStatusUpdate?.invoke(if (actionName.startsWith("✨")) actionName else "✨ $actionName...")
+
+        activeJob = scope.launch {
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    aiTextTransformer.transformText(text = selectedText, prompt = prompt)
+                }
+
+                if (requestContext != activeRequestContext || requestContext.sessionId != currentSessionId || !textEditor.hasValidInputConnection()) {
+                    Log.w(TAG, "Selection request context invalid or changed. Discarding AI result.")
+                    onStatusUpdate?.invoke("✨ AI Keyboard")
+                    return@launch
+                }
+
+                val currentSelected = textEditor.getSelectedText()
+                if (currentSelected != selectedText) {
+                    Log.w(TAG, "Selection modified while request in flight. Discarding AI result.")
+                    onStatusUpdate?.invoke("✨ AI Keyboard")
+                    return@launch
+                }
+
+                when (result) {
+                    is AiResult.Success -> {
+                        val replaced = textEditor.replaceSelectedText(result.data)
+                        if (replaced) {
+                            onStatusUpdate?.invoke("✨ AI Keyboard")
+                        } else {
+                            onStatusUpdate?.invoke("⚠️ Replacement failed")
+                        }
+                    }
+                    is AiResult.Failure -> {
+                        handleAiFailure(result.failure)
+                    }
+                }
+            } finally {
+                isTransforming = false
+            }
+        }
     }
 
     fun onBackspacePressed() {
@@ -126,24 +234,33 @@ class KeyboardController(
     }
 
     fun onDestroy() {
+        invalidateInputContext()
         scope.cancel()
     }
 
     fun checkForCommandTrigger() {
-        if (isTransforming) return
+        if (isTransforming || isAiDisabled) return
 
         val textBeforeCursor = textEditor.getTextBeforeCursor(1000)
         if (textBeforeCursor.isBlank()) return
 
         val parsedCommand = CommandParser.parse(context, textBeforeCursor) ?: return
 
+        if (parsedCommand.cleanText.length > MAX_TRANSFORMATION_CHARS) {
+            onStatusUpdate?.invoke("⚠️ Text too long")
+            return
+        }
+
+        val requestContext = TransformationRequestContext(
+            sessionId = currentSessionId,
+            submittedText = textBeforeCursor,
+            isSelectionTransform = false
+        )
+        activeRequestContext = requestContext
         isTransforming = true
         onStatusUpdate?.invoke(parsedCommand.statusMessage)
-        Log.d(TAG, "Command detected: ${parsedCommand.baseTrigger}")
 
-        val submittedTextBeforeCursor = textBeforeCursor
-
-        scope.launch {
+        activeJob = scope.launch {
             try {
                 val result = withContext(Dispatchers.IO) {
                     aiTextTransformer.transformText(
@@ -152,9 +269,14 @@ class KeyboardController(
                     )
                 }
 
-                // Verify input context still matches what was submitted
+                if (requestContext != activeRequestContext || requestContext.sessionId != currentSessionId || !textEditor.hasValidInputConnection()) {
+                    Log.w(TAG, "Trailing command request context invalid or changed. Discarding AI result.")
+                    onStatusUpdate?.invoke("✨ AI Keyboard")
+                    return@launch
+                }
+
                 val currentTextBeforeCursor = textEditor.getTextBeforeCursor(1000)
-                if (currentTextBeforeCursor != submittedTextBeforeCursor) {
+                if (currentTextBeforeCursor != requestContext.submittedText) {
                     Log.w(TAG, "Context changed while AI request was in flight. Discarding result.")
                     onStatusUpdate?.invoke("✨ AI Keyboard")
                     return@launch
@@ -167,31 +289,41 @@ class KeyboardController(
                             transformedText = result.data
                         )
                         if (replaced) {
-                            Log.d(TAG, "AI transformation applied successfully")
                             onStatusUpdate?.invoke("✨ AI Keyboard")
                         } else {
                             onStatusUpdate?.invoke("⚠️ Replacement failed")
                         }
                     }
                     is AiResult.Failure -> {
-                        val message = when (result.failure) {
-                            is AiFailure.MissingApiKey -> "No API Key"
-                            is AiFailure.InvalidApiKey -> "Invalid API Key"
-                            is AiFailure.NetworkError -> "Network Offline"
-                            is AiFailure.Timeout -> "Request Timeout"
-                            is AiFailure.HttpError -> "API Error (${result.failure.statusCode})"
-                            else -> "Transformation Error"
-                        }
-                        Log.e(TAG, "AI request failed: $message")
-                        onStatusUpdate?.invoke("⚠️ $message")
-
-                        delay(2500)
-                        onStatusUpdate?.invoke("✨ AI Keyboard")
+                        handleAiFailure(result.failure)
                     }
                 }
             } finally {
                 isTransforming = false
             }
         }
+    }
+
+    private suspend fun handleAiFailure(failure: AiFailure) {
+        val message = when (failure) {
+            is AiFailure.MissingApiKey -> "No API Key"
+            is AiFailure.InvalidApiKey -> "Invalid API Key"
+            is AiFailure.NetworkError -> "Network Offline"
+            is AiFailure.Timeout -> "Request Timeout"
+            is AiFailure.HttpError -> when (failure.statusCode) {
+                401 -> "Invalid API Key"
+                403 -> "Access Denied"
+                404 -> "Model Not Found"
+                408 -> "Request Timeout"
+                429 -> "Rate Limited"
+                in 500..599 -> "Provider Error"
+                else -> "API Error (${failure.statusCode})"
+            }
+            else -> "Transformation Error"
+        }
+        Log.e(TAG, "AI request failed: $message")
+        onStatusUpdate?.invoke("⚠️ $message")
+        delay(2500)
+        onStatusUpdate?.invoke("✨ AI Keyboard")
     }
 }

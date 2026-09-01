@@ -92,6 +92,7 @@ object NativeSecureStorage {
             val decryptedBytes = cipher.doFinal(encryptedBytes)
             String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
+            deleteApiKey(context, provider)
             null
         }
     }

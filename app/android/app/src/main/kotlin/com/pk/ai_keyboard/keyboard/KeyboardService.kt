@@ -21,16 +21,29 @@ class KeyboardService : InputMethodService() {
         return keyboardView
     }
 
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        controller.invalidateInputContext()
+        controller.onEditorInfoChanged(attribute)
+    }
+
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         controller.onInputConnectionChanged(currentInputConnection)
+        controller.onEditorInfoChanged(info)
         if (::keyboardView.isInitialized) {
             keyboardView.updateEditorInfo(info)
         }
     }
 
+    override fun onFinishInputView(finishingInput: Boolean) {
+        super.onFinishInputView(finishingInput)
+        controller.invalidateInputContext()
+    }
+
     override fun onFinishInput() {
         super.onFinishInput()
+        controller.invalidateInputContext()
         controller.onInputConnectionChanged(null)
     }
 

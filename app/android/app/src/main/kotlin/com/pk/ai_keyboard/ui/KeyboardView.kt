@@ -84,6 +84,9 @@ class KeyboardView @JvmOverloads constructor(
         controller.onShiftStateChanged = { shiftState ->
             updateShiftUi(shiftState)
         }
+        controller.onAiDisabledStateChanged = { _ ->
+            refreshToolbar()
+        }
         refreshToolbar()
     }
 
