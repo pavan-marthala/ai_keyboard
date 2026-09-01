@@ -44,6 +44,11 @@ class MainActivity : FlutterActivity() {
                     NativeSecureStorage.saveConfig(context, provider, modelId, baseUrl)
                     result.success(true)
                 }
+                "saveDisabledCommands" -> {
+                    val disabledList = call.argument<List<String>>("disabledTriggers") ?: emptyList()
+                    com.pk.ai_keyboard.command.NativeCommandRegistry.saveDisabledCommands(context, disabledList.toSet())
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }

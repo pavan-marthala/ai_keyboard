@@ -25,6 +25,8 @@ import 'package:ai_keyboard/features/ai_service/domain/repositories/ai_repositor
     as _i177;
 import 'package:ai_keyboard/features/ai_service/domain/usecases/transform_text_usecase.dart'
     as _i532;
+import 'package:ai_keyboard/features/commands/domain/repositories/command_registry.dart'
+    as _i648;
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart'
     as _i45;
 import 'package:ai_keyboard/features/playground/data/services/keyboard_status_service.dart'
@@ -64,6 +66,7 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i608.KeyboardStatusService>(
       () => _i608.KeyboardStatusService(),
     );
+    gh.lazySingleton<_i648.CommandRegistry>(() => _i648.CommandRegistryImpl());
     gh.lazySingleton<_i369.GeminiProvider>(
       () => _i369.GeminiProvider(gh<_i361.Dio>()),
     );

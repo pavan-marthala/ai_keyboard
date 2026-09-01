@@ -276,15 +276,49 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                 children: [
                   ActionChip(
                     avatar: const Icon(Icons.auto_fix_high, size: 16),
-                    label: const Text('Grammar Fix (@fix)'),
+                    label: const Text('Fix Grammar (@fix)'),
                     onPressed: () =>
                         _populateExample('I am going office tomorrow @fix '),
                   ),
                   ActionChip(
-                    avatar: const Icon(Icons.spellcheck, size: 16),
-                    label: const Text('Simple Grammar (@fix)'),
+                    avatar: const Icon(Icons.edit, size: 16),
+                    label: const Text('Rewrite (@rewrite)'),
+                    onPressed: () => _populateExample(
+                      'I need to tell you something important @rewrite ',
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.work, size: 16),
+                    label: const Text('Professional (@pro)'),
+                    onPressed: () => _populateExample(
+                      'hey send me the report when you can @pro ',
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.chat_bubble_outline, size: 16),
+                    label: const Text('Casual (@casual)'),
+                    onPressed: () => _populateExample(
+                      'I would like to know if you are available tomorrow @casual ',
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.compress, size: 16),
+                    label: const Text('Shorten (@short)'),
+                    onPressed: () => _populateExample(
+                      'I wanted to let you know that I will not be able to attend the meeting tomorrow @short ',
+                    ),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.expand, size: 16),
+                    label: const Text('Expand (@expand)'),
                     onPressed: () =>
-                        _populateExample('she don\'t like this @fix '),
+                        _populateExample('The project is delayed @expand '),
+                  ),
+                  ActionChip(
+                    avatar: const Icon(Icons.translate, size: 16),
+                    label: const Text('Translate Spanish (@translate:es)'),
+                    onPressed: () =>
+                        _populateExample('I am going home @translate:es '),
                   ),
                 ],
               ),

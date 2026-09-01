@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ParsedCommandResult {
 
- String get cleanText; CommandEntity get command;
+ String get cleanText; CommandEntity get command; String get rawTrigger; Map<String, String> get arguments; String get prompt;
 /// Create a copy of ParsedCommandResult
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $ParsedCommandResultCopyWith<ParsedCommandResult> get copyWith => _$ParsedComman
 @override
 bool operator ==(Object other) {
   final _this = this as ParsedCommandResult;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParsedCommandResult&&(identical(other.cleanText, _this.cleanText) || other.cleanText == _this.cleanText)&&(identical(other.command, _this.command) || other.command == _this.command));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParsedCommandResult&&(identical(other.cleanText, _this.cleanText) || other.cleanText == _this.cleanText)&&(identical(other.command, _this.command) || other.command == _this.command)&&(identical(other.rawTrigger, _this.rawTrigger) || other.rawTrigger == _this.rawTrigger)&&const DeepCollectionEquality().equals(other.arguments, _this.arguments)&&(identical(other.prompt, _this.prompt) || other.prompt == _this.prompt));
 }
 
 
 @override
 int get hashCode {
   final _this = this as ParsedCommandResult;
-  return Object.hash(runtimeType,_this.cleanText,_this.command);
+  return Object.hash(runtimeType,_this.cleanText,_this.command,_this.rawTrigger,const DeepCollectionEquality().hash(_this.arguments),_this.prompt);
 }
 
 @override
 String toString() {
   final _this = this as ParsedCommandResult;
-  return 'ParsedCommandResult(cleanText: ${_this.cleanText}, command: ${_this.command})';
+  return 'ParsedCommandResult(cleanText: ${_this.cleanText}, command: ${_this.command}, rawTrigger: ${_this.rawTrigger}, arguments: ${_this.arguments}, prompt: ${_this.prompt})';
 }
 
 
@@ -51,7 +51,7 @@ abstract mixin class $ParsedCommandResultCopyWith<$Res>  {
   factory $ParsedCommandResultCopyWith(ParsedCommandResult value, $Res Function(ParsedCommandResult) _then) = _$ParsedCommandResultCopyWithImpl;
 @useResult
 $Res call({
- String cleanText, CommandEntity command
+ String cleanText, CommandEntity command, String rawTrigger, Map<String, String> arguments, String prompt
 });
 
 
@@ -68,11 +68,14 @@ class _$ParsedCommandResultCopyWithImpl<$Res>
 
 /// Create a copy of ParsedCommandResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? cleanText = null,Object? command = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? cleanText = null,Object? command = null,Object? rawTrigger = null,Object? arguments = null,Object? prompt = null,}) {
   return _then(ParsedCommandResult(
 cleanText: null == cleanText ? _self.cleanText : cleanText // ignore: cast_nullable_to_non_nullable
 as String,command: null == command ? _self.command : command // ignore: cast_nullable_to_non_nullable
-as CommandEntity,
+as CommandEntity,rawTrigger: null == rawTrigger ? _self.rawTrigger : rawTrigger // ignore: cast_nullable_to_non_nullable
+as String,arguments: null == arguments ? _self.arguments : arguments // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,prompt: null == prompt ? _self.prompt : prompt // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 /// Create a copy of ParsedCommandResult
@@ -166,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String cleanText,  CommandEntity command)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String cleanText,  CommandEntity command,  String rawTrigger,  Map<String, String> arguments,  String prompt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ParsedCommandResult() when $default != null:
-return $default(_that.cleanText,_that.command);case _:
+return $default(_that.cleanText,_that.command,_that.rawTrigger,_that.arguments,_that.prompt);case _:
   return orElse();
 
 }
@@ -187,10 +190,10 @@ return $default(_that.cleanText,_that.command);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String cleanText,  CommandEntity command)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String cleanText,  CommandEntity command,  String rawTrigger,  Map<String, String> arguments,  String prompt)  $default,) {final _that = this;
 switch (_that) {
 case _ParsedCommandResult():
-return $default(_that.cleanText,_that.command);case _:
+return $default(_that.cleanText,_that.command,_that.rawTrigger,_that.arguments,_that.prompt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +210,10 @@ return $default(_that.cleanText,_that.command);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String cleanText,  CommandEntity command)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String cleanText,  CommandEntity command,  String rawTrigger,  Map<String, String> arguments,  String prompt)?  $default,) {final _that = this;
 switch (_that) {
 case _ParsedCommandResult() when $default != null:
-return $default(_that.cleanText,_that.command);case _:
+return $default(_that.cleanText,_that.command,_that.rawTrigger,_that.arguments,_that.prompt);case _:
   return null;
 
 }
@@ -222,11 +225,20 @@ return $default(_that.cleanText,_that.command);case _:
 
 
 class _ParsedCommandResult implements ParsedCommandResult {
-  const _ParsedCommandResult({required this.cleanText, required this.command});
+  const _ParsedCommandResult({required this.cleanText, required this.command, required this.rawTrigger, required  Map<String, String> arguments, required this.prompt}): _arguments = arguments;
   
 
 @override final  String cleanText;
 @override final  CommandEntity command;
+@override final  String rawTrigger;
+ final  Map<String, String> _arguments;
+@override Map<String, String> get arguments {
+  if (_arguments is EqualUnmodifiableMapView) return _arguments;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_arguments);
+}
+
+@override final  String prompt;
 
 /// Create a copy of ParsedCommandResult
 /// with the given fields replaced by the non-null parameter values.
@@ -238,18 +250,18 @@ _$ParsedCommandResultCopyWith<_ParsedCommandResult> get copyWith => __$ParsedCom
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParsedCommandResult&&(identical(other.cleanText, cleanText) || other.cleanText == cleanText)&&(identical(other.command, command) || other.command == command));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParsedCommandResult&&(identical(other.cleanText, cleanText) || other.cleanText == cleanText)&&(identical(other.command, command) || other.command == command)&&(identical(other.rawTrigger, rawTrigger) || other.rawTrigger == rawTrigger)&&const DeepCollectionEquality().equals(other.arguments, _arguments)&&(identical(other.prompt, prompt) || other.prompt == prompt));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,cleanText,command);
+    return Object.hash(runtimeType,cleanText,command,rawTrigger,const DeepCollectionEquality().hash(_arguments),prompt);
 }
 
 @override
 String toString() {
-    return 'ParsedCommandResult(cleanText: $cleanText, command: $command)';
+    return 'ParsedCommandResult(cleanText: $cleanText, command: $command, rawTrigger: $rawTrigger, arguments: $arguments, prompt: $prompt)';
 }
 
 
@@ -260,7 +272,7 @@ abstract mixin class _$ParsedCommandResultCopyWith<$Res> implements $ParsedComma
   factory _$ParsedCommandResultCopyWith(_ParsedCommandResult value, $Res Function(_ParsedCommandResult) _then) = __$ParsedCommandResultCopyWithImpl;
 @override @useResult
 $Res call({
- String cleanText, CommandEntity command
+ String cleanText, CommandEntity command, String rawTrigger, Map<String, String> arguments, String prompt
 });
 
 
@@ -277,11 +289,14 @@ class __$ParsedCommandResultCopyWithImpl<$Res>
 
 /// Create a copy of ParsedCommandResult
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? cleanText = null,Object? command = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? cleanText = null,Object? command = null,Object? rawTrigger = null,Object? arguments = null,Object? prompt = null,}) {
   return _then(_ParsedCommandResult(
 cleanText: null == cleanText ? _self.cleanText : cleanText // ignore: cast_nullable_to_non_nullable
 as String,command: null == command ? _self.command : command // ignore: cast_nullable_to_non_nullable
-as CommandEntity,
+as CommandEntity,rawTrigger: null == rawTrigger ? _self.rawTrigger : rawTrigger // ignore: cast_nullable_to_non_nullable
+as String,arguments: null == arguments ? _self._arguments : arguments // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,prompt: null == prompt ? _self.prompt : prompt // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

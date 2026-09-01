@@ -50,6 +50,11 @@ class TextEditor {
         connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_ENTER))
     }
 
+    fun performEditorAction(actionCode: Int): Boolean {
+        val connection = inputConnection ?: return false
+        return connection.performEditorAction(actionCode)
+    }
+
     /**
      * Replaces [charsToDelete] before the cursor with [transformedText].
      * Deletes the target text + trigger, then commits transformedText.

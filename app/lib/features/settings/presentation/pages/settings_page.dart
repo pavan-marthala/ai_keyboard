@@ -2,6 +2,9 @@ import 'package:ai_keyboard/core/errors/failures.dart';
 import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart';
+import 'package:ai_keyboard/features/commands/presentation/bloc/command_event.dart';
+import 'package:ai_keyboard/features/commands/presentation/bloc/command_state.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_event.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_state.dart';
@@ -320,6 +323,42 @@ class _SettingsPageState extends State<SettingsPage> {
                     }
                   },
                 ),
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
+                'AI Commands',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Enable or disable built-in text transformation commands.',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              BlocBuilder<CommandBloc, CommandState>(
+                builder: (context, commandState) {
+                  final commands = commandState.commands;
+                  return Column(
+                    children: commands.map((cmd) {
+                      return SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          '${cmd.trigger} — ${cmd.name}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(cmd.description),
+                        value: cmd.enabled,
+                        onChanged: (_) {
+                          context.read<CommandBloc>().add(
+                            CommandEvent.toggleCommandEnabled(cmd.trigger),
+                          );
+                        },
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
             ],
           );
         },
