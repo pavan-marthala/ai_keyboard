@@ -23,25 +23,34 @@ class GeminiProvider : AiProvider {
             return@withContext AiResult.Failure(AiFailure.MissingApiKey)
         }
 
-        val modelId = if (model.isBlank()) "gemini-1.5-flash" else model
+        val cleanModelId = model.removePrefix("models/").ifBlank { "gemini-1.5-flash" }
         val endpointUrl = if (!baseUrl.isNullOrBlank()) {
             baseUrl
         } else {
-            "https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$apiKey"
+            "https://generativelanguage.googleapis.com/v1beta/models/$cleanModelId:generateContent?key=$apiKey"
         }
 
         val jsonPayload = JSONObject().apply {
-            val parts = JSONArray().apply {
-                put(JSONObject().apply {
-                    put("text", "$prompt\n\nUser Input:\n$text")
+            put("systemInstruction", JSONObject().apply {
+                put("parts", JSONArray().apply {
+                    put(JSONObject().apply {
+                        put("text", prompt)
+                    })
                 })
-            }
-            val contents = JSONArray().apply {
+            })
+            put("contents", JSONArray().apply {
                 put(JSONObject().apply {
-                    put("parts", parts)
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", text)
+                        })
+                    })
                 })
-            }
-            put("contents", contents)
+            })
+            put("generationConfig", JSONObject().apply {
+                put("temperature", 0.0)
+                put("maxOutputTokens", 1024)
+            })
         }
 
         var connection: HttpURLConnection? = null
@@ -103,4 +112,3 @@ class GeminiProvider : AiProvider {
         }
     }
 }
-

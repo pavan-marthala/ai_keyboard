@@ -96,7 +96,8 @@ class OpenRouterProvider implements AiProvider {
         ),
         data: {
           'model': request.config.modelId.ifEmpty('openai/gpt-4o-mini'),
-          'temperature': request.temperature,
+          'temperature': 0.0,
+          'max_tokens': 1024,
           'messages': [
             {'role': 'system', 'content': request.prompt},
             {'role': 'user', 'content': request.inputText},

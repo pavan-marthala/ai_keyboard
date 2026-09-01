@@ -27,7 +27,8 @@ open class OpenAiProvider : AiProvider {
 
         val jsonPayload = JSONObject().apply {
             put("model", model.ifBlank { "gpt-4o-mini" })
-            put("temperature", 0.3)
+            put("temperature", 0.0)
+            put("max_tokens", 1024)
             val messages = JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "system")

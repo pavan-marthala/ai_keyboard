@@ -91,7 +91,8 @@ class GroqProvider implements AiProvider {
         ),
         data: {
           'model': request.config.modelId.ifEmpty('llama-3.3-70b-versatile'),
-          'temperature': request.temperature,
+          'temperature': 0.0,
+          'max_tokens': 1024,
           'messages': [
             {'role': 'system', 'content': request.prompt},
             {'role': 'user', 'content': request.inputText},

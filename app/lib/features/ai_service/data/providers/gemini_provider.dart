@@ -96,23 +96,28 @@ class GeminiProvider implements AiProvider {
       );
     }
     try {
-      final modelId = request.config.modelId.ifEmpty('gemini-1.5-flash');
+      final modelId = request.config.modelId
+          .replaceAll('models/', '')
+          .ifEmpty('gemini-1.5-flash');
       final url =
           'https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$apiKey';
 
       final response = await _dio.post(
         url,
         data: {
+          'systemInstruction': {
+            'parts': [
+              {'text': request.prompt},
+            ],
+          },
           'contents': [
             {
               'parts': [
-                {
-                  'text':
-                      '${request.prompt}\n\nUser Input:\n${request.inputText}',
-                },
+                {'text': request.inputText},
               ],
             },
           ],
+          'generationConfig': {'temperature': 0.0, 'maxOutputTokens': 1024},
         },
       );
 
