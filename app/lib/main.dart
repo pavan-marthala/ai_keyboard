@@ -1,6 +1,7 @@
 import 'package:ai_keyboard/core/di/injection.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_event.dart';
+import 'package:ai_keyboard/features/playground/presentation/pages/keyboard_playground_page.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_event.dart';
 import 'package:ai_keyboard/features/settings/presentation/pages/settings_page.dart';
@@ -36,7 +37,57 @@ class AiKeyboardApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: const SettingsPage(),
+        home: const MainHomeScreen(),
+      ),
+    );
+  }
+}
+
+class MainHomeScreen extends StatefulWidget {
+  const MainHomeScreen({super.key});
+
+  @override
+  State<MainHomeScreen> createState() => _MainHomeScreenState();
+}
+
+class _MainHomeScreenState extends State<MainHomeScreen> {
+  int _currentIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          KeyboardPlaygroundPage(
+            onNavigateToSettings: () {
+              setState(() {
+                _currentIndex = 1;
+              });
+            },
+          ),
+          const SettingsPage(),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.keyboard),
+            selectedIcon: Icon(Icons.keyboard),
+            label: 'Playground',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.tune_outlined),
+            selectedIcon: Icon(Icons.tune),
+            label: 'Settings',
+          ),
+        ],
       ),
     );
   }

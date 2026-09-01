@@ -32,6 +32,6 @@ Map<String, dynamic> _$UserSettingsToJson(_UserSettings instance) =>
 const _$AiProviderTypeEnumMap = {
   AiProviderType.openAi: 'openAi',
   AiProviderType.gemini: 'gemini',
-  AiProviderType.anthropic: 'anthropic',
-  AiProviderType.custom: 'custom',
+  AiProviderType.openRouter: 'openRouter',
+  AiProviderType.groq: 'groq',
 };

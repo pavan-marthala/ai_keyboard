@@ -56,14 +56,17 @@ extension SettingsEventPatterns on SettingsEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadSettings value)?  loadSettings,TResult Function( _UpdateSettings value)?  updateSettings,TResult Function( _SaveApiKey value)?  saveApiKey,TResult Function( _DeleteApiKey value)?  deleteApiKey,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( _LoadSettings value)?  loadSettings,TResult Function( _UpdateSettings value)?  updateSettings,TResult Function( _SaveApiKey value)?  saveApiKey,TResult Function( _DeleteApiKey value)?  deleteApiKey,TResult Function( _SelectProvider value)?  selectProvider,TResult Function( _FetchModels value)?  fetchModels,TResult Function( _SelectModel value)?  selectModel,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case _LoadSettings() when loadSettings != null:
 return loadSettings(_that);case _UpdateSettings() when updateSettings != null:
 return updateSettings(_that);case _SaveApiKey() when saveApiKey != null:
 return saveApiKey(_that);case _DeleteApiKey() when deleteApiKey != null:
-return deleteApiKey(_that);case _:
+return deleteApiKey(_that);case _SelectProvider() when selectProvider != null:
+return selectProvider(_that);case _FetchModels() when fetchModels != null:
+return fetchModels(_that);case _SelectModel() when selectModel != null:
+return selectModel(_that);case _:
   return orElse();
 
 }
@@ -81,14 +84,17 @@ return deleteApiKey(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadSettings value)  loadSettings,required TResult Function( _UpdateSettings value)  updateSettings,required TResult Function( _SaveApiKey value)  saveApiKey,required TResult Function( _DeleteApiKey value)  deleteApiKey,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( _LoadSettings value)  loadSettings,required TResult Function( _UpdateSettings value)  updateSettings,required TResult Function( _SaveApiKey value)  saveApiKey,required TResult Function( _DeleteApiKey value)  deleteApiKey,required TResult Function( _SelectProvider value)  selectProvider,required TResult Function( _FetchModels value)  fetchModels,required TResult Function( _SelectModel value)  selectModel,}){
 final _that = this;
 switch (_that) {
 case _LoadSettings():
 return loadSettings(_that);case _UpdateSettings():
 return updateSettings(_that);case _SaveApiKey():
 return saveApiKey(_that);case _DeleteApiKey():
-return deleteApiKey(_that);case _:
+return deleteApiKey(_that);case _SelectProvider():
+return selectProvider(_that);case _FetchModels():
+return fetchModels(_that);case _SelectModel():
+return selectModel(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -105,14 +111,17 @@ return deleteApiKey(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadSettings value)?  loadSettings,TResult? Function( _UpdateSettings value)?  updateSettings,TResult? Function( _SaveApiKey value)?  saveApiKey,TResult? Function( _DeleteApiKey value)?  deleteApiKey,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( _LoadSettings value)?  loadSettings,TResult? Function( _UpdateSettings value)?  updateSettings,TResult? Function( _SaveApiKey value)?  saveApiKey,TResult? Function( _DeleteApiKey value)?  deleteApiKey,TResult? Function( _SelectProvider value)?  selectProvider,TResult? Function( _FetchModels value)?  fetchModels,TResult? Function( _SelectModel value)?  selectModel,}){
 final _that = this;
 switch (_that) {
 case _LoadSettings() when loadSettings != null:
 return loadSettings(_that);case _UpdateSettings() when updateSettings != null:
 return updateSettings(_that);case _SaveApiKey() when saveApiKey != null:
 return saveApiKey(_that);case _DeleteApiKey() when deleteApiKey != null:
-return deleteApiKey(_that);case _:
+return deleteApiKey(_that);case _SelectProvider() when selectProvider != null:
+return selectProvider(_that);case _FetchModels() when fetchModels != null:
+return fetchModels(_that);case _SelectModel() when selectModel != null:
+return selectModel(_that);case _:
   return null;
 
 }
@@ -129,13 +138,16 @@ return deleteApiKey(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadSettings,TResult Function( UserSettings settings)?  updateSettings,TResult Function( AiProviderType provider,  String apiKey)?  saveApiKey,TResult Function( AiProviderType provider)?  deleteApiKey,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  loadSettings,TResult Function( UserSettings settings)?  updateSettings,TResult Function( AiProviderType provider,  String apiKey)?  saveApiKey,TResult Function( AiProviderType provider)?  deleteApiKey,TResult Function( AiProviderType provider)?  selectProvider,TResult Function( AiProviderType provider,  bool forceRefresh)?  fetchModels,TResult Function( String modelId)?  selectModel,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LoadSettings() when loadSettings != null:
 return loadSettings();case _UpdateSettings() when updateSettings != null:
 return updateSettings(_that.settings);case _SaveApiKey() when saveApiKey != null:
 return saveApiKey(_that.provider,_that.apiKey);case _DeleteApiKey() when deleteApiKey != null:
-return deleteApiKey(_that.provider);case _:
+return deleteApiKey(_that.provider);case _SelectProvider() when selectProvider != null:
+return selectProvider(_that.provider);case _FetchModels() when fetchModels != null:
+return fetchModels(_that.provider,_that.forceRefresh);case _SelectModel() when selectModel != null:
+return selectModel(_that.modelId);case _:
   return orElse();
 
 }
@@ -153,13 +165,16 @@ return deleteApiKey(_that.provider);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadSettings,required TResult Function( UserSettings settings)  updateSettings,required TResult Function( AiProviderType provider,  String apiKey)  saveApiKey,required TResult Function( AiProviderType provider)  deleteApiKey,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  loadSettings,required TResult Function( UserSettings settings)  updateSettings,required TResult Function( AiProviderType provider,  String apiKey)  saveApiKey,required TResult Function( AiProviderType provider)  deleteApiKey,required TResult Function( AiProviderType provider)  selectProvider,required TResult Function( AiProviderType provider,  bool forceRefresh)  fetchModels,required TResult Function( String modelId)  selectModel,}) {final _that = this;
 switch (_that) {
 case _LoadSettings():
 return loadSettings();case _UpdateSettings():
 return updateSettings(_that.settings);case _SaveApiKey():
 return saveApiKey(_that.provider,_that.apiKey);case _DeleteApiKey():
-return deleteApiKey(_that.provider);case _:
+return deleteApiKey(_that.provider);case _SelectProvider():
+return selectProvider(_that.provider);case _FetchModels():
+return fetchModels(_that.provider,_that.forceRefresh);case _SelectModel():
+return selectModel(_that.modelId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -176,13 +191,16 @@ return deleteApiKey(_that.provider);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadSettings,TResult? Function( UserSettings settings)?  updateSettings,TResult? Function( AiProviderType provider,  String apiKey)?  saveApiKey,TResult? Function( AiProviderType provider)?  deleteApiKey,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  loadSettings,TResult? Function( UserSettings settings)?  updateSettings,TResult? Function( AiProviderType provider,  String apiKey)?  saveApiKey,TResult? Function( AiProviderType provider)?  deleteApiKey,TResult? Function( AiProviderType provider)?  selectProvider,TResult? Function( AiProviderType provider,  bool forceRefresh)?  fetchModels,TResult? Function( String modelId)?  selectModel,}) {final _that = this;
 switch (_that) {
 case _LoadSettings() when loadSettings != null:
 return loadSettings();case _UpdateSettings() when updateSettings != null:
 return updateSettings(_that.settings);case _SaveApiKey() when saveApiKey != null:
 return saveApiKey(_that.provider,_that.apiKey);case _DeleteApiKey() when deleteApiKey != null:
-return deleteApiKey(_that.provider);case _:
+return deleteApiKey(_that.provider);case _SelectProvider() when selectProvider != null:
+return selectProvider(_that.provider);case _FetchModels() when fetchModels != null:
+return fetchModels(_that.provider,_that.forceRefresh);case _SelectModel() when selectModel != null:
+return selectModel(_that.modelId);case _:
   return null;
 
 }
@@ -431,6 +449,212 @@ class __$DeleteApiKeyCopyWithImpl<$Res>
   return _then(_DeleteApiKey(
 provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as AiProviderType,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _SelectProvider implements SettingsEvent {
+  const _SelectProvider(this.provider);
+  
+
+ final  AiProviderType provider;
+
+/// Create a copy of SettingsEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SelectProviderCopyWith<_SelectProvider> get copyWith => __$SelectProviderCopyWithImpl<_SelectProvider>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelectProvider&&(identical(other.provider, provider) || other.provider == provider));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,provider);
+}
+
+@override
+String toString() {
+    return 'SettingsEvent.selectProvider(provider: $provider)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SelectProviderCopyWith<$Res> implements $SettingsEventCopyWith<$Res> {
+  factory _$SelectProviderCopyWith(_SelectProvider value, $Res Function(_SelectProvider) _then) = __$SelectProviderCopyWithImpl;
+@useResult
+$Res call({
+ AiProviderType provider
+});
+
+
+
+
+}
+/// @nodoc
+class __$SelectProviderCopyWithImpl<$Res>
+    implements _$SelectProviderCopyWith<$Res> {
+  __$SelectProviderCopyWithImpl(this._self, this._then);
+
+  final _SelectProvider _self;
+  final $Res Function(_SelectProvider) _then;
+
+/// Create a copy of SettingsEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? provider = null,}) {
+  return _then(_SelectProvider(
+null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
+as AiProviderType,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _FetchModels implements SettingsEvent {
+  const _FetchModels({required this.provider, this.forceRefresh = false});
+  
+
+ final  AiProviderType provider;
+@JsonKey() final  bool forceRefresh;
+
+/// Create a copy of SettingsEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$FetchModelsCopyWith<_FetchModels> get copyWith => __$FetchModelsCopyWithImpl<_FetchModels>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _FetchModels&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.forceRefresh, forceRefresh) || other.forceRefresh == forceRefresh));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,provider,forceRefresh);
+}
+
+@override
+String toString() {
+    return 'SettingsEvent.fetchModels(provider: $provider, forceRefresh: $forceRefresh)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$FetchModelsCopyWith<$Res> implements $SettingsEventCopyWith<$Res> {
+  factory _$FetchModelsCopyWith(_FetchModels value, $Res Function(_FetchModels) _then) = __$FetchModelsCopyWithImpl;
+@useResult
+$Res call({
+ AiProviderType provider, bool forceRefresh
+});
+
+
+
+
+}
+/// @nodoc
+class __$FetchModelsCopyWithImpl<$Res>
+    implements _$FetchModelsCopyWith<$Res> {
+  __$FetchModelsCopyWithImpl(this._self, this._then);
+
+  final _FetchModels _self;
+  final $Res Function(_FetchModels) _then;
+
+/// Create a copy of SettingsEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? provider = null,Object? forceRefresh = null,}) {
+  return _then(_FetchModels(
+provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
+as AiProviderType,forceRefresh: null == forceRefresh ? _self.forceRefresh : forceRefresh // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class _SelectModel implements SettingsEvent {
+  const _SelectModel(this.modelId);
+  
+
+ final  String modelId;
+
+/// Create a copy of SettingsEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$SelectModelCopyWith<_SelectModel> get copyWith => __$SelectModelCopyWithImpl<_SelectModel>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SelectModel&&(identical(other.modelId, modelId) || other.modelId == modelId));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,modelId);
+}
+
+@override
+String toString() {
+    return 'SettingsEvent.selectModel(modelId: $modelId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$SelectModelCopyWith<$Res> implements $SettingsEventCopyWith<$Res> {
+  factory _$SelectModelCopyWith(_SelectModel value, $Res Function(_SelectModel) _then) = __$SelectModelCopyWithImpl;
+@useResult
+$Res call({
+ String modelId
+});
+
+
+
+
+}
+/// @nodoc
+class __$SelectModelCopyWithImpl<$Res>
+    implements _$SelectModelCopyWith<$Res> {
+  __$SelectModelCopyWithImpl(this._self, this._then);
+
+  final _SelectModel _self;
+  final $Res Function(_SelectModel) _then;
+
+/// Create a copy of SettingsEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? modelId = null,}) {
+  return _then(_SelectModel(
+null == modelId ? _self.modelId : modelId // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

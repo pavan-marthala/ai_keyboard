@@ -11,6 +11,14 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:ai_keyboard/core/di/register_module.dart' as _i638;
+import 'package:ai_keyboard/features/ai_service/data/providers/gemini_provider.dart'
+    as _i369;
+import 'package:ai_keyboard/features/ai_service/data/providers/groq_provider.dart'
+    as _i362;
+import 'package:ai_keyboard/features/ai_service/data/providers/openai_provider.dart'
+    as _i788;
+import 'package:ai_keyboard/features/ai_service/data/providers/openrouter_provider.dart'
+    as _i339;
 import 'package:ai_keyboard/features/ai_service/data/repositories/ai_repository_impl.dart'
     as _i754;
 import 'package:ai_keyboard/features/ai_service/domain/repositories/ai_repository.dart'
@@ -19,6 +27,8 @@ import 'package:ai_keyboard/features/ai_service/domain/usecases/transform_text_u
     as _i532;
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart'
     as _i45;
+import 'package:ai_keyboard/features/playground/data/services/keyboard_status_service.dart'
+    as _i608;
 import 'package:ai_keyboard/features/settings/data/repositories/credentials_repository_impl.dart'
     as _i499;
 import 'package:ai_keyboard/features/settings/data/repositories/settings_repository_impl.dart'
@@ -51,7 +61,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i558.FlutterSecureStorage>(
       () => registerModule.secureStorage,
     );
-    gh.lazySingleton<_i177.AiRepository>(() => _i754.AiRepositoryImpl());
+    gh.lazySingleton<_i608.KeyboardStatusService>(
+      () => _i608.KeyboardStatusService(),
+    );
+    gh.lazySingleton<_i369.GeminiProvider>(
+      () => _i369.GeminiProvider(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i362.GroqProvider>(
+      () => _i362.GroqProvider(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i788.OpenAiProvider>(
+      () => _i788.OpenAiProvider(gh<_i361.Dio>()),
+    );
+    gh.lazySingleton<_i339.OpenRouterProvider>(
+      () => _i339.OpenRouterProvider(gh<_i361.Dio>()),
+    );
     gh.lazySingleton<_i615.SettingsRepository>(
       () => _i725.SettingsRepositoryImpl(gh<_i460.SharedPreferences>()),
     );
@@ -61,10 +85,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i921.CredentialsRepository>(
       () => _i499.CredentialsRepositoryImpl(gh<_i558.FlutterSecureStorage>()),
     );
-    gh.factory<_i144.SettingsBloc>(
-      () => _i144.SettingsBloc(
-        gh<_i615.SettingsRepository>(),
-        gh<_i921.CredentialsRepository>(),
+    gh.lazySingleton<_i177.AiRepository>(
+      () => _i754.AiRepositoryImpl(
+        gh<_i788.OpenAiProvider>(),
+        gh<_i369.GeminiProvider>(),
+        gh<_i339.OpenRouterProvider>(),
+        gh<_i362.GroqProvider>(),
       ),
     );
     gh.factory<_i532.TransformTextUseCase>(
@@ -72,6 +98,13 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i177.AiRepository>(),
         gh<_i615.SettingsRepository>(),
         gh<_i921.CredentialsRepository>(),
+      ),
+    );
+    gh.factory<_i144.SettingsBloc>(
+      () => _i144.SettingsBloc(
+        gh<_i615.SettingsRepository>(),
+        gh<_i921.CredentialsRepository>(),
+        gh<_i177.AiRepository>(),
       ),
     );
     return this;

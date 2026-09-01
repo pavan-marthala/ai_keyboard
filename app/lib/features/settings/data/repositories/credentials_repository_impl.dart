@@ -16,10 +16,15 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
   @override
   Future<Result<String?, Failure>> getApiKey(AiProviderType provider) async {
     try {
-      final bool exists = await _channel.invokeMethod('hasApiKey', {
+      final String? apiKey = await _channel.invokeMethod('getApiKey', {
         'provider': provider.name,
       });
-      return Success(exists ? 'EXISTS' : null);
+      if (apiKey != null && apiKey.isNotEmpty) {
+        return Success(apiKey);
+      }
+      final fallbackKey =
+          await _secureStorage.read(key: 'api_key_${provider.name}');
+      return Success(fallbackKey);
     } catch (e) {
       final apiKey =
           await _secureStorage.read(key: 'api_key_${provider.name}');

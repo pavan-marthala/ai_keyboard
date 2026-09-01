@@ -1,9 +1,13 @@
+import 'package:ai_keyboard/core/errors/failures.dart';
+import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
+import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_event.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,21 +18,19 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final _apiKeyController = TextEditingController();
-  final _modelController = TextEditingController();
   bool _obscureApiKey = true;
-
-  @override
-  void initState() {
-    super.initState();
-    final state = context.read<SettingsBloc>().state;
-    _modelController.text = state.settings.activeModelId;
-  }
 
   @override
   void dispose() {
     _apiKeyController.dispose();
-    _modelController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openApiKeyUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   @override
@@ -37,12 +39,20 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(title: const Text('AI Keyboard Settings')),
       body: BlocConsumer<SettingsBloc, SettingsState>(
         listener: (context, state) {
-          if (_modelController.text != state.settings.activeModelId) {
-            _modelController.text = state.settings.activeModelId;
+          if (state.failure != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.failure!.message),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
         },
         builder: (context, state) {
-          final hasKey = state.hasApiKeyMap[AiProviderType.openAi] ?? false;
+          final activeProvider = state.settings.activeProvider;
+          final metadata = AiProviderMetadata.getForType(activeProvider);
+          final hasKey = state.hasApiKeyMap[activeProvider] ?? false;
+          final models = state.modelsMap[activeProvider] ?? [];
 
           return ListView(
             padding: const EdgeInsets.all(16.0),
@@ -62,7 +72,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          hasKey ? 'OpenAI API Key configured securely.' : 'OpenAI API Key not configured. AI commands will be disabled.',
+                          hasKey
+                              ? '${metadata.displayName} API Key configured.'
+                              : '${metadata.displayName} API Key missing. Add key below.',
                           style: TextStyle(
                             color: hasKey
                                 ? Colors.green.shade900
@@ -77,49 +89,50 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'AI Provider Configuration',
+                'AI Provider Selection',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               DropdownButtonFormField<AiProviderType>(
-                initialValue: state.settings.activeProvider,
+                initialValue: activeProvider,
                 decoration: const InputDecoration(
-                  labelText: 'Active AI Provider',
+                  labelText: 'Provider',
                   border: OutlineInputBorder(),
                 ),
-                items: const [
-                  DropdownMenuItem(
-                    value: AiProviderType.openAi,
-                    child: Text('OpenAI'),
-                  ),
-                ],
+                items: AiProviderMetadata.allProviders.map((m) {
+                  return DropdownMenuItem(
+                    value: m.type,
+                    child: Text(m.displayName),
+                  );
+                }).toList(),
                 onChanged: (value) {
                   if (value != null) {
+                    _apiKeyController.clear();
                     context.read<SettingsBloc>().add(
-                      SettingsEvent.updateSettings(
-                        state.settings.copyWith(activeProvider: value),
-                      ),
+                      SettingsEvent.selectProvider(value),
                     );
                   }
                 },
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _modelController,
-                decoration: const InputDecoration(
-                  labelText: 'Model ID',
-                  hintText: 'e.g. gpt-4o-mini, gpt-4o',
-                  border: OutlineInputBorder(),
-                  helperText: 'Default: gpt-4o-mini',
-                ),
+              const SizedBox(height: 8),
+              Text(
+                metadata.description,
+                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              const Text(
+                'API Key',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: _apiKeyController,
                 obscureText: _obscureApiKey,
                 decoration: InputDecoration(
-                  labelText: 'OpenAI API Key',
-                  hintText: 'sk-...',
+                  labelText: '${metadata.displayName} API Key',
+                  hintText: hasKey
+                      ? '•••••••••••• (Key Configured)'
+                      : 'Enter API Key',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -133,69 +146,180 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: state.isLoading
-                    ? null
-                    : () {
-                        final key = _apiKeyController.text.trim();
-                        final model = _modelController.text.trim();
-
-                        if (model.isNotEmpty) {
-                          context.read<SettingsBloc>().add(
-                            SettingsEvent.updateSettings(
-                              state.settings.copyWith(activeModelId: model),
-                            ),
-                          );
-                        }
-
-                        if (key.isNotEmpty) {
-                          context.read<SettingsBloc>().add(
-                            SettingsEvent.saveApiKey(
-                              provider: AiProviderType.openAi,
-                              apiKey: key,
-                            ),
-                          );
-                          _apiKeyController.clear();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('API Key saved securely!'),
-                            ),
-                          );
-                        }
-                      },
-                icon: const Icon(Icons.save),
-                label: const Text('Save Settings'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Don't have an API key?",
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _openApiKeyUrl(metadata.apiKeyUrl),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Get API Key →'),
+                  ),
+                ],
               ),
-              if (hasKey) ...[
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: state.isLoading
-                      ? null
-                      : () {
-                          context.read<SettingsBloc>().add(
-                            const SettingsEvent.deleteApiKey(
-                              provider: AiProviderType.openAi,
-                            ),
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('API Key deleted.')),
-                          );
-                        },
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  label: const Text(
-                    'Delete API Key',
-                    style: TextStyle(color: Colors.red),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: state.isLoading
+                          ? null
+                          : () {
+                              final key = _apiKeyController.text.trim();
+                              if (key.isNotEmpty) {
+                                context.read<SettingsBloc>().add(
+                                  SettingsEvent.saveApiKey(
+                                    provider: activeProvider,
+                                    apiKey: key,
+                                  ),
+                                );
+                                _apiKeyController.clear();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${metadata.displayName} key saved securely!',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                      icon: const Icon(Icons.save),
+                      label: const Text('Save API Key'),
+                    ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  if (hasKey) ...[
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: state.isLoading
+                          ? null
+                          : () {
+                              context.read<SettingsBloc>().add(
+                                SettingsEvent.deleteApiKey(
+                                  provider: activeProvider,
+                                ),
+                              );
+                            },
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      label: const Text(
+                        'Delete Key',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 28),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Model Discovery',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
+                  if (hasKey)
+                    TextButton.icon(
+                      onPressed: state.isFetchingModels
+                          ? null
+                          : () {
+                              context.read<SettingsBloc>().add(
+                                SettingsEvent.fetchModels(
+                                  provider: activeProvider,
+                                  forceRefresh: true,
+                                ),
+                              );
+                            },
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Refresh'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (state.isFetchingModels)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 12),
+                        Text('Loading models...'),
+                      ],
+                    ),
+                  ),
+                )
+              else if (state.modelsError != null)
+                Card(
+                  color: Colors.red.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            state.modelsError!.message,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            context.read<SettingsBloc>().add(
+                              SettingsEvent.fetchModels(
+                                provider: activeProvider,
+                                forceRefresh: true,
+                              ),
+                            );
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else if (models.isEmpty)
+                Text(
+                  hasKey
+                      ? 'No compatible text models found.'
+                      : 'Add an API key above to load models.',
+                  style: TextStyle(color: Colors.grey.shade600),
+                )
+              else
+                DropdownButtonFormField<String>(
+                  initialValue:
+                      models.any((m) => m.id == state.settings.activeModelId)
+                      ? state.settings.activeModelId
+                      : models.first.id,
+                  decoration: const InputDecoration(
+                    labelText: 'Select Model',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: models.map((AiModel model) {
+                    return DropdownMenuItem<String>(
+                      value: model.id,
+                      child: Text(
+                        model.displayName,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      context.read<SettingsBloc>().add(
+                        SettingsEvent.selectModel(value),
+                      );
+                    }
+                  },
                 ),
-              ],
             ],
           );
         },

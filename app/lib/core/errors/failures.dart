@@ -23,3 +23,17 @@ class Failure with _$Failure {
   const factory Failure.unexpected({required String message}) =
       UnexpectedFailure;
 }
+
+extension FailureMessageExt on Failure {
+  String get message {
+    return when(
+      server: (msg, code) => msg,
+      cache: (msg) => msg,
+      missingApiKey: (provider) => 'Missing API key for $provider',
+      providerNotConfigured: (provider) => '$provider is not configured',
+      invalidCommand: (trigger) => 'Invalid command: $trigger',
+      network: (msg) => msg,
+      unexpected: (msg) => msg,
+    );
+  }
+}

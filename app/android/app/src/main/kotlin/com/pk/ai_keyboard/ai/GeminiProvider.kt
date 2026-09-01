@@ -10,7 +10,7 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
-open class OpenAiProvider : AiProvider {
+class GeminiProvider : AiProvider {
 
     override suspend fun transform(
         text: String,
@@ -23,22 +23,25 @@ open class OpenAiProvider : AiProvider {
             return@withContext AiResult.Failure(AiFailure.MissingApiKey)
         }
 
-        val endpointUrl = if (!baseUrl.isNullOrBlank()) baseUrl else "https://api.openai.com/v1/chat/completions"
+        val modelId = if (model.isBlank()) "gemini-1.5-flash" else model
+        val endpointUrl = if (!baseUrl.isNullOrBlank()) {
+            baseUrl
+        } else {
+            "https://generativelanguage.googleapis.com/v1beta/models/$modelId:generateContent?key=$apiKey"
+        }
 
         val jsonPayload = JSONObject().apply {
-            put("model", model.ifBlank { "gpt-4o-mini" })
-            put("temperature", 0.3)
-            val messages = JSONArray().apply {
+            val parts = JSONArray().apply {
                 put(JSONObject().apply {
-                    put("role", "system")
-                    put("content", prompt)
-                })
-                put(JSONObject().apply {
-                    put("role", "user")
-                    put("content", text)
+                    put("text", "$prompt\n\nUser Input:\n$text")
                 })
             }
-            put("messages", messages)
+            val contents = JSONArray().apply {
+                put(JSONObject().apply {
+                    put("parts", parts)
+                })
+            }
+            put("contents", contents)
         }
 
         var connection: HttpURLConnection? = null
@@ -50,7 +53,6 @@ open class OpenAiProvider : AiProvider {
                 readTimeout = 20000
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                setRequestProperty("Authorization", "Bearer $apiKey")
             }
 
             OutputStreamWriter(connection.outputStream, "UTF-8").use { writer ->
@@ -65,19 +67,21 @@ open class OpenAiProvider : AiProvider {
                 reader.close()
 
                 val jsonResponse = JSONObject(responseString)
-                val choices = jsonResponse.optJSONArray("choices")
-                if (choices != null && choices.length() > 0) {
-                    val firstChoice = choices.getJSONObject(0)
-                    val message = firstChoice.optJSONObject("message")
-                    val content = message?.optString("content")?.trim()
-
-                    if (!content.isNullOrBlank()) {
-                        val cleanedContent = content.removePrefix("\"").removeSuffix("\"").trim()
-                        return@withContext AiResult.Success(cleanedContent)
+                val candidates = jsonResponse.optJSONArray("candidates")
+                if (candidates != null && candidates.length() > 0) {
+                    val firstCandidate = candidates.getJSONObject(0)
+                    val contentObj = firstCandidate.optJSONObject("content")
+                    val parts = contentObj?.optJSONArray("parts")
+                    if (parts != null && parts.length() > 0) {
+                        val textResult = parts.getJSONObject(0).optString("text").trim()
+                        if (!textResult.isNullOrBlank()) {
+                            val cleaned = textResult.removePrefix("\"").removeSuffix("\"").trim()
+                            return@withContext AiResult.Success(cleaned)
+                        }
                     }
                 }
                 return@withContext AiResult.Failure(AiFailure.InvalidResponse)
-            } else if (statusCode == 401) {
+            } else if (statusCode == 400 || statusCode == 403) {
                 return@withContext AiResult.Failure(AiFailure.InvalidApiKey)
             } else {
                 val errorStream = connection.errorStream

@@ -5,14 +5,10 @@ import 'package:ai_keyboard/features/ai_service/domain/entities/ai_request.dart'
 import 'package:ai_keyboard/features/ai_service/domain/entities/ai_response.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
 
-abstract class AiRepository {
-  Future<Result<List<AiModel>, Failure>> getModels({
-    required AiProviderType provider,
-    required String apiKey,
-    bool forceRefresh = false,
-  });
-
-  Future<Result<AiResponse, Failure>> transformText({
+abstract class AiProvider {
+  AiProviderType get type;
+  Future<Result<List<AiModel>, Failure>> getModels(String apiKey);
+  Future<Result<AiResponse, Failure>> transform({
     required AiRequest request,
     required String apiKey,
   });

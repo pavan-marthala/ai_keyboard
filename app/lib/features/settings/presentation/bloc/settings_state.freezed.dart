@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SettingsState {
 
- UserSettings get settings; Map<AiProviderType, bool> get hasApiKeyMap; bool get isLoading; Failure? get failure;
+ UserSettings get settings; bool get isLoading; Map<AiProviderType, bool> get hasApiKeyMap; Map<AiProviderType, List<AiModel>> get modelsMap; bool get isFetchingModels; Failure? get modelsError; Failure? get failure;
 /// Create a copy of SettingsState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -27,20 +27,20 @@ $SettingsStateCopyWith<SettingsState> get copyWith => _$SettingsStateCopyWithImp
 @override
 bool operator ==(Object other) {
   final _this = this as SettingsState;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SettingsState&&(identical(other.settings, _this.settings) || other.settings == _this.settings)&&const DeepCollectionEquality().equals(other.hasApiKeyMap, _this.hasApiKeyMap)&&(identical(other.isLoading, _this.isLoading) || other.isLoading == _this.isLoading)&&(identical(other.failure, _this.failure) || other.failure == _this.failure));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SettingsState&&(identical(other.settings, _this.settings) || other.settings == _this.settings)&&(identical(other.isLoading, _this.isLoading) || other.isLoading == _this.isLoading)&&const DeepCollectionEquality().equals(other.hasApiKeyMap, _this.hasApiKeyMap)&&const DeepCollectionEquality().equals(other.modelsMap, _this.modelsMap)&&(identical(other.isFetchingModels, _this.isFetchingModels) || other.isFetchingModels == _this.isFetchingModels)&&(identical(other.modelsError, _this.modelsError) || other.modelsError == _this.modelsError)&&(identical(other.failure, _this.failure) || other.failure == _this.failure));
 }
 
 
 @override
 int get hashCode {
   final _this = this as SettingsState;
-  return Object.hash(runtimeType,_this.settings,const DeepCollectionEquality().hash(_this.hasApiKeyMap),_this.isLoading,_this.failure);
+  return Object.hash(runtimeType,_this.settings,_this.isLoading,const DeepCollectionEquality().hash(_this.hasApiKeyMap),const DeepCollectionEquality().hash(_this.modelsMap),_this.isFetchingModels,_this.modelsError,_this.failure);
 }
 
 @override
 String toString() {
   final _this = this as SettingsState;
-  return 'SettingsState(settings: ${_this.settings}, hasApiKeyMap: ${_this.hasApiKeyMap}, isLoading: ${_this.isLoading}, failure: ${_this.failure})';
+  return 'SettingsState(settings: ${_this.settings}, isLoading: ${_this.isLoading}, hasApiKeyMap: ${_this.hasApiKeyMap}, modelsMap: ${_this.modelsMap}, isFetchingModels: ${_this.isFetchingModels}, modelsError: ${_this.modelsError}, failure: ${_this.failure})';
 }
 
 
@@ -51,11 +51,11 @@ abstract mixin class $SettingsStateCopyWith<$Res>  {
   factory $SettingsStateCopyWith(SettingsState value, $Res Function(SettingsState) _then) = _$SettingsStateCopyWithImpl;
 @useResult
 $Res call({
- UserSettings settings, Map<AiProviderType, bool> hasApiKeyMap, bool isLoading, Failure? failure
+ UserSettings settings, bool isLoading, Map<AiProviderType, bool> hasApiKeyMap, Map<AiProviderType, List<AiModel>> modelsMap, bool isFetchingModels, Failure? modelsError, Failure? failure
 });
 
 
-$UserSettingsCopyWith<$Res> get settings;$FailureCopyWith<$Res>? get failure;
+$UserSettingsCopyWith<$Res> get settings;$FailureCopyWith<$Res>? get modelsError;$FailureCopyWith<$Res>? get failure;
 
 }
 /// @nodoc
@@ -68,12 +68,15 @@ class _$SettingsStateCopyWithImpl<$Res>
 
 /// Create a copy of SettingsState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? settings = null,Object? hasApiKeyMap = null,Object? isLoading = null,Object? failure = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? settings = null,Object? isLoading = null,Object? hasApiKeyMap = null,Object? modelsMap = null,Object? isFetchingModels = null,Object? modelsError = freezed,Object? failure = freezed,}) {
   return _then(SettingsState(
 settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
-as UserSettings,hasApiKeyMap: null == hasApiKeyMap ? _self.hasApiKeyMap : hasApiKeyMap // ignore: cast_nullable_to_non_nullable
-as Map<AiProviderType, bool>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
+as UserSettings,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as bool,hasApiKeyMap: null == hasApiKeyMap ? _self.hasApiKeyMap : hasApiKeyMap // ignore: cast_nullable_to_non_nullable
+as Map<AiProviderType, bool>,modelsMap: null == modelsMap ? _self.modelsMap : modelsMap // ignore: cast_nullable_to_non_nullable
+as Map<AiProviderType, List<AiModel>>,isFetchingModels: null == isFetchingModels ? _self.isFetchingModels : isFetchingModels // ignore: cast_nullable_to_non_nullable
+as bool,modelsError: freezed == modelsError ? _self.modelsError : modelsError // ignore: cast_nullable_to_non_nullable
+as Failure?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as Failure?,
   ));
 }
@@ -85,6 +88,18 @@ $UserSettingsCopyWith<$Res> get settings {
   
   return $UserSettingsCopyWith<$Res>(_self.settings, (value) {
     return _then(_self.copyWith(settings: value));
+  });
+}/// Create a copy of SettingsState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$FailureCopyWith<$Res>? get modelsError {
+    if (_self.modelsError == null) {
+    return null;
+  }
+
+  return $FailureCopyWith<$Res>(_self.modelsError!, (value) {
+    return _then(_self.copyWith(modelsError: value));
   });
 }/// Create a copy of SettingsState
 /// with the given fields replaced by the non-null parameter values.
@@ -180,10 +195,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( UserSettings settings,  Map<AiProviderType, bool> hasApiKeyMap,  bool isLoading,  Failure? failure)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( UserSettings settings,  bool isLoading,  Map<AiProviderType, bool> hasApiKeyMap,  Map<AiProviderType, List<AiModel>> modelsMap,  bool isFetchingModels,  Failure? modelsError,  Failure? failure)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SettingsState() when $default != null:
-return $default(_that.settings,_that.hasApiKeyMap,_that.isLoading,_that.failure);case _:
+return $default(_that.settings,_that.isLoading,_that.hasApiKeyMap,_that.modelsMap,_that.isFetchingModels,_that.modelsError,_that.failure);case _:
   return orElse();
 
 }
@@ -201,10 +216,10 @@ return $default(_that.settings,_that.hasApiKeyMap,_that.isLoading,_that.failure)
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( UserSettings settings,  Map<AiProviderType, bool> hasApiKeyMap,  bool isLoading,  Failure? failure)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( UserSettings settings,  bool isLoading,  Map<AiProviderType, bool> hasApiKeyMap,  Map<AiProviderType, List<AiModel>> modelsMap,  bool isFetchingModels,  Failure? modelsError,  Failure? failure)  $default,) {final _that = this;
 switch (_that) {
 case _SettingsState():
-return $default(_that.settings,_that.hasApiKeyMap,_that.isLoading,_that.failure);case _:
+return $default(_that.settings,_that.isLoading,_that.hasApiKeyMap,_that.modelsMap,_that.isFetchingModels,_that.modelsError,_that.failure);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -221,10 +236,10 @@ return $default(_that.settings,_that.hasApiKeyMap,_that.isLoading,_that.failure)
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( UserSettings settings,  Map<AiProviderType, bool> hasApiKeyMap,  bool isLoading,  Failure? failure)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( UserSettings settings,  bool isLoading,  Map<AiProviderType, bool> hasApiKeyMap,  Map<AiProviderType, List<AiModel>> modelsMap,  bool isFetchingModels,  Failure? modelsError,  Failure? failure)?  $default,) {final _that = this;
 switch (_that) {
 case _SettingsState() when $default != null:
-return $default(_that.settings,_that.hasApiKeyMap,_that.isLoading,_that.failure);case _:
+return $default(_that.settings,_that.isLoading,_that.hasApiKeyMap,_that.modelsMap,_that.isFetchingModels,_that.modelsError,_that.failure);case _:
   return null;
 
 }
@@ -236,10 +251,11 @@ return $default(_that.settings,_that.hasApiKeyMap,_that.isLoading,_that.failure)
 
 
 class _SettingsState implements SettingsState {
-  const _SettingsState({this.settings = const UserSettings(),  Map<AiProviderType, bool> hasApiKeyMap = const {}, this.isLoading = false, this.failure}): _hasApiKeyMap = hasApiKeyMap;
+  const _SettingsState({this.settings = const UserSettings(), this.isLoading = false,  Map<AiProviderType, bool> hasApiKeyMap = const {},  Map<AiProviderType, List<AiModel>> modelsMap = const {}, this.isFetchingModels = false, this.modelsError, this.failure}): _hasApiKeyMap = hasApiKeyMap,_modelsMap = modelsMap;
   
 
 @override@JsonKey() final  UserSettings settings;
+@override@JsonKey() final  bool isLoading;
  final  Map<AiProviderType, bool> _hasApiKeyMap;
 @override@JsonKey() Map<AiProviderType, bool> get hasApiKeyMap {
   if (_hasApiKeyMap is EqualUnmodifiableMapView) return _hasApiKeyMap;
@@ -247,7 +263,15 @@ class _SettingsState implements SettingsState {
   return EqualUnmodifiableMapView(_hasApiKeyMap);
 }
 
-@override@JsonKey() final  bool isLoading;
+ final  Map<AiProviderType, List<AiModel>> _modelsMap;
+@override@JsonKey() Map<AiProviderType, List<AiModel>> get modelsMap {
+  if (_modelsMap is EqualUnmodifiableMapView) return _modelsMap;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_modelsMap);
+}
+
+@override@JsonKey() final  bool isFetchingModels;
+@override final  Failure? modelsError;
 @override final  Failure? failure;
 
 /// Create a copy of SettingsState
@@ -260,18 +284,18 @@ _$SettingsStateCopyWith<_SettingsState> get copyWith => __$SettingsStateCopyWith
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SettingsState&&(identical(other.settings, settings) || other.settings == settings)&&const DeepCollectionEquality().equals(other.hasApiKeyMap, _hasApiKeyMap)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&(identical(other.failure, failure) || other.failure == failure));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _SettingsState&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.isLoading, isLoading) || other.isLoading == isLoading)&&const DeepCollectionEquality().equals(other.hasApiKeyMap, _hasApiKeyMap)&&const DeepCollectionEquality().equals(other.modelsMap, _modelsMap)&&(identical(other.isFetchingModels, isFetchingModels) || other.isFetchingModels == isFetchingModels)&&(identical(other.modelsError, modelsError) || other.modelsError == modelsError)&&(identical(other.failure, failure) || other.failure == failure));
 }
 
 
 @override
 int get hashCode {
-    return Object.hash(runtimeType,settings,const DeepCollectionEquality().hash(_hasApiKeyMap),isLoading,failure);
+    return Object.hash(runtimeType,settings,isLoading,const DeepCollectionEquality().hash(_hasApiKeyMap),const DeepCollectionEquality().hash(_modelsMap),isFetchingModels,modelsError,failure);
 }
 
 @override
 String toString() {
-    return 'SettingsState(settings: $settings, hasApiKeyMap: $hasApiKeyMap, isLoading: $isLoading, failure: $failure)';
+    return 'SettingsState(settings: $settings, isLoading: $isLoading, hasApiKeyMap: $hasApiKeyMap, modelsMap: $modelsMap, isFetchingModels: $isFetchingModels, modelsError: $modelsError, failure: $failure)';
 }
 
 
@@ -282,11 +306,11 @@ abstract mixin class _$SettingsStateCopyWith<$Res> implements $SettingsStateCopy
   factory _$SettingsStateCopyWith(_SettingsState value, $Res Function(_SettingsState) _then) = __$SettingsStateCopyWithImpl;
 @override @useResult
 $Res call({
- UserSettings settings, Map<AiProviderType, bool> hasApiKeyMap, bool isLoading, Failure? failure
+ UserSettings settings, bool isLoading, Map<AiProviderType, bool> hasApiKeyMap, Map<AiProviderType, List<AiModel>> modelsMap, bool isFetchingModels, Failure? modelsError, Failure? failure
 });
 
 
-@override $UserSettingsCopyWith<$Res> get settings;@override $FailureCopyWith<$Res>? get failure;
+@override $UserSettingsCopyWith<$Res> get settings;@override $FailureCopyWith<$Res>? get modelsError;@override $FailureCopyWith<$Res>? get failure;
 
 }
 /// @nodoc
@@ -299,12 +323,15 @@ class __$SettingsStateCopyWithImpl<$Res>
 
 /// Create a copy of SettingsState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? settings = null,Object? hasApiKeyMap = null,Object? isLoading = null,Object? failure = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? settings = null,Object? isLoading = null,Object? hasApiKeyMap = null,Object? modelsMap = null,Object? isFetchingModels = null,Object? modelsError = freezed,Object? failure = freezed,}) {
   return _then(_SettingsState(
 settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
-as UserSettings,hasApiKeyMap: null == hasApiKeyMap ? _self._hasApiKeyMap : hasApiKeyMap // ignore: cast_nullable_to_non_nullable
-as Map<AiProviderType, bool>,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
-as bool,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
+as UserSettings,isLoading: null == isLoading ? _self.isLoading : isLoading // ignore: cast_nullable_to_non_nullable
+as bool,hasApiKeyMap: null == hasApiKeyMap ? _self._hasApiKeyMap : hasApiKeyMap // ignore: cast_nullable_to_non_nullable
+as Map<AiProviderType, bool>,modelsMap: null == modelsMap ? _self._modelsMap : modelsMap // ignore: cast_nullable_to_non_nullable
+as Map<AiProviderType, List<AiModel>>,isFetchingModels: null == isFetchingModels ? _self.isFetchingModels : isFetchingModels // ignore: cast_nullable_to_non_nullable
+as bool,modelsError: freezed == modelsError ? _self.modelsError : modelsError // ignore: cast_nullable_to_non_nullable
+as Failure?,failure: freezed == failure ? _self.failure : failure // ignore: cast_nullable_to_non_nullable
 as Failure?,
   ));
 }
@@ -317,6 +344,18 @@ $UserSettingsCopyWith<$Res> get settings {
   
   return $UserSettingsCopyWith<$Res>(_self.settings, (value) {
     return _then(_self.copyWith(settings: value));
+  });
+}/// Create a copy of SettingsState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$FailureCopyWith<$Res>? get modelsError {
+    if (_self.modelsError == null) {
+    return null;
+  }
+
+  return $FailureCopyWith<$Res>(_self.modelsError!, (value) {
+    return _then(_self.copyWith(modelsError: value));
   });
 }/// Create a copy of SettingsState
 /// with the given fields replaced by the non-null parameter values.

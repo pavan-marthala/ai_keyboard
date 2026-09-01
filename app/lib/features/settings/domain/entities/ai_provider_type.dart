@@ -6,8 +6,8 @@ enum AiProviderType {
   openAi,
   @JsonValue('gemini')
   gemini,
-  @JsonValue('anthropic')
-  anthropic,
-  @JsonValue('custom')
-  custom,
+  @JsonValue('openRouter')
+  openRouter,
+  @JsonValue('groq')
+  groq,
 }

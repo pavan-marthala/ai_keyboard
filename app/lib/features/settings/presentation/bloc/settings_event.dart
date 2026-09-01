@@ -16,4 +16,12 @@ class SettingsEvent with _$SettingsEvent {
   const factory SettingsEvent.deleteApiKey({
     required AiProviderType provider,
   }) = _DeleteApiKey;
+
+  const factory SettingsEvent.selectProvider(AiProviderType provider) =
+      _SelectProvider;
+  const factory SettingsEvent.fetchModels({
+    required AiProviderType provider,
+    @Default(false) bool forceRefresh,
+  }) = _FetchModels;
+  const factory SettingsEvent.selectModel(String modelId) = _SelectModel;
 }

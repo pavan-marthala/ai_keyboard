@@ -15,10 +15,13 @@ void main() {
     await getIt.reset();
   });
 
-  testWidgets('App renders settings screen smoke test', (WidgetTester tester) async {
+  testWidgets('App renders Keyboard Playground and NavigationBar smoke test',
+      (WidgetTester tester) async {
     await tester.pumpWidget(const AiKeyboardApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('AI Keyboard Settings'), findsWidgets);
+    expect(find.text('Keyboard Playground'), findsWidgets);
+    expect(find.text('Playground'), findsWidgets);
+    expect(find.text('Settings'), findsWidgets);
   });
 }
