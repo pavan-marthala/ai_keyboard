@@ -10,8 +10,10 @@ import android.os.Looper
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
@@ -47,6 +49,14 @@ class KeyboardView @JvmOverloads constructor(
 
     private val handler = Handler(Looper.getMainLooper())
     private var backspaceRunnable: Runnable? = null
+
+    companion object {
+        private const val KEY_CORNER_RADIUS_DP = 14f
+        private const val KEY_ELEVATION_DP = 1.5f
+        private const val PRESS_SCALE = 0.93f
+        private const val PRESS_ANIM_MS = 70L
+        private const val RELEASE_ANIM_MS = 120L
+    }
 
     init {
         orientation = VERTICAL
@@ -89,18 +99,19 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun getKeyHeightDp(): Float {
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        return if (isLandscape) 36f else 48f
+        return if (isLandscape) 36f else 46f
     }
 
     private fun buildUi() {
         removeAllViews()
 
-        // 1. Compact Top AI Toolbar (36dp height)
+        // 1. Top AI Toolbar
         val toolbarLayout = HorizontalScrollView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
             setBackgroundColor(theme.toolbarColor)
-            setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
+            setPadding(dpToPx(10f), dpToPx(6f), dpToPx(10f), dpToPx(6f))
         }
 
         toolbarContainer = LinearLayout(context).apply {
@@ -109,18 +120,18 @@ class KeyboardView @JvmOverloads constructor(
         }
 
         tvStatus = TextView(context).apply {
-            text = "✨ AI Keyboard"
-            setTextColor(theme.accentColor)
+            text = "✨"
+            setTextColor(theme.textColor)
             setTypeface(null, Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setPadding(dpToPx(6f), dpToPx(2f), dpToPx(10f), dpToPx(2f))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+            setPadding(dpToPx(6f), dpToPx(2f), dpToPx(12f), dpToPx(2f))
         }
         toolbarContainer.addView(tvStatus)
 
         toolbarLayout.addView(toolbarContainer)
         addView(toolbarLayout)
 
-        // Subtle Divider
+        // Subtle divider
         val divider = View(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(1f))
             setBackgroundColor(theme.dividerColor)
@@ -131,7 +142,7 @@ class KeyboardView @JvmOverloads constructor(
         mainPanelContainer = LinearLayout(context).apply {
             orientation = VERTICAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-            setPadding(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
+            setPadding(dpToPx(4f), dpToPx(6f), dpToPx(4f), dpToPx(6f))
         }
         addView(mainPanelContainer)
 
@@ -145,13 +156,13 @@ class KeyboardView @JvmOverloads constructor(
         toolbarContainer.addView(tvStatus)
 
         val commands = listOf(
-            "@fix" to "Fix",
-            "@rewrite" to "Rewrite",
+            "@fix" to "✓ Fix",
+            "@rewrite" to "↻ Rewrite",
             "@pro" to "Pro",
             "@casual" to "Casual",
             "@short" to "Short",
             "@expand" to "Expand",
-            "@translate" to "Translate"
+            "@translate" to "🌐 Translate"
         )
 
         for ((trigger, label) in commands) {
@@ -170,22 +181,51 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun createChipView(label: String, onClick: () -> Unit): TextView {
-        val shape = GradientDrawable().apply {
+        val shapeNormal = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(16f).toFloat()
+            cornerRadius = dpToPx(18f).toFloat()
+            colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
+            orientation = GradientDrawable.Orientation.TL_BR
+        }
+        val shapePressed = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(18f).toFloat()
             setColor(theme.accentColor)
         }
+
         return TextView(context).apply {
             text = label
-            setTextColor(0xFFFFFFFF.toInt())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setTextColor(theme.chipTextColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
             setTypeface(null, Typeface.BOLD)
-            background = shape
-            setPadding(dpToPx(12f), dpToPx(4f), dpToPx(12f), dpToPx(4f))
+            background = shapeNormal
+            elevation = dpToPx(1f).toFloat()
+            gravity = Gravity.CENTER
+            setPadding(dpToPx(14f), dpToPx(6f), dpToPx(14f), dpToPx(6f))
             layoutParams = LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(dpToPx(3f), 0, dpToPx(3f), 0)
+                setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
+                        v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(PRESS_ANIM_MS).start()
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
+                            .setInterpolator(DecelerateInterpolator()).start()
+                        if (event.action != MotionEvent.ACTION_CANCEL) v.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS).start()
+                    }
+                }
+                true
             }
             setOnClickListener { onClick() }
         }
@@ -194,8 +234,13 @@ class KeyboardView @JvmOverloads constructor(
     private fun showLanguageSelectorPopup() {
         val popupView = LinearLayout(context).apply {
             orientation = VERTICAL
-            setBackgroundColor(theme.toolbarColor)
-            setPadding(dpToPx(12f), dpToPx(12f), dpToPx(12f), dpToPx(12f))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(16f).toFloat()
+                setColor(theme.toolbarColor)
+            }
+            elevation = dpToPx(8f).toFloat()
+            setPadding(dpToPx(14f), dpToPx(14f), dpToPx(14f), dpToPx(14f))
         }
 
         val title = TextView(context).apply {
@@ -203,7 +248,7 @@ class KeyboardView @JvmOverloads constructor(
             setTextColor(theme.textColor)
             setTypeface(null, Typeface.BOLD)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            setPadding(0, 0, 0, dpToPx(8f))
+            setPadding(dpToPx(2f), 0, 0, dpToPx(10f))
         }
         popupView.addView(title)
 
@@ -221,9 +266,15 @@ class KeyboardView @JvmOverloads constructor(
         for ((code, name) in NativeCommandRegistry.supportedLanguages) {
             val btn = Button(context).apply {
                 text = name
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+                isAllCaps = false
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
                 setTextColor(theme.textColor)
-                setBackgroundColor(theme.keyColor)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(10f).toFloat()
+                    setColor(theme.keyColor)
+                }
+                (layoutParams as? GridLayout.LayoutParams)?.setMargins(dpToPx(4f), dpToPx(4f), dpToPx(4f), dpToPx(4f))
                 setOnClickListener {
                     popupWindow.dismiss()
                     controller.onTranslateLanguageSelected(code)
@@ -233,6 +284,7 @@ class KeyboardView @JvmOverloads constructor(
         }
 
         popupView.addView(grid)
+        popupWindow.elevation = dpToPx(8f).toFloat()
         popupWindow.showAtLocation(this, Gravity.CENTER, 0, 0)
     }
 
@@ -253,7 +305,7 @@ class KeyboardView @JvmOverloads constructor(
         val row3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
         mainPanelContainer.addView(createKeyRow(row1))
-        mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 10f))
+        mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 12f))
 
         // Row 3: Shift + Letters + Backspace
         val row3Layout = LinearLayout(context).apply {
@@ -351,14 +403,14 @@ class KeyboardView @JvmOverloads constructor(
         }
         bottomRow.addView(settingsKey)
 
-        // Space Bar (Generous touch width)
-        val spaceKey = createKeyView("SPACE", weight = 4.2f) {
+        // Space Bar
+        val spaceKey = createKeyView("English", weight = 4.2f, isSpace = true) {
             controller.onKeyTyped(" ")
         }
         bottomRow.addView(spaceKey)
 
-        // Enter Key
-        enterKeyView = createKeyView("↵", isSpecial = true, weight = 1.5f) {
+        // Enter Key — premium gradient CTA
+        enterKeyView = createKeyView("↵", isSpecial = true, weight = 1.5f, isAccent = true) {
             controller.onEnterPressed(editorInfo)
         }
         updateEnterKeyLabel()
@@ -392,39 +444,63 @@ class KeyboardView @JvmOverloads constructor(
         isSpecial: Boolean = false,
         weight: Float = 1.0f,
         iconRes: Int? = null,
+        isAccent: Boolean = false,
+        isSpace: Boolean = false,
         onClick: () -> Unit
     ): TextView {
-        val bgNormal = if (isSpecial) theme.specialKeyColor else theme.keyColor
-
-        val shapeNormal = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(8f).toFloat()
-            setColor(bgNormal)
+        val bgNormal = when {
+            isAccent -> theme.accentColor
+            isSpace -> theme.spaceKeyColor
+            isSpecial -> theme.specialKeyColor
+            else -> theme.keyColor
+        }
+        val bgPressed = when {
+            isAccent -> theme.accentColorAlt
+            isSpecial -> theme.specialKeyPressedColor
+            else -> theme.keyPressedColor
         }
 
-        val shapePressed = GradientDrawable().apply {
+        fun buildShape(fillColor: Int): GradientDrawable = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(8f).toFloat()
-            setColor(theme.keyPressedColor)
+            cornerRadius = dpToPx(KEY_CORNER_RADIUS_DP).toFloat()
+            if (isAccent) {
+                colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
+                orientation = GradientDrawable.Orientation.TL_BR
+            } else {
+                setColor(fillColor)
+            }
+            if (theme.keyStrokeColor != 0x00000000 && !isAccent) {
+                setStroke(dpToPx(0.75f), theme.keyStrokeColor)
+            }
         }
+
+        val shapeNormal = buildShape(bgNormal)
+        val shapePressed = buildShape(bgPressed)
 
         return TextView(context).apply {
             text = label
             gravity = Gravity.CENTER
-            setTextColor(theme.textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            setTextColor(if (isAccent) theme.chipTextColor else if (isSpace) theme.secondaryTextColor else theme.textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isSpace) 13f else 17f)
+            if (isSpace) {
+                setTypeface(null, Typeface.NORMAL)
+                letterSpacing = 0.05f
+            } else {
+                setTypeface(null, Typeface.NORMAL)
+            }
             background = shapeNormal
+            elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
 
             if (iconRes != null) {
                 val drawable = ContextCompat.getDrawable(context, iconRes)?.apply {
-                    setTint(theme.textColor)
+                    setTint(if (isAccent) theme.chipTextColor else theme.textColor)
                 }
                 setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
             }
 
             val keyHeightPx = dpToPx(getKeyHeightDp())
             val params = LayoutParams(0, keyHeightPx, weight).apply {
-                setMargins(dpToPx(2f), dpToPx(3f), dpToPx(2f), dpToPx(3f))
+                setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
             }
             layoutParams = params
 
@@ -432,13 +508,22 @@ class KeyboardView @JvmOverloads constructor(
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         v.background = shapePressed
+                        v.elevation = dpToPx(0.5f).toFloat()
+                        v.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE)
+                            .setDuration(PRESS_ANIM_MS).start()
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     }
                     MotionEvent.ACTION_UP -> {
                         v.background = shapeNormal
+                        v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
+                            .setInterpolator(DecelerateInterpolator()).start()
                         onClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
                         v.background = shapeNormal
+                        v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS).start()
                     }
                 }
                 true
@@ -451,6 +536,8 @@ class KeyboardView @JvmOverloads constructor(
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     controller.onBackspacePressed()
+                    v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    v.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE).setDuration(PRESS_ANIM_MS).start()
                     backspaceRunnable = object : Runnable {
                         override fun run() {
                             controller.onBackspacePressed()
@@ -460,6 +547,8 @@ class KeyboardView @JvmOverloads constructor(
                     handler.postDelayed(backspaceRunnable!!, 400L)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
+                        .setInterpolator(DecelerateInterpolator()).start()
                     backspaceRunnable?.let { handler.removeCallbacks(it) }
                 }
             }
@@ -495,7 +584,7 @@ class KeyboardView @JvmOverloads constructor(
         }
         if (iconRes != null) {
             val drawable = ContextCompat.getDrawable(context, iconRes)?.apply {
-                setTint(theme.textColor)
+                setTint(theme.chipTextColor)
             }
             enterKeyView?.text = ""
             enterKeyView?.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
