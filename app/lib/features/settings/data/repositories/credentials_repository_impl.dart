@@ -2,26 +2,28 @@ import 'package:ai_keyboard/core/errors/failures.dart';
 import 'package:ai_keyboard/core/errors/result.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:ai_keyboard/features/settings/domain/repositories/credentials_repository.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:injectable/injectable.dart';
 
 @LazySingleton(as: CredentialsRepository)
 class CredentialsRepositoryImpl implements CredentialsRepository {
   final FlutterSecureStorage _secureStorage;
+  static const _channel = MethodChannel('com.pk.ai_keyboard/credentials');
 
   CredentialsRepositoryImpl(this._secureStorage);
-
-  String _getKeyForProvider(AiProviderType provider) =>
-      'api_key_${provider.name}';
 
   @override
   Future<Result<String?, Failure>> getApiKey(AiProviderType provider) async {
     try {
-      final apiKey =
-          await _secureStorage.read(key: _getKeyForProvider(provider));
-      return Success(apiKey);
+      final bool exists = await _channel.invokeMethod('hasApiKey', {
+        'provider': provider.name,
+      });
+      return Success(exists ? 'EXISTS' : null);
     } catch (e) {
-      return FailureResult(Failure.cache(message: e.toString()));
+      final apiKey =
+          await _secureStorage.read(key: 'api_key_${provider.name}');
+      return Success(apiKey);
     }
   }
 
@@ -31,8 +33,12 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
     String apiKey,
   ) async {
     try {
+      await _channel.invokeMethod('saveApiKey', {
+        'provider': provider.name,
+        'apiKey': apiKey,
+      });
       await _secureStorage.write(
-        key: _getKeyForProvider(provider),
+        key: 'api_key_${provider.name}',
         value: apiKey,
       );
       return const Success(null);
@@ -44,7 +50,10 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
   @override
   Future<Result<void, Failure>> deleteApiKey(AiProviderType provider) async {
     try {
-      await _secureStorage.delete(key: _getKeyForProvider(provider));
+      await _channel.invokeMethod('deleteApiKey', {
+        'provider': provider.name,
+      });
+      await _secureStorage.delete(key: 'api_key_${provider.name}');
       return const Success(null);
     } catch (e) {
       return FailureResult(Failure.cache(message: e.toString()));

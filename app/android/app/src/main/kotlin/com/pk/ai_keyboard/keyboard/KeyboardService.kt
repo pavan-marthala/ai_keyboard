@@ -4,14 +4,25 @@ import android.inputmethodservice.InputMethodService
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
+import android.widget.TextView
 import com.pk.ai_keyboard.R
 
 class KeyboardService : InputMethodService() {
 
-    private val controller = KeyboardController()
+    private lateinit var controller: KeyboardController
+    private var tvStatus: TextView? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        controller = KeyboardController(applicationContext)
+        controller.onStatusUpdate = { status ->
+            tvStatus?.text = status
+        }
+    }
 
     override fun onCreateInputView(): View {
         val view = layoutInflater.inflate(R.layout.keyboard_view, null)
+        tvStatus = view.findViewById(R.id.tv_status)
         setupKeyListeners(view)
         return view
     }
@@ -24,6 +35,11 @@ class KeyboardService : InputMethodService() {
     override fun onFinishInput() {
         super.onFinishInput()
         controller.onInputConnectionChanged(null)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        controller.onDestroy()
     }
 
     private fun setupKeyListeners(view: View) {
@@ -56,4 +72,3 @@ class KeyboardService : InputMethodService() {
         }
     }
 }
-

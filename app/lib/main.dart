@@ -1,11 +1,11 @@
+import 'package:ai_keyboard/core/di/injection.dart';
+import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart';
+import 'package:ai_keyboard/features/commands/presentation/bloc/command_event.dart';
+import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:ai_keyboard/features/settings/presentation/bloc/settings_event.dart';
+import 'package:ai_keyboard/features/settings/presentation/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-import 'core/di/injection.dart';
-import 'features/commands/presentation/bloc/command_bloc.dart';
-import 'features/commands/presentation/bloc/command_event.dart';
-import 'features/settings/presentation/bloc/settings_bloc.dart';
-import 'features/settings/presentation/bloc/settings_event.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,24 +36,7 @@ class AiKeyboardApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: const AppHomeScreen(),
-      ),
-    );
-  }
-}
-
-class AppHomeScreen extends StatelessWidget {
-  const AppHomeScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AI Keyboard Utility')),
-      body: const Center(
-        child: Text(
-          'AI Keyboard Utility Base Architecture Ready.\nConfigure settings and commands.',
-          textAlign: TextAlign.center,
-        ),
+        home: const SettingsPage(),
       ),
     );
   }

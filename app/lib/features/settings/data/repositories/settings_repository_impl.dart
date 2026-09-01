@@ -3,6 +3,7 @@ import 'package:ai_keyboard/core/errors/failures.dart';
 import 'package:ai_keyboard/core/errors/result.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/user_settings.dart';
 import 'package:ai_keyboard/features/settings/domain/repositories/settings_repository.dart';
+import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsRepositoryImpl implements SettingsRepository {
   final SharedPreferences _prefs;
   static const String _settingsKey = 'user_settings';
+  static const _channel = MethodChannel('com.pk.ai_keyboard/credentials');
 
   SettingsRepositoryImpl(this._prefs);
 
@@ -32,6 +34,15 @@ class SettingsRepositoryImpl implements SettingsRepository {
     try {
       final jsonString = jsonEncode(settings.toJson());
       await _prefs.setString(_settingsKey, jsonString);
+
+      try {
+        await _channel.invokeMethod('saveConfig', {
+          'provider': settings.activeProvider.name,
+          'modelId': settings.activeModelId,
+          'baseUrl': settings.customBaseUrl,
+        });
+      } catch (_) {}
+
       return const Success(null);
     } catch (e) {
       return FailureResult(Failure.cache(message: e.toString()));
