@@ -2,6 +2,7 @@ package com.pk.ai_keyboard.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.Configuration
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
@@ -11,10 +12,13 @@ import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
+import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import com.pk.ai_keyboard.R
 import com.pk.ai_keyboard.command.NativeCommandRegistry
 import com.pk.ai_keyboard.keyboard.KeyboardController
 import com.pk.ai_keyboard.keyboard.ShiftState
@@ -47,7 +51,19 @@ class KeyboardView @JvmOverloads constructor(
     init {
         orientation = VERTICAL
         setBackgroundColor(theme.backgroundColor)
+        setupInsetsListener()
         buildUi()
+    }
+
+    private fun setupInsetsListener() {
+        ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+            val sysBars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.navigationBars()
+            )
+            val bottomInset = sysBars.bottom
+            view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, bottomInset)
+            insets
+        }
     }
 
     fun init(keyboardController: KeyboardController) {
@@ -71,15 +87,20 @@ class KeyboardView @JvmOverloads constructor(
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, resources.displayMetrics).toInt()
     }
 
+    private fun getKeyHeightDp(): Float {
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        return if (isLandscape) 36f else 48f
+    }
+
     private fun buildUi() {
         removeAllViews()
 
-        // 1. Top AI Toolbar
+        // 1. Compact Top AI Toolbar (36dp height)
         val toolbarLayout = HorizontalScrollView(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             isHorizontalScrollBarEnabled = false
             setBackgroundColor(theme.toolbarColor)
-            setPadding(dpToPx(8f), dpToPx(6f), dpToPx(8f), dpToPx(6f))
+            setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
         }
 
         toolbarContainer = LinearLayout(context).apply {
@@ -91,26 +112,26 @@ class KeyboardView @JvmOverloads constructor(
             text = "✨ AI Keyboard"
             setTextColor(theme.accentColor)
             setTypeface(null, Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setPadding(dpToPx(6f), dpToPx(4f), dpToPx(12f), dpToPx(4f))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            setPadding(dpToPx(6f), dpToPx(2f), dpToPx(10f), dpToPx(2f))
         }
         toolbarContainer.addView(tvStatus)
 
         toolbarLayout.addView(toolbarContainer)
         addView(toolbarLayout)
 
-        // Divider
+        // Subtle Divider
         val divider = View(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(1f))
             setBackgroundColor(theme.dividerColor)
         }
         addView(divider)
 
-        // 2. Main Keyboard Panels Container
+        // 2. Main Keyboard Panel Container
         mainPanelContainer = LinearLayout(context).apply {
             orientation = VERTICAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
-            setPadding(dpToPx(2f), dpToPx(4f), dpToPx(2f), dpToPx(6f))
+            setPadding(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
         }
         addView(mainPanelContainer)
 
@@ -120,7 +141,6 @@ class KeyboardView @JvmOverloads constructor(
     fun refreshToolbar() {
         if (!::toolbarContainer.isInitialized) return
 
-        // Keep status view
         toolbarContainer.removeAllViews()
         toolbarContainer.addView(tvStatus)
 
@@ -161,8 +181,8 @@ class KeyboardView @JvmOverloads constructor(
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             setTypeface(null, Typeface.BOLD)
             background = shape
-            setPadding(dpToPx(12f), dpToPx(6f), dpToPx(12f), dpToPx(6f))
-            layoutParams = LinearLayout.LayoutParams(
+            setPadding(dpToPx(12f), dpToPx(4f), dpToPx(12f), dpToPx(4f))
+            layoutParams = LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT
             ).apply {
                 setMargins(dpToPx(3f), 0, dpToPx(3f), 0)
@@ -233,7 +253,7 @@ class KeyboardView @JvmOverloads constructor(
         val row3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
         mainPanelContainer.addView(createKeyRow(row1))
-        mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 12f))
+        mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 10f))
 
         // Row 3: Shift + Letters + Backspace
         val row3Layout = LinearLayout(context).apply {
@@ -241,7 +261,7 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        shiftKeyView = createKeyView("⇧", isSpecial = true, weight = 1.4f) {
+        shiftKeyView = createKeyView("", isSpecial = true, weight = 1.4f, iconRes = R.drawable.ic_shift) {
             controller.onShiftPressed()
         }
         row3Layout.addView(shiftKeyView)
@@ -254,7 +274,7 @@ class KeyboardView @JvmOverloads constructor(
             row3Layout.addView(key)
         }
 
-        val backspaceKey = createKeyView("⌫", isSpecial = true, weight = 1.4f) {
+        val backspaceKey = createKeyView("", isSpecial = true, weight = 1.4f, iconRes = R.drawable.ic_backspace) {
             controller.onBackspacePressed()
         }.apply {
             setupBackspaceRepeat(this)
@@ -262,8 +282,6 @@ class KeyboardView @JvmOverloads constructor(
         row3Layout.addView(backspaceKey)
 
         mainPanelContainer.addView(row3Layout)
-
-        // Bottom Action Row
         renderBottomRow()
         if (::controller.isInitialized) {
             updateShiftUi(controller.shiftState)
@@ -289,7 +307,7 @@ class KeyboardView @JvmOverloads constructor(
             })
         }
 
-        val backspaceKey = createKeyView("⌫", isSpecial = true, weight = 1.4f) {
+        val backspaceKey = createKeyView("", isSpecial = true, weight = 1.4f, iconRes = R.drawable.ic_backspace) {
             controller.onBackspacePressed()
         }.apply {
             setupBackspaceRepeat(this)
@@ -314,7 +332,7 @@ class KeyboardView @JvmOverloads constructor(
         bottomRow.addView(modeToggleKey)
 
         // Globe Switcher
-        val globeKey = createKeyView("🌐", isSpecial = true, weight = 1.0f) {
+        val globeKey = createKeyView("", isSpecial = true, weight = 1.0f, iconRes = R.drawable.ic_globe) {
             try {
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 val binder = windowToken
@@ -328,7 +346,7 @@ class KeyboardView @JvmOverloads constructor(
         bottomRow.addView(globeKey)
 
         // Settings Key
-        val settingsKey = createKeyView("⚙", isSpecial = true, weight = 1.0f) {
+        val settingsKey = createKeyView("", isSpecial = true, weight = 1.0f, iconRes = R.drawable.ic_settings) {
             controller.openAppSettings()
         }
         bottomRow.addView(settingsKey)
@@ -373,19 +391,20 @@ class KeyboardView @JvmOverloads constructor(
         label: String,
         isSpecial: Boolean = false,
         weight: Float = 1.0f,
+        iconRes: Int? = null,
         onClick: () -> Unit
     ): TextView {
         val bgNormal = if (isSpecial) theme.specialKeyColor else theme.keyColor
 
         val shapeNormal = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(6f).toFloat()
+            cornerRadius = dpToPx(8f).toFloat()
             setColor(bgNormal)
         }
 
         val shapePressed = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(6f).toFloat()
+            cornerRadius = dpToPx(8f).toFloat()
             setColor(theme.keyPressedColor)
         }
 
@@ -393,10 +412,18 @@ class KeyboardView @JvmOverloads constructor(
             text = label
             gravity = Gravity.CENTER
             setTextColor(theme.textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             background = shapeNormal
 
-            val params = LinearLayout.LayoutParams(0, dpToPx(48f), weight).apply {
+            if (iconRes != null) {
+                val drawable = ContextCompat.getDrawable(context, iconRes)?.apply {
+                    setTint(theme.textColor)
+                }
+                setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
+            }
+
+            val keyHeightPx = dpToPx(getKeyHeightDp())
+            val params = LayoutParams(0, keyHeightPx, weight).apply {
                 setMargins(dpToPx(2f), dpToPx(3f), dpToPx(2f), dpToPx(3f))
             }
             layoutParams = params
@@ -441,11 +468,15 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun updateShiftUi(shiftState: ShiftState) {
-        shiftKeyView?.text = when (shiftState) {
-            ShiftState.LOWERCASE -> "⇧"
-            ShiftState.SHIFT_ON -> "⇪"
-            ShiftState.CAPS_LOCK -> "🔒"
+        val shiftDrawableRes = when (shiftState) {
+            ShiftState.LOWERCASE -> R.drawable.ic_shift
+            ShiftState.SHIFT_ON -> R.drawable.ic_shift
+            ShiftState.CAPS_LOCK -> R.drawable.ic_caps_lock
         }
+        val drawable = ContextCompat.getDrawable(context, shiftDrawableRes)?.apply {
+            setTint(if (shiftState != ShiftState.LOWERCASE) theme.accentColor else theme.textColor)
+        }
+        shiftKeyView?.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
 
         val isUpper = shiftState != ShiftState.LOWERCASE
         for (view in letterKeyViews) {
@@ -456,14 +487,21 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun updateEnterKeyLabel() {
         val action = editorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
-        enterKeyView?.text = when (action) {
-            EditorInfo.IME_ACTION_SEARCH -> "🔍"
-            EditorInfo.IME_ACTION_DONE -> "✓"
-            EditorInfo.IME_ACTION_GO -> "➔"
-            EditorInfo.IME_ACTION_NEXT -> "➜"
-            EditorInfo.IME_ACTION_SEND -> "✈"
-            else -> "↵"
+        val iconRes = when (action) {
+            EditorInfo.IME_ACTION_SEARCH -> R.drawable.ic_search
+            EditorInfo.IME_ACTION_DONE -> R.drawable.ic_done
+            EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_SEND -> R.drawable.ic_arrow_forward
+            else -> null
+        }
+        if (iconRes != null) {
+            val drawable = ContextCompat.getDrawable(context, iconRes)?.apply {
+                setTint(theme.textColor)
+            }
+            enterKeyView?.text = ""
+            enterKeyView?.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
+        } else {
+            enterKeyView?.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null)
+            enterKeyView?.text = "↵"
         }
     }
 }
-
