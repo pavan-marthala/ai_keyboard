@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -44,8 +45,8 @@ class KeyboardView @JvmOverloads constructor(
     private lateinit var mainPanelContainer: LinearLayout
 
     private val letterKeyViews = mutableListOf<TextView>()
-    private var shiftKeyView: TextView? = null
-    private var enterKeyView: TextView? = null
+    private var shiftIconView: ImageView? = null
+    private var enterIconView: ImageView? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var backspaceRunnable: Runnable? = null
@@ -56,6 +57,11 @@ class KeyboardView @JvmOverloads constructor(
         private const val PRESS_SCALE = 0.93f
         private const val PRESS_ANIM_MS = 70L
         private const val RELEASE_ANIM_MS = 120L
+
+        // Every control-key icon (shift, backspace, globe, settings, enter) is forced
+        // to this exact box size, regardless of each vector asset's own intrinsic
+        // viewport — this is what keeps them visually consistent and centered.
+        private const val ICON_SIZE_DP = 22f
     }
 
     init {
@@ -105,6 +111,33 @@ class KeyboardView @JvmOverloads constructor(
         return if (isLandscape) 36f else 46f
     }
 
+    // ---------- shared press-animation helpers (used by every key type) ----------
+
+    private fun animatePress(view: View) {
+        view.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE).setDuration(PRESS_ANIM_MS).start()
+    }
+
+    private fun animateRelease(view: View) {
+        view.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
+            .setInterpolator(DecelerateInterpolator()).start()
+    }
+
+    private fun buildKeyShape(fillColor: Int, isAccent: Boolean): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(KEY_CORNER_RADIUS_DP).toFloat()
+            if (isAccent) {
+                colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
+                orientation = GradientDrawable.Orientation.TL_BR
+            } else {
+                setColor(fillColor)
+                if (theme.keyStrokeColor != 0x00000000) {
+                    setStroke(dpToPx(0.75f), theme.keyStrokeColor)
+                }
+            }
+        }
+    }
+
     private fun buildUi() {
         removeAllViews()
 
@@ -123,7 +156,7 @@ class KeyboardView @JvmOverloads constructor(
         }
 
         tvStatus = TextView(context).apply {
-            text = "✨"
+            text = "✨ AI Keyboard"
             setTextColor(theme.textColor)
             setTypeface(null, Typeface.BOLD)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
@@ -215,17 +248,16 @@ class KeyboardView @JvmOverloads constructor(
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         v.background = shapePressed
-                        v.animate().scaleX(0.95f).scaleY(0.95f).setDuration(PRESS_ANIM_MS).start()
+                        animatePress(v)
                     }
                     MotionEvent.ACTION_UP -> {
                         v.background = shapeNormal
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
-                            .setInterpolator(DecelerateInterpolator()).start()
-                        if (event.action != MotionEvent.ACTION_CANCEL) v.performClick()
+                        animateRelease(v)
+                        v.performClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
                         v.background = shapeNormal
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS).start()
+                        animateRelease(v)
                     }
                 }
                 true
@@ -316,10 +348,15 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        shiftKeyView = createKeyView("", isSpecial = true, weight = 1.4f, iconRes = R.drawable.ic_shift) {
+        val shiftKey = createIconKeyView(
+            iconRes = R.drawable.ic_shift,
+            weight = 1.4f,
+            contentDescription = "Shift"
+        ) {
             controller.onShiftPressed()
         }
-        row3Layout.addView(shiftKeyView)
+        shiftIconView = shiftKey.getTag(R.id.tag_icon_view) as? ImageView
+        row3Layout.addView(shiftKey)
 
         for (char in row3) {
             val key = createKeyView(char, weight = 1.0f) {
@@ -329,11 +366,14 @@ class KeyboardView @JvmOverloads constructor(
             row3Layout.addView(key)
         }
 
-        val backspaceKey = createKeyView("", isSpecial = true, weight = 1.4f, iconRes = R.drawable.ic_backspace) {
-            controller.onBackspacePressed()
-        }.apply {
-            setupBackspaceRepeat(this)
+        val backspaceKey = createIconKeyView(
+            iconRes = R.drawable.ic_backspace,
+            weight = 1.4f,
+            contentDescription = "Delete"
+        ) {
+            // no-op: repeat behavior below overrides the click/touch handling
         }
+        setupBackspaceRepeat(backspaceKey)
         row3Layout.addView(backspaceKey)
 
         mainPanelContainer.addView(row3Layout)
@@ -362,11 +402,14 @@ class KeyboardView @JvmOverloads constructor(
             })
         }
 
-        val backspaceKey = createKeyView("", isSpecial = true, weight = 1.4f, iconRes = R.drawable.ic_backspace) {
-            controller.onBackspacePressed()
-        }.apply {
-            setupBackspaceRepeat(this)
+        val backspaceKey = createIconKeyView(
+            iconRes = R.drawable.ic_backspace,
+            weight = 1.4f,
+            contentDescription = "Delete"
+        ) {
+            // no-op: repeat behavior below overrides the click/touch handling
         }
+        setupBackspaceRepeat(backspaceKey)
         row3Layout.addView(backspaceKey)
 
         mainPanelContainer.addView(row3Layout)
@@ -379,7 +422,7 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        // 123 / ABC Toggle
+        // 123 / ABC Toggle (text key, intentionally not an icon)
         val modeToggleKey = createKeyView(if (isSymbolPanel) "ABC" else "123", isSpecial = true, weight = 1.4f) {
             isSymbolPanel = !isSymbolPanel
             renderPanel()
@@ -387,7 +430,11 @@ class KeyboardView @JvmOverloads constructor(
         bottomRow.addView(modeToggleKey)
 
         // Globe Switcher
-        val globeKey = createKeyView("", isSpecial = true, weight = 1.0f, iconRes = R.drawable.ic_globe) {
+        val globeKey = createIconKeyView(
+            iconRes = R.drawable.ic_globe,
+            weight = 1.0f,
+            contentDescription = "Switch keyboard"
+        ) {
             try {
                 val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
                 val binder = windowToken
@@ -401,7 +448,11 @@ class KeyboardView @JvmOverloads constructor(
         bottomRow.addView(globeKey)
 
         // Settings Key
-        val settingsKey = createKeyView("", isSpecial = true, weight = 1.0f, iconRes = R.drawable.ic_settings) {
+        val settingsKey = createIconKeyView(
+            iconRes = R.drawable.ic_settings,
+            weight = 1.0f,
+            contentDescription = "Keyboard settings"
+        ) {
             controller.openAppSettings()
         }
         bottomRow.addView(settingsKey)
@@ -412,12 +463,18 @@ class KeyboardView @JvmOverloads constructor(
         }
         bottomRow.addView(spaceKey)
 
-        // Enter Key — premium gradient CTA
-        enterKeyView = createKeyView("↵", isSpecial = true, weight = 1.5f, isAccent = true) {
+        // Enter Key — premium gradient CTA, always an icon (never falls back to a glyph)
+        val enterKey = createIconKeyView(
+            iconRes = R.drawable.ic_enter,
+            weight = 1.5f,
+            isAccent = true,
+            contentDescription = "Enter"
+        ) {
             controller.onEnterPressed(editorInfo)
         }
+        enterIconView = enterKey.getTag(R.id.tag_icon_view) as? ImageView
         updateEnterKeyLabel()
-        bottomRow.addView(enterKeyView)
+        bottomRow.addView(enterKey)
 
         mainPanelContainer.addView(bottomRow)
     }
@@ -442,91 +499,57 @@ class KeyboardView @JvmOverloads constructor(
         return row
     }
 
+    /** Text keys: letters, numbers, symbols, and the "123"/"ABC" toggle. */
     private fun createKeyView(
         label: String,
         isSpecial: Boolean = false,
         weight: Float = 1.0f,
-        iconRes: Int? = null,
-        isAccent: Boolean = false,
         isSpace: Boolean = false,
         onClick: () -> Unit
     ): TextView {
         val bgNormal = when {
-            isAccent -> theme.accentColor
             isSpace -> theme.spaceKeyColor
             isSpecial -> theme.specialKeyColor
             else -> theme.keyColor
         }
-        val bgPressed = when {
-            isAccent -> theme.accentColorAlt
-            isSpecial -> theme.specialKeyPressedColor
-            else -> theme.keyPressedColor
-        }
+        val bgPressed = if (isSpecial) theme.specialKeyPressedColor else theme.keyPressedColor
 
-        fun buildShape(fillColor: Int): GradientDrawable = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(KEY_CORNER_RADIUS_DP).toFloat()
-            if (isAccent) {
-                colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
-                orientation = GradientDrawable.Orientation.TL_BR
-            } else {
-                setColor(fillColor)
-            }
-            if (theme.keyStrokeColor != 0x00000000 && !isAccent) {
-                setStroke(dpToPx(0.75f), theme.keyStrokeColor)
-            }
-        }
-
-        val shapeNormal = buildShape(bgNormal)
-        val shapePressed = buildShape(bgPressed)
+        val shapeNormal = buildKeyShape(bgNormal, isAccent = false)
+        val shapePressed = buildKeyShape(bgPressed, isAccent = false)
 
         return TextView(context).apply {
             text = label
             gravity = Gravity.CENTER
-            setTextColor(if (isAccent) theme.chipTextColor else if (isSpace) theme.secondaryTextColor else theme.textColor)
+            includeFontPadding = false
+            setTextColor(if (isSpace) theme.secondaryTextColor else theme.textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isSpace) 13f else 17f)
-            if (isSpace) {
-                setTypeface(null, Typeface.NORMAL)
-                letterSpacing = 0.05f
-            } else {
-                setTypeface(null, Typeface.NORMAL)
-            }
+            if (isSpace) letterSpacing = 0.05f
             background = shapeNormal
             elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
 
-            if (iconRes != null) {
-                val drawable = ContextCompat.getDrawable(context, iconRes)?.apply {
-                    setTint(if (isAccent) theme.chipTextColor else theme.textColor)
-                }
-                setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
-            }
-
             val keyHeightPx = dpToPx(getKeyHeightDp())
-            val params = LayoutParams(0, keyHeightPx, weight).apply {
+            layoutParams = LayoutParams(0, keyHeightPx, weight).apply {
                 setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
             }
-            layoutParams = params
 
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         v.background = shapePressed
                         v.elevation = dpToPx(0.5f).toFloat()
-                        v.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE)
-                            .setDuration(PRESS_ANIM_MS).start()
+                        animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     }
                     MotionEvent.ACTION_UP -> {
                         v.background = shapeNormal
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
-                            .setInterpolator(DecelerateInterpolator()).start()
+                        animateRelease(v)
                         onClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
                         v.background = shapeNormal
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
-                        v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS).start()
+                        animateRelease(v)
                     }
                 }
                 true
@@ -534,13 +557,89 @@ class KeyboardView @JvmOverloads constructor(
         }
     }
 
-    private fun setupBackspaceRepeat(view: View) {
+    /**
+     * Icon-only keys: shift, backspace, globe, settings, enter.
+     * Uses an ImageView pinned to a fixed [ICON_SIZE_DP] box inside a FrameLayout,
+     * so every control icon renders at the same visual size and is perfectly
+     * centered — regardless of that vector asset's own intrinsic dimensions.
+     */
+    private fun createIconKeyView(
+        iconRes: Int,
+        weight: Float,
+        isAccent: Boolean = false,
+        contentDescription: String? = null,
+        onClick: () -> Unit
+    ): FrameLayout {
+        val bgNormal = if (isAccent) theme.accentColor else theme.specialKeyColor
+        val bgPressed = if (isAccent) theme.accentColorAlt else theme.specialKeyPressedColor
+
+        val shapeNormal = buildKeyShape(bgNormal, isAccent)
+        val shapePressed = buildKeyShape(bgPressed, isAccent = false)
+
+        val iconSizePx = dpToPx(ICON_SIZE_DP)
+        val tintColor = if (isAccent) theme.chipTextColor else theme.textColor
+
+        val imageView = ImageView(context).apply {
+            setImageDrawable(ContextCompat.getDrawable(context, iconRes)?.mutate()?.apply {
+                setTint(tintColor)
+            })
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = FrameLayout.LayoutParams(iconSizePx, iconSizePx, Gravity.CENTER)
+        }
+
+        val keyHeightPx = dpToPx(getKeyHeightDp())
+        return FrameLayout(context).apply {
+            background = shapeNormal
+            elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+            this.contentDescription = contentDescription
+            isClickable = true
+            isFocusable = true
+            layoutParams = LinearLayout.LayoutParams(0, keyHeightPx, weight).apply {
+                setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
+            }
+            addView(imageView)
+            setTag(R.id.tag_icon_view, imageView)
+
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
+                        v.elevation = dpToPx(0.5f).toFloat()
+                        animatePress(v)
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
+                        v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                        animateRelease(v)
+                        onClick()
+                        v.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
+                        v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                        animateRelease(v)
+                    }
+                }
+                true
+            }
+        }
+    }
+
+    private fun setupBackspaceRepeat(view: FrameLayout) {
+        val bgNormal = theme.specialKeyColor
+        val bgPressed = theme.specialKeyPressedColor
+        val shapeNormal = buildKeyShape(bgNormal, isAccent = false)
+        val shapePressed = buildKeyShape(bgPressed, isAccent = false)
+
         view.setOnTouchListener { v, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    controller.onBackspacePressed()
+                    v.background = shapePressed
+                    v.elevation = dpToPx(0.5f).toFloat()
+                    animatePress(v)
                     v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    v.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE).setDuration(PRESS_ANIM_MS).start()
+                    controller.onBackspacePressed()
                     backspaceRunnable = object : Runnable {
                         override fun run() {
                             controller.onBackspacePressed()
@@ -550,8 +649,9 @@ class KeyboardView @JvmOverloads constructor(
                     handler.postDelayed(backspaceRunnable!!, 400L)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    v.animate().scaleX(1f).scaleY(1f).setDuration(RELEASE_ANIM_MS)
-                        .setInterpolator(DecelerateInterpolator()).start()
+                    v.background = shapeNormal
+                    v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                    animateRelease(v)
                     backspaceRunnable?.let { handler.removeCallbacks(it) }
                 }
             }
@@ -565,10 +665,10 @@ class KeyboardView @JvmOverloads constructor(
             ShiftState.SHIFT_ON -> R.drawable.ic_shift
             ShiftState.CAPS_LOCK -> R.drawable.ic_caps_lock
         }
-        val drawable = ContextCompat.getDrawable(context, shiftDrawableRes)?.apply {
+        val drawable: Drawable? = ContextCompat.getDrawable(context, shiftDrawableRes)?.mutate()?.apply {
             setTint(if (shiftState != ShiftState.LOWERCASE) theme.accentColor else theme.textColor)
         }
-        shiftKeyView?.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
+        shiftIconView?.setImageDrawable(drawable)
 
         val isUpper = shiftState != ShiftState.LOWERCASE
         for (view in letterKeyViews) {
@@ -583,17 +683,11 @@ class KeyboardView @JvmOverloads constructor(
             EditorInfo.IME_ACTION_SEARCH -> R.drawable.ic_search
             EditorInfo.IME_ACTION_DONE -> R.drawable.ic_done
             EditorInfo.IME_ACTION_GO, EditorInfo.IME_ACTION_NEXT, EditorInfo.IME_ACTION_SEND -> R.drawable.ic_arrow_forward
-            else -> null
+            else -> R.drawable.ic_enter
         }
-        if (iconRes != null) {
-            val drawable = ContextCompat.getDrawable(context, iconRes)?.apply {
-                setTint(theme.chipTextColor)
-            }
-            enterKeyView?.text = ""
-            enterKeyView?.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
-        } else {
-            enterKeyView?.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null)
-            enterKeyView?.text = "↵"
+        val drawable = ContextCompat.getDrawable(context, iconRes)?.mutate()?.apply {
+            setTint(theme.chipTextColor)
         }
+        enterIconView?.setImageDrawable(drawable)
     }
 }
