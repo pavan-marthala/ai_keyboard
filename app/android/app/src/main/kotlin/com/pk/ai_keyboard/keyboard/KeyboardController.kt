@@ -60,6 +60,9 @@ class KeyboardController(
     var isAiCommandModeActive = false
         private set
 
+    var keyboardMode: KeyboardMode = KeyboardMode.MAIN
+        private set
+
     var shiftState = ShiftState.LOWERCASE
         private set
 
@@ -71,6 +74,7 @@ class KeyboardController(
     var onAiDisabledStateChanged: ((Boolean) -> Unit)? = null
     var onSuggestionsUpdated: ((SuggestionResult) -> Unit)? = null
     var onAiCommandModeToggled: ((Boolean) -> Unit)? = null
+    var onKeyboardModeChanged: ((KeyboardMode) -> Unit)? = null
     var onAppIconClicked: (() -> Unit)? = null
     var onMicClicked: (() -> Unit)? = null
     var onMenuClicked: (() -> Unit)? = null
@@ -85,7 +89,19 @@ class KeyboardController(
         }
     }
 
+    fun setMode(mode: KeyboardMode) {
+        if (keyboardMode != mode) {
+            keyboardMode = mode
+            Log.d(TAG, "Keyboard mode updated to: $mode")
+            onKeyboardModeChanged?.invoke(mode)
+        }
+    }
+
     fun handleAppIconTap() {
+        if (keyboardMode == KeyboardMode.MORE) {
+            setMode(KeyboardMode.MAIN)
+            return
+        }
         isAiCommandModeActive = !isAiCommandModeActive
         Log.d(TAG, "App icon tapped. AI Command Mode: $isAiCommandModeActive")
         onAiCommandModeToggled?.invoke(isAiCommandModeActive)
@@ -113,7 +129,13 @@ class KeyboardController(
 
     fun handleMenuTap() {
         Log.d(TAG, "Menu button tapped")
+        setMode(KeyboardMode.MORE)
         onMenuClicked?.invoke()
+    }
+
+    fun handleCloseMorePanel() {
+        Log.d(TAG, "Close button tapped from More Panel")
+        setMode(KeyboardMode.MAIN)
     }
 
     fun onInputConnectionChanged(inputConnection: InputConnection?) {

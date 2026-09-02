@@ -1,10 +1,23 @@
 package com.pk.ai_keyboard.voice
 
+import com.pk.ai_keyboard.keyboard.KeyboardMode
 import com.pk.ai_keyboard.text.TextEditor
 import org.junit.Assert.*
 import org.junit.Test
 
 class VoiceInputControllerTest {
+
+    @Test
+    fun `KeyboardMode enum values verify all 7 keyboard modes`() {
+        assertEquals(7, KeyboardMode.values().size)
+        assertEquals(KeyboardMode.MAIN, KeyboardMode.valueOf("MAIN"))
+        assertEquals(KeyboardMode.MORE, KeyboardMode.valueOf("MORE"))
+        assertEquals(KeyboardMode.EMOJI, KeyboardMode.valueOf("EMOJI"))
+        assertEquals(KeyboardMode.CLIPBOARD, KeyboardMode.valueOf("CLIPBOARD"))
+        assertEquals(KeyboardMode.GIF, KeyboardMode.valueOf("GIF"))
+        assertEquals(KeyboardMode.STICKERS, KeyboardMode.valueOf("STICKERS"))
+        assertEquals(KeyboardMode.RESIZE, KeyboardMode.valueOf("RESIZE"))
+    }
 
     @Test
     fun `VoiceState values verify correct state machine states`() {
