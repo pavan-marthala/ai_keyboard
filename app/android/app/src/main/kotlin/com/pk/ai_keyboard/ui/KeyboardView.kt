@@ -977,12 +977,6 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun renderMoreToolsPanel() {
-        val toolsContainer = LinearLayout(context).apply {
-            orientation = VERTICAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
-            setPadding(dpToPx(8f), dpToPx(8f), dpToPx(8f), dpToPx(6f))
-        }
-
         val items = listOf(
             ToolItemData(R.drawable.ic_emoji, "Emoji") { controller.setMode(KeyboardMode.EMOJI) },
             ToolItemData(R.drawable.ic_clipboard, "Clipboard") { controller.setMode(KeyboardMode.CLIPBOARD) },
@@ -1001,6 +995,59 @@ class KeyboardView @JvmOverloads constructor(
         val totalPages = (items.size + maxItemsPerPage - 1) / maxItemsPerPage
 
         morePanelPageIndex = morePanelPageIndex.coerceIn(0, totalPages - 1)
+
+        val toolsContainer = object : LinearLayout(context) {
+            private var downX = 0f
+            private var downY = 0f
+            private var isSwiping = false
+
+            override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+                if (totalPages <= 1) return super.onInterceptTouchEvent(ev)
+                when (ev.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = ev.x
+                        downY = ev.y
+                        isSwiping = false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val dx = Math.abs(ev.x - downX)
+                        val dy = Math.abs(ev.y - downY)
+                        if (dx > dpToPx(16f) && dx > dy * 1.2f) {
+                            isSwiping = true
+                            return true
+                        }
+                    }
+                }
+                return super.onInterceptTouchEvent(ev)
+            }
+
+            override fun onTouchEvent(event: MotionEvent): Boolean {
+                if (totalPages <= 1) return super.onTouchEvent(event)
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> return true
+                    MotionEvent.ACTION_MOVE -> return true
+                    MotionEvent.ACTION_UP -> {
+                        if (isSwiping) {
+                            val deltaX = event.x - downX
+                            if (deltaX < -dpToPx(20f) && morePanelPageIndex < totalPages - 1) {
+                                morePanelPageIndex++
+                                renderPanel()
+                                return true
+                            } else if (deltaX > dpToPx(20f) && morePanelPageIndex > 0) {
+                                morePanelPageIndex--
+                                renderPanel()
+                                return true
+                            }
+                        }
+                    }
+                }
+                return super.onTouchEvent(event)
+            }
+        }.apply {
+            orientation = VERTICAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
+            setPadding(dpToPx(8f), dpToPx(8f), dpToPx(8f), dpToPx(6f))
+        }
 
         val startIndex = morePanelPageIndex * maxItemsPerPage
         val endIndex = (startIndex + maxItemsPerPage).coerceAtMost(items.size)
