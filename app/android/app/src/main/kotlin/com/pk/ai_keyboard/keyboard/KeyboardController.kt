@@ -33,7 +33,8 @@ class KeyboardController(
     val clipboardHistoryManager: ClipboardHistoryManager = ClipboardHistoryManager(context),
     val gifProvider: GifProvider = GiphyGifProvider(),
     val recentGifManager: RecentGifManager = RecentGifManager(context),
-    val gifInserter: GifInserter = GifInserter(context)
+    val gifInserter: GifInserter = GifInserter(context),
+    val keyboardHeightRepository: KeyboardHeightRepository = KeyboardHeightRepository(context)
 ) {
 
     companion object {
@@ -81,6 +82,7 @@ class KeyboardController(
     var onSuggestionsUpdated: ((SuggestionResult) -> Unit)? = null
     var onAiCommandModeToggled: ((Boolean) -> Unit)? = null
     var onKeyboardModeChanged: ((KeyboardMode) -> Unit)? = null
+    var onKeyboardHeightChanged: ((Int) -> Unit)? = null
     var onAppIconClicked: (() -> Unit)? = null
     var onMicClicked: (() -> Unit)? = null
     var onMenuClicked: (() -> Unit)? = null
@@ -107,6 +109,18 @@ class KeyboardController(
         if (keyboardMode != KeyboardMode.MAIN) {
             setMode(KeyboardMode.MAIN)
         }
+    }
+
+    fun setKeyboardHeight(heightDp: Int): Int {
+        val applied = keyboardHeightRepository.setHeight(heightDp)
+        onKeyboardHeightChanged?.invoke(applied)
+        return applied
+    }
+
+    fun resetKeyboardHeight(): Int {
+        val defaultHeight = keyboardHeightRepository.reset()
+        onKeyboardHeightChanged?.invoke(defaultHeight)
+        return defaultHeight
     }
 
     fun commitClipboardItem(text: String): Boolean {

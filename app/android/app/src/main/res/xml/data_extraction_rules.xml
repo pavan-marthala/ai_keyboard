@@ -3,9 +3,11 @@
     <cloud-backup>
         <exclude domain="sharedpref" path="ai_keyboard_clipboard_prefs.xml" />
         <exclude domain="sharedpref" path="ai_keyboard_recent_gifs_prefs.xml" />
+        <exclude domain="sharedpref" path="ai_keyboard_height_prefs.xml" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="sharedpref" path="ai_keyboard_clipboard_prefs.xml" />
         <exclude domain="sharedpref" path="ai_keyboard_recent_gifs_prefs.xml" />
+        <exclude domain="sharedpref" path="ai_keyboard_height_prefs.xml" />
     </device-transfer>
 </data-extraction-rules>

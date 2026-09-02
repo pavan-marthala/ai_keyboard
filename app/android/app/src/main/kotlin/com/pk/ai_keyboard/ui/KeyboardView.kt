@@ -37,6 +37,7 @@ import com.pk.ai_keyboard.command.NativeCommandRegistry
 import com.pk.ai_keyboard.gif.GifItem
 import com.pk.ai_keyboard.gif.GifInsertionResult
 import com.pk.ai_keyboard.keyboard.KeyboardController
+import com.pk.ai_keyboard.keyboard.KeyboardHeightRepository
 import com.pk.ai_keyboard.keyboard.KeyboardMode
 import com.pk.ai_keyboard.keyboard.ShiftState
 import com.pk.ai_keyboard.suggestion.SuggestionResult
@@ -134,6 +135,12 @@ class KeyboardView @JvmOverloads constructor(
         controller.onKeyboardModeChanged = { mode ->
             updateModeUi(mode)
         }
+        controller.onKeyboardHeightChanged = { _ ->
+            if (::mainPanelContainer.isInitialized) {
+                mainPanelContainer.layoutParams.height = getContentPanelHeightPx()
+            }
+            renderPanel()
+        }
         controller.clipboardHistoryManager.onHistoryUpdated = { _ ->
             if (controller.keyboardMode == KeyboardMode.CLIPBOARD) {
                 renderPanel()
@@ -159,6 +166,15 @@ class KeyboardView @JvmOverloads constructor(
     private fun getKeyHeightDp(): Float {
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         return if (isLandscape) 36f else 46f
+    }
+
+    private fun getContentPanelHeightPx(): Int {
+        return if (::controller.isInitialized) {
+            val heightDp = controller.keyboardHeightRepository.getHeight()
+            dpToPx(heightDp.toFloat())
+        } else {
+            dpToPx((getKeyHeightDp() + 8f) * 4f)
+        }
     }
 
     private fun animatePress(view: View) {
@@ -301,7 +317,7 @@ class KeyboardView @JvmOverloads constructor(
 
         mainPanelContainer = LinearLayout(context).apply {
             orientation = VERTICAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
             setPadding(dpToPx(4f), dpToPx(6f), dpToPx(4f), dpToPx(6f))
         }
         addView(mainPanelContainer)
@@ -337,6 +353,12 @@ class KeyboardView @JvmOverloads constructor(
                 })
                 appIconView.contentDescription = "Exit GIF Keyboard"
             }
+            KeyboardMode.RESIZE -> {
+                appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()?.apply {
+                    setTint(theme.textColor)
+                })
+                appIconView.contentDescription = "Exit Keyboard Resize"
+            }
             else -> {
                 appIconView.setImageResource(R.mipmap.ic_launcher)
                 appIconView.contentDescription = "App Icon Mode Toggle"
@@ -356,6 +378,7 @@ class KeyboardView @JvmOverloads constructor(
             KeyboardMode.CLIPBOARD -> renderClipboardPanel()
             KeyboardMode.EMOJI -> renderEmojiPanel()
             KeyboardMode.GIF -> renderGifPanel()
+            KeyboardMode.RESIZE -> renderResizePanel()
             else -> {
                 if (isSymbolPanel) {
                     renderSymbolLayout()
@@ -368,7 +391,7 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun renderEmojiPanel() {
         val emojiPickerView = EmojiPickerView(context).apply {
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(190f))
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
             setOnEmojiPickedListener { emojiItem ->
                 val emojiStr = emojiItem.emoji
                 if (!emojiStr.isNullOrEmpty()) {
@@ -382,7 +405,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun renderClipboardPanel() {
         val clipboardContainer = LinearLayout(context).apply {
             orientation = VERTICAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(180f))
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
             setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
         }
 
@@ -425,7 +448,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun renderGifPanel() {
         val gifRootLayout = LinearLayout(context).apply {
             orientation = VERTICAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(190f))
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
             setPadding(dpToPx(4f), dpToPx(2f), dpToPx(4f), dpToPx(2f))
         }
 
@@ -529,6 +552,101 @@ class KeyboardView @JvmOverloads constructor(
 
         // Initial Load (Trending)
         fetchGifs("", isNewSearch = true, progressBar = progressBar, emptyTextView = emptyTextView)
+    }
+
+    private fun renderResizePanel() {
+        val resizeRootLayout = LinearLayout(context).apply {
+            orientation = VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
+            setPadding(dpToPx(16f), dpToPx(12f), dpToPx(16f), dpToPx(12f))
+        }
+
+        val titleTextView = TextView(context).apply {
+            text = "Keyboard Height"
+            setTextColor(theme.textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+        }
+        resizeRootLayout.addView(titleTextView)
+
+        val currentHeightDp = controller.keyboardHeightRepository.getHeight()
+
+        val heightValueTextView = TextView(context).apply {
+            text = "$currentHeightDp dp"
+            setTextColor(theme.accentColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dpToPx(6f), 0, dpToPx(8f))
+        }
+        resizeRootLayout.addView(heightValueTextView)
+
+        val seekBar = SeekBar(context).apply {
+            max = KeyboardHeightRepository.MAX_HEIGHT_DP - KeyboardHeightRepository.MIN_HEIGHT_DP
+            progress = currentHeightDp - KeyboardHeightRepository.MIN_HEIGHT_DP
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                setMargins(dpToPx(12f), dpToPx(4f), dpToPx(12f), dpToPx(8f))
+            }
+        }
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                val newHeightDp = KeyboardHeightRepository.MIN_HEIGHT_DP + progress
+                heightValueTextView.text = "$newHeightDp dp"
+                if (fromUser) {
+                    controller.setKeyboardHeight(newHeightDp)
+                }
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+        resizeRootLayout.addView(seekBar)
+
+        val labelsLayout = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                setMargins(dpToPx(12f), 0, dpToPx(12f), dpToPx(12f))
+            }
+        }
+        val minLabel = TextView(context).apply {
+            text = "MIN (${KeyboardHeightRepository.MIN_HEIGHT_DP} dp)"
+            setTextColor(theme.secondaryTextColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f)
+        }
+        val maxLabel = TextView(context).apply {
+            text = "MAX (${KeyboardHeightRepository.MAX_HEIGHT_DP} dp)"
+            setTextColor(theme.secondaryTextColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            gravity = Gravity.END
+            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f)
+        }
+        labelsLayout.addView(minLabel)
+        labelsLayout.addView(maxLabel)
+        resizeRootLayout.addView(labelsLayout)
+
+        val resetButton = Button(context).apply {
+            text = "Reset to Default"
+            isAllCaps = false
+            setTextColor(theme.chipTextColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTypeface(null, Typeface.BOLD)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(12f).toFloat()
+                setColor(theme.accentColor)
+            }
+            setOnClickListener {
+                val defaultDp = controller.resetKeyboardHeight()
+                seekBar.progress = defaultDp - KeyboardHeightRepository.MIN_HEIGHT_DP
+                heightValueTextView.text = "$defaultDp dp"
+            }
+        }
+        resizeRootLayout.addView(resetButton)
+
+        mainPanelContainer.addView(resizeRootLayout)
     }
 
     private fun fetchGifs(
@@ -675,7 +793,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun renderMoreToolsPanel() {
         val toolsContainer = LinearLayout(context).apply {
             orientation = VERTICAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
             setPadding(dpToPx(8f), dpToPx(8f), dpToPx(8f), dpToPx(6f))
         }
 

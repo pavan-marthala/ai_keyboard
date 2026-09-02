@@ -33,4 +33,34 @@ class KeyboardStatusService {
       await _channel.invokeMethod('openKeyboardSettings');
     } catch (_) {}
   }
+
+  Future<int> getKeyboardHeight() async {
+    try {
+      final int? height = await _channel.invokeMethod<int>('getKeyboardHeight');
+      return height ?? 216;
+    } catch (_) {
+      return 216;
+    }
+  }
+
+  Future<int> setKeyboardHeight(int height) async {
+    try {
+      final int? appliedHeight = await _channel.invokeMethod<int>(
+        'setKeyboardHeight',
+        {'height': height},
+      );
+      return appliedHeight ?? height;
+    } catch (_) {
+      return height;
+    }
+  }
+
+  Future<int> resetKeyboardHeight() async {
+    try {
+      final int? defaultHeight = await _channel.invokeMethod<int>('resetKeyboardHeight');
+      return defaultHeight ?? 216;
+    } catch (_) {
+      return 216;
+    }
+  }
 }

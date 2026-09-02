@@ -6,6 +6,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import com.pk.ai_keyboard.config.NativeSecureStorage
+import com.pk.ai_keyboard.keyboard.KeyboardHeightRepository
 
 class MainActivity : FlutterActivity() {
     private val CREDENTIALS_CHANNEL = "com.pk.ai_keyboard/credentials"
@@ -54,6 +55,7 @@ class MainActivity : FlutterActivity() {
         }
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, KEYBOARD_CHANNEL).setMethodCallHandler { call, result ->
+            val heightRepo = KeyboardHeightRepository(context)
             when (call.method) {
                 "isAiKeyboardActive" -> {
                     try {
@@ -88,6 +90,18 @@ class MainActivity : FlutterActivity() {
                     } catch (e: Exception) {
                         result.error("INTENT_ERROR", e.message, null)
                     }
+                }
+                "getKeyboardHeight" -> {
+                    result.success(heightRepo.getHeight())
+                }
+                "setKeyboardHeight" -> {
+                    val heightDp = call.argument<Int>("height") ?: KeyboardHeightRepository.DEFAULT_HEIGHT_DP
+                    val applied = heightRepo.setHeight(heightDp)
+                    result.success(applied)
+                }
+                "resetKeyboardHeight" -> {
+                    val defaultHeight = heightRepo.reset()
+                    result.success(defaultHeight)
                 }
                 else -> result.notImplemented()
             }
