@@ -327,6 +327,38 @@ class _SettingsPageState extends State<SettingsPage> {
               const Divider(),
               const SizedBox(height: 16),
               const Text(
+                'Keyboard Settings',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Configure native keyboard layout and preferences.',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'Use Numbers',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                subtitle: const Text(
+                  'Show a dedicated number row above QWERTY letters',
+                ),
+                value: state.settings.useNumbersEnabled,
+                onChanged: (bool value) {
+                  final updated = state.settings.copyWith(
+                    useNumbersEnabled: value,
+                  );
+                  context.read<SettingsBloc>().add(
+                    SettingsEvent.updateSettings(updated),
+                  );
+                },
+              ),
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text(
                 'AI Commands',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),

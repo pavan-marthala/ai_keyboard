@@ -12,6 +12,7 @@ abstract class UserSettings with _$UserSettings {
     String? customBaseUrl,
     @Default(true) bool hapticFeedbackEnabled,
     @Default(true) bool soundEffectsEnabled,
+    @Default(false) bool useNumbersEnabled,
   }) = _UserSettings;
 
   factory UserSettings.fromJson(Map<String, dynamic> json) =>

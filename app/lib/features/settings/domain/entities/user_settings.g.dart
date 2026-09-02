@@ -18,6 +18,7 @@ _UserSettings _$UserSettingsFromJson(Map<String, dynamic> json) =>
       customBaseUrl: json['customBaseUrl'] as String?,
       hapticFeedbackEnabled: json['hapticFeedbackEnabled'] as bool? ?? true,
       soundEffectsEnabled: json['soundEffectsEnabled'] as bool? ?? true,
+      useNumbersEnabled: json['useNumbersEnabled'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$UserSettingsToJson(_UserSettings instance) =>
@@ -27,6 +28,7 @@ Map<String, dynamic> _$UserSettingsToJson(_UserSettings instance) =>
       'customBaseUrl': instance.customBaseUrl,
       'hapticFeedbackEnabled': instance.hapticFeedbackEnabled,
       'soundEffectsEnabled': instance.soundEffectsEnabled,
+      'useNumbersEnabled': instance.useNumbersEnabled,
     };
 
 const _$AiProviderTypeEnumMap = {

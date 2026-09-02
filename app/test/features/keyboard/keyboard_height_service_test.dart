@@ -70,5 +70,29 @@ void main() {
       expect(reset, equals(216));
       expect(await service.getKeyboardHeight(), equals(216));
     });
+
+    test(
+      'getUseNumbers returns false by default and setUseNumbers updates state',
+      () async {
+        bool useNumbers = false;
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+              switch (methodCall.method) {
+                case 'getUseNumbers':
+                  return useNumbers;
+                case 'setUseNumbers':
+                  final args = methodCall.arguments as Map<dynamic, dynamic>;
+                  useNumbers = args['useNumbers'] as bool;
+                  return useNumbers;
+                default:
+                  return null;
+              }
+            });
+
+        expect(await service.getUseNumbers(), equals(false));
+        expect(await service.setUseNumbers(true), equals(true));
+        expect(await service.getUseNumbers(), equals(true));
+      },
+    );
   });
 }

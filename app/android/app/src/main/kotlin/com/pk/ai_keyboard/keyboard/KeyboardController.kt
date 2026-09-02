@@ -34,7 +34,8 @@ class KeyboardController(
     val gifProvider: GifProvider = GiphyGifProvider(),
     val recentGifManager: RecentGifManager = RecentGifManager(context),
     val gifInserter: GifInserter = GifInserter(context),
-    val keyboardHeightRepository: KeyboardHeightRepository = KeyboardHeightRepository(context)
+    val keyboardHeightRepository: KeyboardHeightRepository = KeyboardHeightRepository(context),
+    val numberRowRepository: NumberRowRepository = NumberRowRepository(context)
 ) {
 
     companion object {
@@ -83,9 +84,16 @@ class KeyboardController(
     var onAiCommandModeToggled: ((Boolean) -> Unit)? = null
     var onKeyboardModeChanged: ((KeyboardMode) -> Unit)? = null
     var onKeyboardHeightChanged: ((Int) -> Unit)? = null
+    var onUseNumbersChanged: ((Boolean) -> Unit)? = null
     var onAppIconClicked: (() -> Unit)? = null
     var onMicClicked: (() -> Unit)? = null
     var onMenuClicked: (() -> Unit)? = null
+
+    fun setUseNumbers(enabled: Boolean): Boolean {
+        val applied = numberRowRepository.setUseNumbers(enabled)
+        onUseNumbersChanged?.invoke(enabled)
+        return applied
+    }
 
     init {
         scope.launch(Dispatchers.IO) {

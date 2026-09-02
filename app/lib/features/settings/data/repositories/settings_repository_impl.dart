@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:ai_keyboard/core/errors/failures.dart';
 import 'package:ai_keyboard/core/errors/result.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/user_settings.dart';
@@ -12,6 +13,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   final SharedPreferences _prefs;
   static const String _settingsKey = 'user_settings';
   static const _channel = MethodChannel('com.pk.ai_keyboard/credentials');
+  static const _keyboardChannel = MethodChannel('com.pk.ai_keyboard/keyboard');
 
   SettingsRepositoryImpl(this._prefs);
 
@@ -40,6 +42,12 @@ class SettingsRepositoryImpl implements SettingsRepository {
           'provider': settings.activeProvider.name,
           'modelId': settings.activeModelId,
           'baseUrl': settings.customBaseUrl,
+        });
+      } catch (_) {}
+
+      try {
+        await _keyboardChannel.invokeMethod('setUseNumbers', {
+          'useNumbers': settings.useNumbersEnabled,
         });
       } catch (_) {}
 

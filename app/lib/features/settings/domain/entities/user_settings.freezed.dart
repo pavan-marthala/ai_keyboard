@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserSettings {
 
- AiProviderType get activeProvider; String get activeModelId; String? get customBaseUrl; bool get hapticFeedbackEnabled; bool get soundEffectsEnabled;
+ AiProviderType get activeProvider; String get activeModelId; String? get customBaseUrl; bool get hapticFeedbackEnabled; bool get soundEffectsEnabled; bool get useNumbersEnabled;
 /// Create a copy of UserSettings
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,20 +30,20 @@ $UserSettingsCopyWith<UserSettings> get copyWith => _$UserSettingsCopyWithImpl<U
 @override
 bool operator ==(Object other) {
   final _this = this as UserSettings;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSettings&&(identical(other.activeProvider, _this.activeProvider) || other.activeProvider == _this.activeProvider)&&(identical(other.activeModelId, _this.activeModelId) || other.activeModelId == _this.activeModelId)&&(identical(other.customBaseUrl, _this.customBaseUrl) || other.customBaseUrl == _this.customBaseUrl)&&(identical(other.hapticFeedbackEnabled, _this.hapticFeedbackEnabled) || other.hapticFeedbackEnabled == _this.hapticFeedbackEnabled)&&(identical(other.soundEffectsEnabled, _this.soundEffectsEnabled) || other.soundEffectsEnabled == _this.soundEffectsEnabled));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSettings&&(identical(other.activeProvider, _this.activeProvider) || other.activeProvider == _this.activeProvider)&&(identical(other.activeModelId, _this.activeModelId) || other.activeModelId == _this.activeModelId)&&(identical(other.customBaseUrl, _this.customBaseUrl) || other.customBaseUrl == _this.customBaseUrl)&&(identical(other.hapticFeedbackEnabled, _this.hapticFeedbackEnabled) || other.hapticFeedbackEnabled == _this.hapticFeedbackEnabled)&&(identical(other.soundEffectsEnabled, _this.soundEffectsEnabled) || other.soundEffectsEnabled == _this.soundEffectsEnabled)&&(identical(other.useNumbersEnabled, _this.useNumbersEnabled) || other.useNumbersEnabled == _this.useNumbersEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as UserSettings;
-  return Object.hash(runtimeType,_this.activeProvider,_this.activeModelId,_this.customBaseUrl,_this.hapticFeedbackEnabled,_this.soundEffectsEnabled);
+  return Object.hash(runtimeType,_this.activeProvider,_this.activeModelId,_this.customBaseUrl,_this.hapticFeedbackEnabled,_this.soundEffectsEnabled,_this.useNumbersEnabled);
 }
 
 @override
 String toString() {
   final _this = this as UserSettings;
-  return 'UserSettings(activeProvider: ${_this.activeProvider}, activeModelId: ${_this.activeModelId}, customBaseUrl: ${_this.customBaseUrl}, hapticFeedbackEnabled: ${_this.hapticFeedbackEnabled}, soundEffectsEnabled: ${_this.soundEffectsEnabled})';
+  return 'UserSettings(activeProvider: ${_this.activeProvider}, activeModelId: ${_this.activeModelId}, customBaseUrl: ${_this.customBaseUrl}, hapticFeedbackEnabled: ${_this.hapticFeedbackEnabled}, soundEffectsEnabled: ${_this.soundEffectsEnabled}, useNumbersEnabled: ${_this.useNumbersEnabled})';
 }
 
 
@@ -54,7 +54,7 @@ abstract mixin class $UserSettingsCopyWith<$Res>  {
   factory $UserSettingsCopyWith(UserSettings value, $Res Function(UserSettings) _then) = _$UserSettingsCopyWithImpl;
 @useResult
 $Res call({
- AiProviderType activeProvider, String activeModelId, String? customBaseUrl, bool hapticFeedbackEnabled, bool soundEffectsEnabled
+ AiProviderType activeProvider, String activeModelId, String? customBaseUrl, bool hapticFeedbackEnabled, bool soundEffectsEnabled, bool useNumbersEnabled
 });
 
 
@@ -71,13 +71,14 @@ class _$UserSettingsCopyWithImpl<$Res>
 
 /// Create a copy of UserSettings
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? activeProvider = null,Object? activeModelId = null,Object? customBaseUrl = freezed,Object? hapticFeedbackEnabled = null,Object? soundEffectsEnabled = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? activeProvider = null,Object? activeModelId = null,Object? customBaseUrl = freezed,Object? hapticFeedbackEnabled = null,Object? soundEffectsEnabled = null,Object? useNumbersEnabled = null,}) {
   return _then(UserSettings(
 activeProvider: null == activeProvider ? _self.activeProvider : activeProvider // ignore: cast_nullable_to_non_nullable
 as AiProviderType,activeModelId: null == activeModelId ? _self.activeModelId : activeModelId // ignore: cast_nullable_to_non_nullable
 as String,customBaseUrl: freezed == customBaseUrl ? _self.customBaseUrl : customBaseUrl // ignore: cast_nullable_to_non_nullable
 as String?,hapticFeedbackEnabled: null == hapticFeedbackEnabled ? _self.hapticFeedbackEnabled : hapticFeedbackEnabled // ignore: cast_nullable_to_non_nullable
 as bool,soundEffectsEnabled: null == soundEffectsEnabled ? _self.soundEffectsEnabled : soundEffectsEnabled // ignore: cast_nullable_to_non_nullable
+as bool,useNumbersEnabled: null == useNumbersEnabled ? _self.useNumbersEnabled : useNumbersEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -163,10 +164,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AiProviderType activeProvider,  String activeModelId,  String? customBaseUrl,  bool hapticFeedbackEnabled,  bool soundEffectsEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( AiProviderType activeProvider,  String activeModelId,  String? customBaseUrl,  bool hapticFeedbackEnabled,  bool soundEffectsEnabled,  bool useNumbersEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserSettings() when $default != null:
-return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_that.hapticFeedbackEnabled,_that.soundEffectsEnabled);case _:
+return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_that.hapticFeedbackEnabled,_that.soundEffectsEnabled,_that.useNumbersEnabled);case _:
   return orElse();
 
 }
@@ -184,10 +185,10 @@ return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AiProviderType activeProvider,  String activeModelId,  String? customBaseUrl,  bool hapticFeedbackEnabled,  bool soundEffectsEnabled)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( AiProviderType activeProvider,  String activeModelId,  String? customBaseUrl,  bool hapticFeedbackEnabled,  bool soundEffectsEnabled,  bool useNumbersEnabled)  $default,) {final _that = this;
 switch (_that) {
 case _UserSettings():
-return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_that.hapticFeedbackEnabled,_that.soundEffectsEnabled);case _:
+return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_that.hapticFeedbackEnabled,_that.soundEffectsEnabled,_that.useNumbersEnabled);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -204,10 +205,10 @@ return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AiProviderType activeProvider,  String activeModelId,  String? customBaseUrl,  bool hapticFeedbackEnabled,  bool soundEffectsEnabled)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( AiProviderType activeProvider,  String activeModelId,  String? customBaseUrl,  bool hapticFeedbackEnabled,  bool soundEffectsEnabled,  bool useNumbersEnabled)?  $default,) {final _that = this;
 switch (_that) {
 case _UserSettings() when $default != null:
-return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_that.hapticFeedbackEnabled,_that.soundEffectsEnabled);case _:
+return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_that.hapticFeedbackEnabled,_that.soundEffectsEnabled,_that.useNumbersEnabled);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.activeProvider,_that.activeModelId,_that.customBaseUrl,_th
 @JsonSerializable()
 
 class _UserSettings implements UserSettings {
-  const _UserSettings({this.activeProvider = AiProviderType.openAi, this.activeModelId = 'gpt-4o-mini', this.customBaseUrl, this.hapticFeedbackEnabled = true, this.soundEffectsEnabled = true});
+  const _UserSettings({this.activeProvider = AiProviderType.openAi, this.activeModelId = 'gpt-4o-mini', this.customBaseUrl, this.hapticFeedbackEnabled = true, this.soundEffectsEnabled = true, this.useNumbersEnabled = false});
   factory _UserSettings.fromJson(Map<String, dynamic> json) => _$UserSettingsFromJson(json);
 
 @override@JsonKey() final  AiProviderType activeProvider;
@@ -227,6 +228,7 @@ class _UserSettings implements UserSettings {
 @override final  String? customBaseUrl;
 @override@JsonKey() final  bool hapticFeedbackEnabled;
 @override@JsonKey() final  bool soundEffectsEnabled;
+@override@JsonKey() final  bool useNumbersEnabled;
 
 /// Create a copy of UserSettings
 /// with the given fields replaced by the non-null parameter values.
@@ -241,18 +243,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSettings&&(identical(other.activeProvider, activeProvider) || other.activeProvider == activeProvider)&&(identical(other.activeModelId, activeModelId) || other.activeModelId == activeModelId)&&(identical(other.customBaseUrl, customBaseUrl) || other.customBaseUrl == customBaseUrl)&&(identical(other.hapticFeedbackEnabled, hapticFeedbackEnabled) || other.hapticFeedbackEnabled == hapticFeedbackEnabled)&&(identical(other.soundEffectsEnabled, soundEffectsEnabled) || other.soundEffectsEnabled == soundEffectsEnabled));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSettings&&(identical(other.activeProvider, activeProvider) || other.activeProvider == activeProvider)&&(identical(other.activeModelId, activeModelId) || other.activeModelId == activeModelId)&&(identical(other.customBaseUrl, customBaseUrl) || other.customBaseUrl == customBaseUrl)&&(identical(other.hapticFeedbackEnabled, hapticFeedbackEnabled) || other.hapticFeedbackEnabled == hapticFeedbackEnabled)&&(identical(other.soundEffectsEnabled, soundEffectsEnabled) || other.soundEffectsEnabled == soundEffectsEnabled)&&(identical(other.useNumbersEnabled, useNumbersEnabled) || other.useNumbersEnabled == useNumbersEnabled));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,activeProvider,activeModelId,customBaseUrl,hapticFeedbackEnabled,soundEffectsEnabled);
+    return Object.hash(runtimeType,activeProvider,activeModelId,customBaseUrl,hapticFeedbackEnabled,soundEffectsEnabled,useNumbersEnabled);
 }
 
 @override
 String toString() {
-    return 'UserSettings(activeProvider: $activeProvider, activeModelId: $activeModelId, customBaseUrl: $customBaseUrl, hapticFeedbackEnabled: $hapticFeedbackEnabled, soundEffectsEnabled: $soundEffectsEnabled)';
+    return 'UserSettings(activeProvider: $activeProvider, activeModelId: $activeModelId, customBaseUrl: $customBaseUrl, hapticFeedbackEnabled: $hapticFeedbackEnabled, soundEffectsEnabled: $soundEffectsEnabled, useNumbersEnabled: $useNumbersEnabled)';
 }
 
 
@@ -263,7 +265,7 @@ abstract mixin class _$UserSettingsCopyWith<$Res> implements $UserSettingsCopyWi
   factory _$UserSettingsCopyWith(_UserSettings value, $Res Function(_UserSettings) _then) = __$UserSettingsCopyWithImpl;
 @override @useResult
 $Res call({
- AiProviderType activeProvider, String activeModelId, String? customBaseUrl, bool hapticFeedbackEnabled, bool soundEffectsEnabled
+ AiProviderType activeProvider, String activeModelId, String? customBaseUrl, bool hapticFeedbackEnabled, bool soundEffectsEnabled, bool useNumbersEnabled
 });
 
 
@@ -280,13 +282,14 @@ class __$UserSettingsCopyWithImpl<$Res>
 
 /// Create a copy of UserSettings
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? activeProvider = null,Object? activeModelId = null,Object? customBaseUrl = freezed,Object? hapticFeedbackEnabled = null,Object? soundEffectsEnabled = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? activeProvider = null,Object? activeModelId = null,Object? customBaseUrl = freezed,Object? hapticFeedbackEnabled = null,Object? soundEffectsEnabled = null,Object? useNumbersEnabled = null,}) {
   return _then(_UserSettings(
 activeProvider: null == activeProvider ? _self.activeProvider : activeProvider // ignore: cast_nullable_to_non_nullable
 as AiProviderType,activeModelId: null == activeModelId ? _self.activeModelId : activeModelId // ignore: cast_nullable_to_non_nullable
 as String,customBaseUrl: freezed == customBaseUrl ? _self.customBaseUrl : customBaseUrl // ignore: cast_nullable_to_non_nullable
 as String?,hapticFeedbackEnabled: null == hapticFeedbackEnabled ? _self.hapticFeedbackEnabled : hapticFeedbackEnabled // ignore: cast_nullable_to_non_nullable
 as bool,soundEffectsEnabled: null == soundEffectsEnabled ? _self.soundEffectsEnabled : soundEffectsEnabled // ignore: cast_nullable_to_non_nullable
+as bool,useNumbersEnabled: null == useNumbersEnabled ? _self.useNumbersEnabled : useNumbersEnabled // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

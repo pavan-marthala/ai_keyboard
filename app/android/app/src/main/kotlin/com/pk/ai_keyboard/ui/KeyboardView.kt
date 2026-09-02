@@ -19,6 +19,7 @@ import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
@@ -55,7 +56,7 @@ class KeyboardView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
     private lateinit var controller: KeyboardController
-    private var theme = KeyboardTheme.current(context)
+    private var theme: KeyboardTheme = KeyboardTheme.current(context)
     private var editorInfo: EditorInfo? = null
 
     private var isSymbolPanel = false
@@ -76,7 +77,7 @@ class KeyboardView @JvmOverloads constructor(
     private lateinit var dictationStatusTextView: TextView
     private lateinit var dictationStateIconView: ImageView
 
-    private val letterKeyViews = mutableListOf<TextView>()
+    private val letterKeyViews = mutableListOf<View>()
     private var shiftIconView: ImageView? = null
     private var enterIconView: ImageView? = null
 
@@ -160,6 +161,12 @@ class KeyboardView @JvmOverloads constructor(
             }
             renderPanel()
         }
+        controller.onUseNumbersChanged = { _ ->
+            if (::mainPanelContainer.isInitialized) {
+                mainPanelContainer.layoutParams.height = getContentPanelHeightPx()
+            }
+            renderPanel()
+        }
         controller.clipboardHistoryManager.onHistoryUpdated = { _ ->
             if (controller.keyboardMode == KeyboardMode.CLIPBOARD) {
                 renderPanel()
@@ -194,7 +201,8 @@ class KeyboardView @JvmOverloads constructor(
         } else {
             216f
         }
-        return ((contentHeightDp - 12f) / 4f) - 8f
+        val rowCount = if (::controller.isInitialized && controller.numberRowRepository.getUseNumbers()) 5f else 4f
+        return ((contentHeightDp - 12f) / rowCount) - 8f
     }
 
     private fun getContentPanelHeightPx(): Int {
@@ -202,7 +210,8 @@ class KeyboardView @JvmOverloads constructor(
             val heightDp = controller.keyboardHeightRepository.getHeight()
             dpToPx(heightDp.toFloat())
         } else {
-            dpToPx((getKeyHeightDp() + 8f) * 4f)
+            val rowCount = if (::controller.isInitialized && controller.numberRowRepository.getUseNumbers()) 5f else 4f
+            dpToPx((getKeyHeightDp() + 8f) * rowCount)
         }
     }
 
@@ -1700,11 +1709,19 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun renderQwertyLayout() {
+        val useNumbers = ::controller.isInitialized && controller.numberRowRepository.getUseNumbers()
+
+        if (useNumbers) {
+            val numberRow = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+            mainPanelContainer.addView(createKeyRow(numberRow))
+        }
+
         val row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
+        val row1Hints = if (useNumbers) null else listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
         val row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
         val row3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
-        mainPanelContainer.addView(createKeyRow(row1))
+        mainPanelContainer.addView(createKeyRow(row1, hints = row1Hints))
         mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 12f))
 
         val row3Layout = LinearLayout(context).apply {
@@ -1831,7 +1848,7 @@ class KeyboardView @JvmOverloads constructor(
         mainPanelContainer.addView(bottomRow)
     }
 
-    private fun createKeyRow(keys: List<String>, paddingHorizontalDp: Float = 0f): LinearLayout {
+    private fun createKeyRow(keys: List<String>, hints: List<String>? = null, paddingHorizontalDp: Float = 0f): LinearLayout {
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -1839,11 +1856,13 @@ class KeyboardView @JvmOverloads constructor(
                 setPadding(dpToPx(paddingHorizontalDp), 0, dpToPx(paddingHorizontalDp), 0)
             }
         }
-        for (char in keys) {
-            val key = createKeyView(char, weight = 1.0f) {
+        for (i in keys.indices) {
+            val char = keys[i]
+            val hint = hints?.getOrNull(i)
+            val key = createKeyView(char, hintNumber = hint, weight = 1.0f) {
                 controller.onKeyTyped(char)
             }
-            if (!isSymbolPanel) {
+            if (!isSymbolPanel && char.firstOrNull()?.isLetter() == true) {
                 letterKeyViews.add(key)
             }
             row.addView(key)
@@ -1853,11 +1872,12 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun createKeyView(
         label: String,
+        hintNumber: String? = null,
         isSpecial: Boolean = false,
         weight: Float = 1.0f,
         isSpace: Boolean = false,
         onClick: () -> Unit
-    ): TextView {
+    ): View {
         val bgNormal = when {
             isSpace -> theme.spaceKeyColor
             isSpecial -> theme.specialKeyColor
@@ -1867,37 +1887,75 @@ class KeyboardView @JvmOverloads constructor(
 
         val shapeNormal = buildKeyShape(bgNormal, isAccent = false)
         val shapePressed = buildKeyShape(bgPressed, isAccent = false)
+        val keyHeightPx = dpToPx(getKeyHeightDp())
 
-        return TextView(context).apply {
-            text = label
-            gravity = Gravity.CENTER
-            includeFontPadding = false
-            setTextColor(if (isSpace) theme.secondaryTextColor else theme.textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isSpace) 13f else 17f)
-            if (isSpace) letterSpacing = 0.05f
-            background = shapeNormal
-            elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
-
-            val keyHeightPx = dpToPx(getKeyHeightDp())
-            layoutParams = LayoutParams(0, keyHeightPx, weight).apply {
-                setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
+        if (hintNumber != null) {
+            val container = FrameLayout(context).apply {
+                background = shapeNormal
+                elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                isClickable = true
+                isFocusable = true
+                layoutParams = LinearLayout.LayoutParams(0, keyHeightPx, weight).apply {
+                    setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
+                }
             }
 
-            setOnTouchListener { v, event ->
+            val mainTextView = TextView(context).apply {
+                text = label
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setTextColor(if (isSpace) theme.secondaryTextColor else theme.textColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isSpace) 13f else 17f)
+                if (isSpace) letterSpacing = 0.05f
+                layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            }
+            container.addView(mainTextView)
+            container.setTag(R.id.tag_letter_text_view, mainTextView)
+
+            val hintTextView = TextView(context).apply {
+                text = hintNumber
+                includeFontPadding = false
+                setTextColor(theme.secondaryTextColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 9.5f)
+                typeface = mediumTypeface
+                layoutParams = FrameLayout.LayoutParams(
+                    LayoutParams.WRAP_CONTENT,
+                    LayoutParams.WRAP_CONTENT,
+                    Gravity.TOP or Gravity.END
+                ).apply {
+                    setMargins(0, dpToPx(3f), dpToPx(5f), 0)
+                }
+            }
+            container.addView(hintTextView)
+
+            var isLongPressed = false
+            val longPressRunnable = Runnable {
+                isLongPressed = true
+                container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                controller.onKeyTyped(hintNumber)
+            }
+
+            container.setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        isLongPressed = false
                         v.background = shapePressed
                         v.elevation = dpToPx(0.5f).toFloat()
                         animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        handler.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
                     }
                     MotionEvent.ACTION_UP -> {
+                        handler.removeCallbacks(longPressRunnable)
                         v.background = shapeNormal
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
                         animateRelease(v)
-                        onClick()
+                        if (!isLongPressed) {
+                            onClick()
+                        }
                     }
                     MotionEvent.ACTION_CANCEL -> {
+                        handler.removeCallbacks(longPressRunnable)
                         v.background = shapeNormal
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
                         animateRelease(v)
@@ -1905,6 +1963,48 @@ class KeyboardView @JvmOverloads constructor(
                 }
                 true
             }
+
+            return container
+        } else {
+            val tv = TextView(context).apply {
+                text = label
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                setTextColor(if (isSpace) theme.secondaryTextColor else theme.textColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, if (isSpace) 13f else 17f)
+                if (isSpace) letterSpacing = 0.05f
+                background = shapeNormal
+                elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+
+                layoutParams = LinearLayout.LayoutParams(0, keyHeightPx, weight).apply {
+                    setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
+                }
+
+                setOnTouchListener { v, event ->
+                    when (event.action) {
+                        MotionEvent.ACTION_DOWN -> {
+                            v.background = shapePressed
+                            v.elevation = dpToPx(0.5f).toFloat()
+                            animatePress(v)
+                            v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            v.background = shapeNormal
+                            v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                            animateRelease(v)
+                            onClick()
+                        }
+                        MotionEvent.ACTION_CANCEL -> {
+                            v.background = shapeNormal
+                            v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                            animateRelease(v)
+                        }
+                    }
+                    true
+                }
+            }
+            tv.setTag(R.id.tag_letter_text_view, tv)
+            return tv
         }
     }
 
@@ -2017,8 +2117,11 @@ class KeyboardView @JvmOverloads constructor(
 
         val isUpper = shiftState != ShiftState.LOWERCASE
         for (view in letterKeyViews) {
-            val t = view.text.toString()
-            view.text = if (isUpper) t.uppercase() else t.lowercase()
+            val tv = (view.getTag(R.id.tag_letter_text_view) as? TextView) ?: (view as? TextView)
+            tv?.let {
+                val t = it.text.toString()
+                it.text = if (isUpper) t.uppercase() else t.lowercase()
+            }
         }
     }
 

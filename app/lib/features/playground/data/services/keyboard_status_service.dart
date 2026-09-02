@@ -57,10 +57,32 @@ class KeyboardStatusService {
 
   Future<int> resetKeyboardHeight() async {
     try {
-      final int? defaultHeight = await _channel.invokeMethod<int>('resetKeyboardHeight');
+      final int? defaultHeight = await _channel.invokeMethod<int>(
+        'resetKeyboardHeight',
+      );
       return defaultHeight ?? 216;
     } catch (_) {
       return 216;
+    }
+  }
+
+  Future<bool> getUseNumbers() async {
+    try {
+      final bool? enabled = await _channel.invokeMethod<bool>('getUseNumbers');
+      return enabled ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> setUseNumbers(bool enabled) async {
+    try {
+      final bool? applied = await _channel.invokeMethod<bool>('setUseNumbers', {
+        'useNumbers': enabled,
+      });
+      return applied ?? enabled;
+    } catch (_) {
+      return enabled;
     }
   }
 }

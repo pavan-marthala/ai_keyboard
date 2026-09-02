@@ -103,6 +103,16 @@ class MainActivity : FlutterActivity() {
                     val defaultHeight = heightRepo.reset()
                     result.success(defaultHeight)
                 }
+                "getUseNumbers" -> {
+                    val numberRepo = com.pk.ai_keyboard.keyboard.NumberRowRepository(context)
+                    result.success(numberRepo.getUseNumbers())
+                }
+                "setUseNumbers" -> {
+                    val enabled = call.argument<Boolean>("useNumbers") ?: false
+                    val numberRepo = com.pk.ai_keyboard.keyboard.NumberRowRepository(context)
+                    val applied = numberRepo.setUseNumbers(enabled)
+                    result.success(applied)
+                }
                 else -> result.notImplemented()
             }
         }
