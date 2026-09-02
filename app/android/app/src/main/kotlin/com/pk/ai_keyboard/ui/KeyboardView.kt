@@ -25,6 +25,7 @@ import android.widget.*
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.emoji2.emojipicker.EmojiPickerView
 import com.pk.ai_keyboard.R
 import com.pk.ai_keyboard.command.NativeCommandRegistry
 import com.pk.ai_keyboard.keyboard.KeyboardController
@@ -304,6 +305,12 @@ class KeyboardView @JvmOverloads constructor(
                 appIconView.contentDescription = "Exit Clipboard History"
                 controller.clipboardHistoryManager.checkCurrentPrimaryClip()
             }
+            KeyboardMode.EMOJI -> {
+                appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()?.apply {
+                    setTint(theme.textColor)
+                })
+                appIconView.contentDescription = "Exit Emoji Keyboard"
+            }
             else -> {
                 appIconView.setImageResource(R.mipmap.ic_launcher)
                 appIconView.contentDescription = "App Icon Mode Toggle"
@@ -321,6 +328,7 @@ class KeyboardView @JvmOverloads constructor(
         when (controller.keyboardMode) {
             KeyboardMode.MORE -> renderMoreToolsPanel()
             KeyboardMode.CLIPBOARD -> renderClipboardPanel()
+            KeyboardMode.EMOJI -> renderEmojiPanel()
             else -> {
                 if (isSymbolPanel) {
                     renderSymbolLayout()
@@ -329,6 +337,19 @@ class KeyboardView @JvmOverloads constructor(
                 }
             }
         }
+    }
+
+    private fun renderEmojiPanel() {
+        val emojiPickerView = EmojiPickerView(context).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(190f))
+            setOnEmojiPickedListener { emojiItem ->
+                val emojiStr = emojiItem.emoji
+                if (!emojiStr.isNullOrEmpty()) {
+                    controller.onKeyTyped(emojiStr)
+                }
+            }
+        }
+        mainPanelContainer.addView(emojiPickerView)
     }
 
     private fun renderClipboardPanel() {

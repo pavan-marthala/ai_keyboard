@@ -114,7 +114,7 @@ class KeyboardController(
     }
 
     fun handleAppIconTap() {
-        if (keyboardMode == KeyboardMode.MORE || keyboardMode == KeyboardMode.CLIPBOARD) {
+        if (keyboardMode != KeyboardMode.MAIN) {
             setMode(KeyboardMode.MAIN)
             return
         }

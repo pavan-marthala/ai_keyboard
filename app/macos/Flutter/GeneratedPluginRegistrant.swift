@@ -7,6 +7,7 @@ import Foundation
 
 import device_info_plus
 import flutter_secure_storage_darwin
+import native_adaptive_ui
 import package_info_plus
 import shared_preferences_foundation
 import url_launcher_macos
@@ -14,6 +15,7 @@ import url_launcher_macos
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
   DeviceInfoPlusMacosPlugin.register(with: registry.registrar(forPlugin: "DeviceInfoPlusMacosPlugin"))
   FlutterSecureStorageDarwinPlugin.register(with: registry.registrar(forPlugin: "FlutterSecureStorageDarwinPlugin"))
+  NativeAdaptiveUiPlugin.register(with: registry.registrar(forPlugin: "NativeAdaptiveUiPlugin"))
   FPPPackageInfoPlusPlugin.register(with: registry.registrar(forPlugin: "FPPPackageInfoPlusPlugin"))
   SharedPreferencesPlugin.register(with: registry.registrar(forPlugin: "SharedPreferencesPlugin"))
   UrlLauncherPlugin.register(with: registry.registrar(forPlugin: "UrlLauncherPlugin"))
