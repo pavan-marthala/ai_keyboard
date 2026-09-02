@@ -11,6 +11,7 @@ import com.pk.ai_keyboard.ai.AiResult
 import com.pk.ai_keyboard.clipboard.ClipboardHistoryManager
 import com.pk.ai_keyboard.command.CommandParser
 import com.pk.ai_keyboard.command.NativeCommandRegistry
+import com.pk.ai_keyboard.gif.*
 import com.pk.ai_keyboard.suggestion.AospSuggestionEngine
 import com.pk.ai_keyboard.suggestion.SuggestionCandidate
 import com.pk.ai_keyboard.suggestion.SuggestionEngine
@@ -29,7 +30,10 @@ class KeyboardController(
     private val aiTextTransformer: AiTextTransformer = AiTextTransformer(context),
     private val suggestionEngine: SuggestionEngine = AospSuggestionEngine(context),
     val voiceInputController: VoiceInputController = VoiceInputController(context),
-    val clipboardHistoryManager: ClipboardHistoryManager = ClipboardHistoryManager(context)
+    val clipboardHistoryManager: ClipboardHistoryManager = ClipboardHistoryManager(context),
+    val gifProvider: GifProvider = GiphyGifProvider(),
+    val recentGifManager: RecentGifManager = RecentGifManager(context),
+    val gifInserter: GifInserter = GifInserter(context)
 ) {
 
     companion object {
@@ -111,6 +115,20 @@ class KeyboardController(
             setMode(KeyboardMode.MAIN)
         }
         return committed
+    }
+
+    fun insertGif(item: GifItem, onResult: (GifInsertionResult) -> Unit) {
+        scope.launch {
+            val result = gifInserter.insertGif(
+                textEditor.getInputConnection(),
+                currentEditorInfo,
+                item
+            )
+            if (result is GifInsertionResult.Success) {
+                recentGifManager.addRecent(item)
+            }
+            onResult(result)
+        }
     }
 
     fun handleAppIconTap() {

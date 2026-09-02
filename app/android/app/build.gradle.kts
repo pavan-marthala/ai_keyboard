@@ -1,8 +1,19 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { localProperties.load(it) }
+}
+val giphyApiKey = System.getenv("GIPHY_API_KEY") 
+    ?: localProperties.getProperty("GIPHY_API_KEY") 
+    ?: "dc6zaTOxFJmzC" // Default dev key placeholder
 
 android {
     namespace = "com.pk.ai_keyboard"
@@ -12,6 +23,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     defaultConfig {
@@ -27,6 +42,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
     }
 
     buildTypes {
@@ -51,7 +68,10 @@ flutter {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.emoji2:emoji2-emojipicker:1.6.0")
+    implementation("androidx.recyclerview:recyclerview:1.3.2")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20231013")
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 }

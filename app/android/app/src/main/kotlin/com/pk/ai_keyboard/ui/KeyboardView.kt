@@ -8,13 +8,16 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.text.Editable
 import android.text.TextUtils
+import android.text.TextWatcher
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
@@ -26,14 +29,20 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.emoji2.emojipicker.EmojiPickerView
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.pk.ai_keyboard.R
 import com.pk.ai_keyboard.command.NativeCommandRegistry
+import com.pk.ai_keyboard.gif.GifItem
+import com.pk.ai_keyboard.gif.GifInsertionResult
 import com.pk.ai_keyboard.keyboard.KeyboardController
 import com.pk.ai_keyboard.keyboard.KeyboardMode
 import com.pk.ai_keyboard.keyboard.ShiftState
 import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.ui.theme.KeyboardTheme
 import com.pk.ai_keyboard.voice.VoiceState
+import kotlinx.coroutines.*
 
 @SuppressLint("ClickableViewAccessibility")
 class KeyboardView @JvmOverloads constructor(
@@ -70,6 +79,16 @@ class KeyboardView @JvmOverloads constructor(
     private var backspaceRunnable: Runnable? = null
     private var rotateAnimation: RotateAnimation? = null
 
+    // GIF state
+    private val uiScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var gifSearchJob: Job? = null
+    private var currentGifQuery: String = ""
+    private var currentGifOffset: Int = 0
+    private var isGifLoading: Boolean = false
+    private var hasMoreGifs: Boolean = true
+    private val gifItemsList = mutableListOf<GifItem>()
+    private var gifAdapter: GifAdapter? = null
+
     companion object {
         private const val KEY_CORNER_RADIUS_DP = 14f
         private const val KEY_ELEVATION_DP = 1.5f
@@ -77,6 +96,7 @@ class KeyboardView @JvmOverloads constructor(
         private const val PRESS_ANIM_MS = 70L
         private const val RELEASE_ANIM_MS = 120L
         private const val ICON_SIZE_DP = 22f
+        private const val SEARCH_DEBOUNCE_MS = 300L
     }
 
     init {
@@ -311,6 +331,12 @@ class KeyboardView @JvmOverloads constructor(
                 })
                 appIconView.contentDescription = "Exit Emoji Keyboard"
             }
+            KeyboardMode.GIF -> {
+                appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()?.apply {
+                    setTint(theme.textColor)
+                })
+                appIconView.contentDescription = "Exit GIF Keyboard"
+            }
             else -> {
                 appIconView.setImageResource(R.mipmap.ic_launcher)
                 appIconView.contentDescription = "App Icon Mode Toggle"
@@ -329,6 +355,7 @@ class KeyboardView @JvmOverloads constructor(
             KeyboardMode.MORE -> renderMoreToolsPanel()
             KeyboardMode.CLIPBOARD -> renderClipboardPanel()
             KeyboardMode.EMOJI -> renderEmojiPanel()
+            KeyboardMode.GIF -> renderGifPanel()
             else -> {
                 if (isSymbolPanel) {
                     renderSymbolLayout()
@@ -393,6 +420,194 @@ class KeyboardView @JvmOverloads constructor(
         }
 
         mainPanelContainer.addView(clipboardContainer)
+    }
+
+    private fun renderGifPanel() {
+        val gifRootLayout = LinearLayout(context).apply {
+            orientation = VERTICAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(190f))
+            setPadding(dpToPx(4f), dpToPx(2f), dpToPx(4f), dpToPx(2f))
+        }
+
+        // Search Bar
+        val searchEditText = EditText(context).apply {
+            hint = "Search GIFs..."
+            setHintTextColor(theme.secondaryTextColor)
+            setTextColor(theme.textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(12f).toFloat()
+                setColor(theme.keyColor)
+            }
+            setPadding(dpToPx(12f), dpToPx(6f), dpToPx(12f), dpToPx(6f))
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, 0, 0, dpToPx(4f))
+            }
+        }
+
+        searchEditText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: Editable?) {
+                val query = s?.toString()?.trim() ?: ""
+                gifSearchJob?.cancel()
+                gifSearchJob = uiScope.launch {
+                    delay(SEARCH_DEBOUNCE_MS)
+                    fetchGifs(query, isNewSearch = true)
+                }
+            }
+        })
+        gifRootLayout.addView(searchEditText)
+
+        // Content Area Container (Grid, Loading, Empty, Error)
+        val contentFrame = FrameLayout(context).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 1.0f)
+        }
+
+        val recyclerView = RecyclerView(context).apply {
+            layoutManager = GridLayoutManager(context, 2)
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+        }
+
+        gifAdapter = GifAdapter(gifItemsList) { item ->
+            controller.insertGif(item) { result ->
+                if (result is GifInsertionResult.UnsupportedEditor) {
+                    Toast.makeText(context, "GIF insertion not supported by this app", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        recyclerView.adapter = gifAdapter
+
+        val progressBar = ProgressBar(context).apply {
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+            visibility = View.GONE
+        }
+
+        val emptyTextView = TextView(context).apply {
+            text = "No GIFs found"
+            setTextColor(theme.secondaryTextColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            gravity = Gravity.CENTER
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+            visibility = View.GONE
+        }
+
+        contentFrame.addView(recyclerView)
+        contentFrame.addView(progressBar)
+        contentFrame.addView(emptyTextView)
+
+        // Attribution Footer
+        val footerTextView = TextView(context).apply {
+            text = "Powered by GIPHY"
+            setTextColor(theme.secondaryTextColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(0, dpToPx(2f), 0, dpToPx(2f))
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+
+        gifRootLayout.addView(contentFrame)
+        gifRootLayout.addView(footerTextView)
+
+        mainPanelContainer.addView(gifRootLayout)
+
+        // Infinite Scroll Pagination
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(rv: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(rv, dx, dy)
+                val layoutManager = rv.layoutManager as? GridLayoutManager ?: return
+                val totalItemCount = layoutManager.itemCount
+                val lastVisible = layoutManager.findLastVisibleItemPosition()
+
+                if (!isGifLoading && hasMoreGifs && lastVisible >= totalItemCount - 4) {
+                    fetchGifs(currentGifQuery, isNewSearch = false)
+                }
+            }
+        })
+
+        // Initial Load (Trending)
+        fetchGifs("", isNewSearch = true, progressBar = progressBar, emptyTextView = emptyTextView)
+    }
+
+    private fun fetchGifs(
+        query: String,
+        isNewSearch: Boolean,
+        progressBar: ProgressBar? = null,
+        emptyTextView: TextView? = null
+    ) {
+        if (isGifLoading) return
+        isGifLoading = true
+
+        if (isNewSearch) {
+            currentGifQuery = query
+            currentGifOffset = 0
+            hasMoreGifs = true
+            gifItemsList.clear()
+            gifAdapter?.notifyDataSetChanged()
+            progressBar?.visibility = View.VISIBLE
+            emptyTextView?.visibility = View.GONE
+        }
+
+        uiScope.launch {
+            val page = withContext(Dispatchers.IO) {
+                if (query.isEmpty()) {
+                    controller.gifProvider.getTrending(currentGifOffset, 20)
+                } else {
+                    controller.gifProvider.searchGifs(query, currentGifOffset, 20)
+                }
+            }
+
+            progressBar?.visibility = View.GONE
+
+            if (page.items.isNotEmpty()) {
+                val startPos = gifItemsList.size
+                gifItemsList.addAll(page.items)
+                gifAdapter?.notifyItemRangeInserted(startPos, page.items.size)
+                currentGifOffset += page.items.size
+                hasMoreGifs = currentGifOffset < page.totalCount
+            } else if (isNewSearch) {
+                emptyTextView?.visibility = View.VISIBLE
+            }
+
+            isGifLoading = false
+        }
+    }
+
+    private inner class GifAdapter(
+        private val items: List<GifItem>,
+        private val onItemClick: (GifItem) -> Unit
+    ) : RecyclerView.Adapter<GifAdapter.GifViewHolder>() {
+
+        inner class GifViewHolder(val view: ImageView) : RecyclerView.ViewHolder(view)
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GifViewHolder {
+            val imageView = ImageView(parent.context).apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                layoutParams = ViewGroup.MarginLayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dpToPx(85f)
+                ).apply {
+                    setMargins(dpToPx(2f), dpToPx(2f), dpToPx(2f), dpToPx(2f))
+                }
+            }
+            return GifViewHolder(imageView)
+        }
+
+        override fun onBindViewHolder(holder: GifViewHolder, position: Int) {
+            val item = items[position]
+            Glide.with(holder.view.context)
+                .asGif()
+                .load(item.previewUrl)
+                .into(holder.view)
+
+            holder.view.setOnClickListener {
+                onItemClick(item)
+            }
+        }
+
+        override fun getItemCount(): Int = items.size
     }
 
     private fun createClipboardCardView(text: String, onClick: () -> Unit): FrameLayout {

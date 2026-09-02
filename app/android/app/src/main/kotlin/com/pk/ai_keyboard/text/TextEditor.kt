@@ -13,6 +13,8 @@ class TextEditor {
         this.inputConnection = connection
     }
 
+    fun getInputConnection(): InputConnection? = inputConnection
+
     fun hasValidInputConnection(): Boolean = inputConnection != null
 
     fun getTextBeforeCursor(length: Int = 1000): String {
