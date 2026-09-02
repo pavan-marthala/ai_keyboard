@@ -1726,7 +1726,7 @@ class KeyboardView @JvmOverloads constructor(
 
         val row3Layout = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 1.0f)
         }
 
         val shiftKey = createIconKeyView(
@@ -1774,7 +1774,7 @@ class KeyboardView @JvmOverloads constructor(
 
         val row3Layout = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 1.0f)
         }
 
         for (char in row3) {
@@ -1800,7 +1800,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun renderBottomRow() {
         val bottomRow = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 1.0f)
         }
 
         val modeToggleKey = createKeyView(if (isSymbolPanel) "ABC" else "123", isSpecial = true, weight = 1.3f) {
@@ -1851,7 +1851,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun createKeyRow(keys: List<String>, hints: List<String>? = null, paddingHorizontalDp: Float = 0f): LinearLayout {
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 1.0f)
             if (paddingHorizontalDp > 0) {
                 setPadding(dpToPx(paddingHorizontalDp), 0, dpToPx(paddingHorizontalDp), 0)
             }
@@ -1887,7 +1887,6 @@ class KeyboardView @JvmOverloads constructor(
 
         val shapeNormal = buildKeyShape(bgNormal, isAccent = false)
         val shapePressed = buildKeyShape(bgPressed, isAccent = false)
-        val keyHeightPx = dpToPx(getKeyHeightDp())
 
         if (hintNumber != null) {
             val container = FrameLayout(context).apply {
@@ -1895,7 +1894,7 @@ class KeyboardView @JvmOverloads constructor(
                 elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
                 isClickable = true
                 isFocusable = true
-                layoutParams = LinearLayout.LayoutParams(0, keyHeightPx, weight).apply {
+                layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, weight).apply {
                     setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
                 }
             }
@@ -1976,7 +1975,7 @@ class KeyboardView @JvmOverloads constructor(
                 background = shapeNormal
                 elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
 
-                layoutParams = LinearLayout.LayoutParams(0, keyHeightPx, weight).apply {
+                layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, weight).apply {
                     setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
                 }
 
@@ -2032,14 +2031,13 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = FrameLayout.LayoutParams(iconSizePx, iconSizePx, Gravity.CENTER)
         }
 
-        val keyHeightPx = dpToPx(getKeyHeightDp())
         return FrameLayout(context).apply {
             background = shapeNormal
             elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
             this.contentDescription = contentDescription
             isClickable = true
             isFocusable = true
-            layoutParams = LinearLayout.LayoutParams(0, keyHeightPx, weight).apply {
+            layoutParams = LinearLayout.LayoutParams(0, LayoutParams.MATCH_PARENT, weight).apply {
                 setMargins(dpToPx(3f), dpToPx(4f), dpToPx(3f), dpToPx(4f))
             }
             addView(imageView)

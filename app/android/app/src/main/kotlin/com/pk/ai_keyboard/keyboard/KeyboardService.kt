@@ -7,12 +7,24 @@ import com.pk.ai_keyboard.ui.KeyboardView
 
 class KeyboardService : InputMethodService() {
 
+    companion object {
+        var activeInstance: KeyboardService? = null
+            private set
+    }
+
     private lateinit var controller: KeyboardController
     private lateinit var keyboardView: KeyboardView
 
     override fun onCreate() {
         super.onCreate()
+        activeInstance = this
         controller = KeyboardController(applicationContext)
+    }
+
+    fun updateUseNumbers(enabled: Boolean) {
+        if (::controller.isInitialized) {
+            controller.setUseNumbers(enabled)
+        }
     }
 
     override fun onCreateInputView(): View {
@@ -50,6 +62,9 @@ class KeyboardService : InputMethodService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (activeInstance == this) {
+            activeInstance = null
+        }
         controller.onDestroy()
     }
 }

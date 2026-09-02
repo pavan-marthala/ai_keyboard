@@ -111,6 +111,7 @@ class MainActivity : FlutterActivity() {
                     val enabled = call.argument<Boolean>("useNumbers") ?: false
                     val numberRepo = com.pk.ai_keyboard.keyboard.NumberRowRepository(context)
                     val applied = numberRepo.setUseNumbers(enabled)
+                    com.pk.ai_keyboard.keyboard.KeyboardService.activeInstance?.updateUseNumbers(enabled)
                     result.success(applied)
                 }
                 else -> result.notImplemented()
