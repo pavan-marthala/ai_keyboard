@@ -2,7 +2,9 @@ package com.pk.ai_keyboard.ui
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -98,7 +100,16 @@ class KeyboardView @JvmOverloads constructor(
         private const val RELEASE_ANIM_MS = 120L
         private const val ICON_SIZE_DP = 22f
         private const val SEARCH_DEBOUNCE_MS = 300L
+
+        // Toolbar icon buttons all share this exact icon size and touch target,
+        // so mic / menu / back / dictation-state / app-icon never look mismatched.
+        private const val TOOLBAR_ICON_SIZE_DP = 22f
+        private const val TOOLBAR_TOUCH_TARGET_DP = 38f
     }
+
+    /** A medium-weight system font used for panel titles and tool labels — reads
+     *  noticeably more "designed" than the default regular/bold-only pairing. */
+    private val mediumTypeface: Typeface by lazy { Typeface.create("sans-serif-medium", Typeface.NORMAL) }
 
     init {
         orientation = VERTICAL
@@ -202,6 +213,79 @@ class KeyboardView @JvmOverloads constructor(
         }
     }
 
+    /** Circular ghost-press background shared by every toolbar icon button — mic,
+     *  menu, back-arrow, dictation-state and the app icon all give identical tap
+     *  feedback instead of the flat, background-less touch they had before. */
+    private fun buildToolbarGhostShape(fillColor: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(fillColor)
+        }
+    }
+
+    /** Small rounded icon badge used inside list/grid rows (tools panel, clipboard
+     *  cards) so every leading icon sits in a consistent tinted container instead
+     *  of floating bare next to text at a different visual weight. */
+    private fun createIconBadge(iconRes: Int, badgeSizeDp: Float, iconSizeDp: Float, tint: Int): FrameLayout {
+        val badgeSizePx = dpToPx(badgeSizeDp)
+        val iconSizePx = dpToPx(iconSizeDp)
+        val iconView = ImageView(context).apply {
+            setImageDrawable(ContextCompat.getDrawable(context, iconRes)?.mutate()?.apply {
+                setTint(tint)
+            })
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = FrameLayout.LayoutParams(iconSizePx, iconSizePx, Gravity.CENTER)
+        }
+        return FrameLayout(context).apply {
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(badgeSizeDp * 0.32f).toFloat()
+                setColor(theme.specialKeyColor)
+            }
+            layoutParams = LinearLayout.LayoutParams(badgeSizePx, badgeSizePx)
+            addView(iconView)
+        }
+    }
+
+    /** Centered "nothing here yet" state — icon above a title, optional subtitle —
+     *  reused for the clipboard empty state, GIF empty/no-results state, and the
+     *  Stickers placeholder, so all three read as one consistent design language. */
+    private fun createEmptyStateView(iconRes: Int, title: String, subtitle: String? = null): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = VERTICAL
+            gravity = Gravity.CENTER
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+
+            val iconBadge = createIconBadge(iconRes, badgeSizeDp = 52f, iconSizeDp = 26f, tint = theme.secondaryTextColor).apply {
+                (layoutParams as LinearLayout.LayoutParams).apply {
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    bottomMargin = dpToPx(10f)
+                }
+            }
+            addView(iconBadge)
+
+            val titleView = TextView(context).apply {
+                text = title
+                setTextColor(theme.textColor)
+                typeface = mediumTypeface
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14.5f)
+                gravity = Gravity.CENTER
+            }
+            addView(titleView)
+
+            if (subtitle != null) {
+                val subtitleView = TextView(context).apply {
+                    text = subtitle
+                    setTextColor(theme.secondaryTextColor)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
+                    gravity = Gravity.CENTER
+                    setPadding(0, dpToPx(3f), 0, 0)
+                }
+                addView(subtitleView)
+            }
+        }
+    }
+
     private fun buildUi() {
         removeAllViews()
 
@@ -210,7 +294,7 @@ class KeyboardView @JvmOverloads constructor(
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(theme.toolbarColor)
-            setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
+            setPadding(dpToPx(8f), dpToPx(6f), dpToPx(8f), dpToPx(6f))
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
@@ -223,13 +307,14 @@ class KeyboardView @JvmOverloads constructor(
         }
         toolbarRoot.addView(appIconView)
 
-        // 2. Suggestion / Dynamic Content Area (Center, 75-80% flexible width)
+        // 2. Suggestion / Dynamic Content Area (Center, flexible width)
         toolbarScrollView = HorizontalScrollView(context).apply {
             layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f).apply {
                 gravity = Gravity.CENTER_VERTICAL
             }
             isHorizontalScrollBarEnabled = false
             overScrollMode = View.OVER_SCROLL_NEVER
+            setPadding(dpToPx(4f), 0, dpToPx(4f), 0)
         }
 
         toolbarContainer = LinearLayout(context).apply {
@@ -279,9 +364,9 @@ class KeyboardView @JvmOverloads constructor(
         // 6. Dictation Status Text (Center message)
         dictationStatusTextView = TextView(context).apply {
             setTextColor(theme.textColor)
-            setTypeface(null, Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            gravity = Gravity.CENTER_VERTICAL
+            typeface = mediumTypeface
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            gravity = Gravity.CENTER
             setPadding(dpToPx(8f), 0, dpToPx(8f), 0)
             layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f).apply {
                 gravity = Gravity.CENTER_VERTICAL
@@ -359,6 +444,12 @@ class KeyboardView @JvmOverloads constructor(
                 })
                 appIconView.contentDescription = "Exit Keyboard Resize"
             }
+            KeyboardMode.STICKERS -> {
+                appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()?.apply {
+                    setTint(theme.textColor)
+                })
+                appIconView.contentDescription = "Exit Stickers"
+            }
             else -> {
                 appIconView.setImageResource(R.mipmap.ic_launcher)
                 appIconView.contentDescription = "App Icon Mode Toggle"
@@ -379,6 +470,7 @@ class KeyboardView @JvmOverloads constructor(
             KeyboardMode.EMOJI -> renderEmojiPanel()
             KeyboardMode.GIF -> renderGifPanel()
             KeyboardMode.RESIZE -> renderResizePanel()
+            KeyboardMode.STICKERS -> renderStickersPanel()
             else -> {
                 if (isSymbolPanel) {
                     renderSymbolLayout()
@@ -402,6 +494,24 @@ class KeyboardView @JvmOverloads constructor(
         mainPanelContainer.addView(emojiPickerView)
     }
 
+    /** Not implemented yet — was reachable via the tools grid ("Stickers") but had
+     *  no render case, so it silently fell through to the letter keyboard. This is
+     *  a proper placeholder in the same visual language as the other empty states,
+     *  swap the label out once sticker packs are wired up. */
+    private fun renderStickersPanel() {
+        val container = FrameLayout(context).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
+        }
+        container.addView(
+            createEmptyStateView(
+                iconRes = R.drawable.ic_sticker,
+                title = "Stickers",
+                subtitle = "Coming soon"
+            )
+        )
+        mainPanelContainer.addView(container)
+    }
+
     private fun renderClipboardPanel() {
         val clipboardContainer = LinearLayout(context).apply {
             orientation = VERTICAL
@@ -412,14 +522,13 @@ class KeyboardView @JvmOverloads constructor(
         val history = controller.clipboardHistoryManager.getHistory()
 
         if (history.isEmpty()) {
-            val emptyTextView = TextView(context).apply {
-                text = "No copied text yet"
-                setTextColor(theme.secondaryTextColor)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                gravity = Gravity.CENTER
-                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-            }
-            clipboardContainer.addView(emptyTextView)
+            clipboardContainer.addView(
+                createEmptyStateView(
+                    iconRes = R.drawable.ic_clipboard,
+                    title = "No copied text yet",
+                    subtitle = "Text you copy will show up here"
+                )
+            )
         } else {
             val scrollView = ScrollView(context).apply {
                 layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -452,20 +561,31 @@ class KeyboardView @JvmOverloads constructor(
             setPadding(dpToPx(4f), dpToPx(2f), dpToPx(4f), dpToPx(2f))
         }
 
-        // Search Bar
+        // Search Bar — rounded card with a leading search glyph, matching the
+        // stroke + fill language used by keys and chips elsewhere in the app.
+        val searchIconPx = dpToPx(16f)
         val searchEditText = EditText(context).apply {
-            hint = "Search GIFs..."
+            hint = "Search GIFs"
             setHintTextColor(theme.secondaryTextColor)
             setTextColor(theme.textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(12f).toFloat()
+                cornerRadius = dpToPx(14f).toFloat()
                 setColor(theme.keyColor)
+                if (theme.keyStrokeColor != 0x00000000) {
+                    setStroke(dpToPx(0.75f), theme.keyStrokeColor)
+                }
             }
-            setPadding(dpToPx(12f), dpToPx(6f), dpToPx(12f), dpToPx(6f))
+            val searchDrawable = ContextCompat.getDrawable(context, R.drawable.ic_search)?.mutate()?.apply {
+                setTint(theme.secondaryTextColor)
+                setBounds(0, 0, searchIconPx, searchIconPx)
+            }
+            setCompoundDrawables(searchDrawable, null, null, null)
+            compoundDrawablePadding = dpToPx(8f)
+            setPadding(dpToPx(12f), dpToPx(8f), dpToPx(12f), dpToPx(8f))
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 0, dpToPx(4f))
+                setMargins(0, 0, 0, dpToPx(6f))
             }
         }
 
@@ -491,6 +611,8 @@ class KeyboardView @JvmOverloads constructor(
         val recyclerView = RecyclerView(context).apply {
             layoutManager = GridLayoutManager(context, 2)
             layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            clipToPadding = false
+            setPadding(0, dpToPx(2f), 0, dpToPx(2f))
         }
 
         gifAdapter = GifAdapter(gifItemsList) { item ->
@@ -504,30 +626,30 @@ class KeyboardView @JvmOverloads constructor(
 
         val progressBar = ProgressBar(context).apply {
             layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+            indeterminateTintList = ColorStateList.valueOf(theme.accentColor)
             visibility = View.GONE
         }
 
-        val emptyTextView = TextView(context).apply {
-            text = "No GIFs found"
-            setTextColor(theme.secondaryTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            gravity = Gravity.CENTER
-            layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+        val emptyStateView = createEmptyStateView(
+            iconRes = R.drawable.ic_gif,
+            title = "No GIFs found",
+            subtitle = "Try a different search"
+        ).apply {
             visibility = View.GONE
         }
 
         contentFrame.addView(recyclerView)
         contentFrame.addView(progressBar)
-        contentFrame.addView(emptyTextView)
+        contentFrame.addView(emptyStateView)
 
         // Attribution Footer
         val footerTextView = TextView(context).apply {
             text = "Powered by GIPHY"
             setTextColor(theme.secondaryTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            setTypeface(null, Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10.5f)
+            typeface = mediumTypeface
             gravity = Gravity.CENTER
-            setPadding(0, dpToPx(2f), 0, dpToPx(2f))
+            setPadding(0, dpToPx(4f), 0, dpToPx(2f))
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
@@ -551,7 +673,7 @@ class KeyboardView @JvmOverloads constructor(
         })
 
         // Initial Load (Trending)
-        fetchGifs("", isNewSearch = true, progressBar = progressBar, emptyTextView = emptyTextView)
+        fetchGifs("", isNewSearch = true, progressBar = progressBar, emptyStateView = emptyStateView)
     }
 
     private fun renderResizePanel() {
@@ -559,14 +681,14 @@ class KeyboardView @JvmOverloads constructor(
             orientation = VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
-            setPadding(dpToPx(16f), dpToPx(12f), dpToPx(16f), dpToPx(12f))
+            setPadding(dpToPx(16f), dpToPx(14f), dpToPx(16f), dpToPx(14f))
         }
 
         val titleTextView = TextView(context).apply {
-            text = "Keyboard Height"
+            text = "Keyboard height"
             setTextColor(theme.textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            setTypeface(null, Typeface.BOLD)
+            typeface = mediumTypeface
             gravity = Gravity.CENTER
         }
         resizeRootLayout.addView(titleTextView)
@@ -576,16 +698,19 @@ class KeyboardView @JvmOverloads constructor(
         val heightValueTextView = TextView(context).apply {
             text = "$currentHeightDp dp"
             setTextColor(theme.accentColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             setTypeface(null, Typeface.BOLD)
             gravity = Gravity.CENTER
-            setPadding(0, dpToPx(6f), 0, dpToPx(8f))
+            setPadding(0, dpToPx(6f), 0, dpToPx(10f))
         }
         resizeRootLayout.addView(heightValueTextView)
 
         val seekBar = SeekBar(context).apply {
             max = KeyboardHeightRepository.MAX_HEIGHT_DP - KeyboardHeightRepository.MIN_HEIGHT_DP
             progress = currentHeightDp - KeyboardHeightRepository.MIN_HEIGHT_DP
+            progressTintList = ColorStateList.valueOf(theme.accentColor)
+            progressBackgroundTintList = ColorStateList.valueOf(theme.specialKeyColor)
+            thumbTintList = ColorStateList.valueOf(theme.accentColor)
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
                 setMargins(dpToPx(12f), dpToPx(4f), dpToPx(12f), dpToPx(8f))
             }
@@ -607,7 +732,7 @@ class KeyboardView @JvmOverloads constructor(
         val labelsLayout = LinearLayout(context).apply {
             orientation = HORIZONTAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                setMargins(dpToPx(12f), 0, dpToPx(12f), dpToPx(12f))
+                setMargins(dpToPx(12f), 0, dpToPx(12f), dpToPx(16f))
             }
         }
         val minLabel = TextView(context).apply {
@@ -627,16 +752,44 @@ class KeyboardView @JvmOverloads constructor(
         labelsLayout.addView(maxLabel)
         resizeRootLayout.addView(labelsLayout)
 
-        val resetButton = Button(context).apply {
-            text = "Reset to Default"
-            isAllCaps = false
+        // Reset button — same accent-gradient CTA + ghost-press pattern as the
+        // enter key and AI command chips, instead of a plain system Button.
+        val resetShapeNormal = buildKeyShape(theme.accentColor, isAccent = true)
+        val resetShapePressed = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(12f).toFloat()
+            setColor(theme.accentColorAlt)
+        }
+        val resetButton = TextView(context).apply {
+            text = "Reset to default"
             setTextColor(theme.chipTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
-            setTypeface(null, Typeface.BOLD)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpToPx(12f).toFloat()
-                setColor(theme.accentColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            typeface = mediumTypeface
+            gravity = Gravity.CENTER
+            background = resetShapeNormal
+            elevation = dpToPx(1.5f).toFloat()
+            setPadding(dpToPx(20f), dpToPx(10f), dpToPx(20f), dpToPx(10f))
+            layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+            isClickable = true
+            isFocusable = true
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        v.background = resetShapePressed
+                        animatePress(v)
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        v.background = resetShapeNormal
+                        animateRelease(v)
+                        v.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        v.background = resetShapeNormal
+                        animateRelease(v)
+                    }
+                }
+                true
             }
             setOnClickListener {
                 val defaultDp = controller.resetKeyboardHeight()
@@ -653,7 +806,7 @@ class KeyboardView @JvmOverloads constructor(
         query: String,
         isNewSearch: Boolean,
         progressBar: ProgressBar? = null,
-        emptyTextView: TextView? = null
+        emptyStateView: View? = null
     ) {
         if (isGifLoading) return
         isGifLoading = true
@@ -665,7 +818,7 @@ class KeyboardView @JvmOverloads constructor(
             gifItemsList.clear()
             gifAdapter?.notifyDataSetChanged()
             progressBar?.visibility = View.VISIBLE
-            emptyTextView?.visibility = View.GONE
+            emptyStateView?.visibility = View.GONE
         }
 
         uiScope.launch {
@@ -686,7 +839,7 @@ class KeyboardView @JvmOverloads constructor(
                 currentGifOffset += page.items.size
                 hasMoreGifs = currentGifOffset < page.totalCount
             } else if (isNewSearch) {
-                emptyTextView?.visibility = View.VISIBLE
+                emptyStateView?.visibility = View.VISIBLE
             }
 
             isGifLoading = false
@@ -703,11 +856,17 @@ class KeyboardView @JvmOverloads constructor(
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): GifViewHolder {
             val imageView = ImageView(parent.context).apply {
                 scaleType = ImageView.ScaleType.CENTER_CROP
+                clipToOutline = true
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(10f).toFloat()
+                    setColor(theme.keyColor)
+                }
                 layoutParams = ViewGroup.MarginLayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     dpToPx(85f)
                 ).apply {
-                    setMargins(dpToPx(2f), dpToPx(2f), dpToPx(2f), dpToPx(2f))
+                    setMargins(dpToPx(3f), dpToPx(3f), dpToPx(3f), dpToPx(3f))
                 }
             }
             return GifViewHolder(imageView)
@@ -744,15 +903,32 @@ class KeyboardView @JvmOverloads constructor(
             setColor(theme.keyPressedColor)
         }
 
+        val rowLayout = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dpToPx(10f), dpToPx(8f), dpToPx(12f), dpToPx(8f))
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+
+        val iconBadge = createIconBadge(
+            iconRes = R.drawable.ic_clipboard,
+            badgeSizeDp = 30f,
+            iconSizeDp = 15f,
+            tint = theme.secondaryTextColor
+        ).apply {
+            (layoutParams as LinearLayout.LayoutParams).marginEnd = dpToPx(10f)
+        }
+        rowLayout.addView(iconBadge)
+
         val textView = TextView(context).apply {
             this.text = text
             setTextColor(theme.textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
             maxLines = 3
             ellipsize = TextUtils.TruncateAt.END
-            setPadding(dpToPx(14f), dpToPx(10f), dpToPx(14f), dpToPx(10f))
-            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            layoutParams = LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f)
         }
+        rowLayout.addView(textView)
 
         return FrameLayout(context).apply {
             background = shapeNormal
@@ -762,7 +938,7 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
                 setMargins(0, dpToPx(3f), 0, dpToPx(3f))
             }
-            addView(textView)
+            addView(rowLayout)
 
             setOnTouchListener { v, event ->
                 when (event.action) {
@@ -806,7 +982,7 @@ class KeyboardView @JvmOverloads constructor(
             ToolItemData(R.drawable.ic_resize, "Resize keyboard") { controller.setMode(KeyboardMode.RESIZE) }
         )
 
-        val rowHeightPx = dpToPx(getKeyHeightDp() * 1.15f)
+        val rowHeightPx = dpToPx(getKeyHeightDp() * 1.25f)
 
         for (i in items.indices step 2) {
             val row = LinearLayout(context).apply {
@@ -844,7 +1020,7 @@ class KeyboardView @JvmOverloads constructor(
             }
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(theme.textColor)
+                setColor(theme.accentColor)
             }
         }
         indicatorContainer.addView(activeDot)
@@ -874,29 +1050,31 @@ class KeyboardView @JvmOverloads constructor(
         val container = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dpToPx(14f), 0, dpToPx(14f), 0)
+            setPadding(dpToPx(10f), 0, dpToPx(12f), 0)
             layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         }
 
-        val iconView = ImageView(context).apply {
-            setImageDrawable(ContextCompat.getDrawable(context, iconRes)?.mutate()?.apply {
-                setTint(theme.textColor)
-            })
-            scaleType = ImageView.ScaleType.FIT_CENTER
-            val iconSizePx = dpToPx(20f)
-            layoutParams = LayoutParams(iconSizePx, iconSizePx).apply {
-                setMargins(0, 0, dpToPx(10f), 0)
-            }
+        // Icon now sits inside the same rounded-badge container used in the
+        // clipboard rows and empty states, rather than a bare tinted glyph —
+        // gives every tool entry a consistent "chip + label" shape.
+        val iconBadge = createIconBadge(
+            iconRes = iconRes,
+            badgeSizeDp = 34f,
+            iconSizeDp = 18f,
+            tint = theme.accentColor
+        ).apply {
+            (layoutParams as LinearLayout.LayoutParams).marginEnd = dpToPx(12f)
         }
-        container.addView(iconView)
+        container.addView(iconBadge)
 
         val textView = TextView(context).apply {
             text = label
             setTextColor(theme.textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            setTypeface(null, Typeface.NORMAL)
+            typeface = mediumTypeface
             maxLines = 1
-            layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+            ellipsize = TextUtils.TruncateAt.END
+            layoutParams = LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f)
         }
         container.addView(textView)
 
@@ -952,31 +1130,31 @@ class KeyboardView @JvmOverloads constructor(
 
             when (voiceState) {
                 VoiceState.LOADING -> {
-                    dictationStatusTextView.text = "Starting..."
+                    setDictationStatus("Starting…", accent = false)
                     setDictationIcon(R.drawable.ic_sync, theme.textColor, isRotating = true)
                 }
                 VoiceState.LISTENING -> {
-                    dictationStatusTextView.text = "Listening..."
+                    setDictationStatus("Listening…", accent = true)
                     setDictationIcon(R.drawable.ic_mic_active, theme.accentColor, isRotating = false)
                 }
                 VoiceState.SPEAK_NOW -> {
-                    dictationStatusTextView.text = "Speak now"
+                    setDictationStatus("Speak now", accent = true)
                     setDictationIcon(R.drawable.ic_mic_active, theme.accentColor, isRotating = false)
                 }
                 VoiceState.PROCESSING -> {
-                    dictationStatusTextView.text = "Processing..."
+                    setDictationStatus("Processing…", accent = false)
                     setDictationIcon(R.drawable.ic_sync, theme.textColor, isRotating = true)
                 }
                 VoiceState.MIC_STOPPED -> {
-                    dictationStatusTextView.text = "Tip: Mic to dictate"
+                    setDictationStatus("Tap mic to dictate", accent = false)
                     setDictationIcon(R.drawable.ic_mic, theme.textColor, isRotating = false)
                 }
                 VoiceState.ERROR -> {
-                    dictationStatusTextView.text = "Voice error"
+                    setDictationStatus("Voice error", accent = false, isError = true)
                     setDictationIcon(R.drawable.ic_mic, theme.textColor, isRotating = false)
                 }
                 VoiceState.IDLE -> {
-                    dictationStatusTextView.text = "Tip: Mic to dictate"
+                    setDictationStatus("Tap mic to dictate", accent = false)
                     setDictationIcon(R.drawable.ic_mic, theme.textColor, isRotating = false)
                 }
             }
@@ -993,6 +1171,17 @@ class KeyboardView @JvmOverloads constructor(
 
             refreshToolbar()
         }
+    }
+
+    private fun setDictationStatus(text: String, accent: Boolean, isError: Boolean = false) {
+        dictationStatusTextView.text = text
+        dictationStatusTextView.setTextColor(
+            when {
+                isError -> Color.parseColor("#F38BA8")
+                accent -> theme.accentColor
+                else -> theme.textColor
+            }
+        )
     }
 
     private fun setDictationIcon(drawableRes: Int, tintColor: Int, isRotating: Boolean) {
@@ -1028,29 +1217,40 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun createAppIconView(onClick: () -> Unit): ImageView {
-        val sizePx = dpToPx(28f)
+        val touchTargetPx = dpToPx(TOOLBAR_TOUCH_TARGET_DP)
+        val shapeNormal = buildToolbarGhostShape(Color.TRANSPARENT)
+        val shapePressed = buildToolbarGhostShape(theme.keyPressedColor)
+
         return ImageView(context).apply {
             setImageResource(R.mipmap.ic_launcher)
+            // Never tint the launcher icon — it's full-color brand art, not a
+            // monochrome glyph like the rest of the toolbar.
             scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = "App Icon Mode Toggle"
             isClickable = true
             isFocusable = true
-            layoutParams = LayoutParams(sizePx, sizePx).apply {
-                setMargins(dpToPx(4f), 0, dpToPx(6f), 0)
+            background = shapeNormal
+            clipToOutline = true
+            setPadding(dpToPx(4f), dpToPx(4f), dpToPx(4f), dpToPx(4f))
+            layoutParams = LayoutParams(touchTargetPx, touchTargetPx).apply {
+                setMargins(dpToPx(2f), 0, dpToPx(4f), 0)
                 gravity = Gravity.CENTER_VERTICAL
             }
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
                         animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     }
                     MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                         onClick()
                         v.performClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                     }
                 }
@@ -1061,35 +1261,44 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun createToolbarIconButton(
         drawableRes: Int,
-        sizeDp: Float = 24f,
         contentDescription: String,
         onClick: () -> Unit
     ): ImageView {
-        val sizePx = dpToPx(sizeDp)
+        val touchTargetPx = dpToPx(TOOLBAR_TOUCH_TARGET_DP)
+        val iconPaddingPx = (touchTargetPx - dpToPx(TOOLBAR_ICON_SIZE_DP)) / 2
+
+        val shapeNormal = buildToolbarGhostShape(Color.TRANSPARENT)
+        val shapePressed = buildToolbarGhostShape(theme.keyPressedColor)
+
         return ImageView(context).apply {
             setImageDrawable(ContextCompat.getDrawable(context, drawableRes)?.mutate()?.apply {
                 setTint(theme.textColor)
             })
             scaleType = ImageView.ScaleType.FIT_CENTER
             this.contentDescription = contentDescription
+            background = shapeNormal
+            setPadding(iconPaddingPx, iconPaddingPx, iconPaddingPx, iconPaddingPx)
             isClickable = true
             isFocusable = true
-            layoutParams = LayoutParams(sizePx, sizePx).apply {
-                setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+            layoutParams = LayoutParams(touchTargetPx, touchTargetPx).apply {
+                setMargins(dpToPx(2f), 0, dpToPx(2f), 0)
                 gravity = Gravity.CENTER_VERTICAL
             }
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
                         animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     }
                     MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                         onClick()
                         v.performClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                     }
                 }
@@ -1126,7 +1335,7 @@ class KeyboardView @JvmOverloads constructor(
 
         for ((trigger, label) in commands) {
             if (NativeCommandRegistry.isCommandEnabled(context, trigger)) {
-                val chip = createChipView(label) {
+                val chip = createChipView(label, ChipStyle.COMMAND) {
                     if (controller.isTransforming) return@createChipView
                     if (trigger == "@translate") {
                         showLanguageSelectorPopup()
@@ -1147,33 +1356,73 @@ class KeyboardView @JvmOverloads constructor(
 
         for (candidate in result.candidates) {
             val label = if (candidate.isAutoCorrection) "${candidate.text} ✓" else candidate.text
-            val chip = createChipView(label) {
+            val chip = createChipView(label, ChipStyle.SUGGESTION, isEmphasized = candidate.isAutoCorrection) {
                 controller.onSuggestionCandidateClicked(candidate)
             }
             toolbarContainer.addView(chip)
         }
     }
 
-    private fun createChipView(label: String, onClick: () -> Unit): TextView {
-        val shapeNormal = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(18f).toFloat()
-            colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
-            orientation = GradientDrawable.Orientation.TL_BR
-        }
-        val shapePressed = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(18f).toFloat()
-            setColor(theme.accentColor)
+    /** Suggestion chips (word candidates) are visually neutral — they're options to
+     *  pick, not actions to trigger. AI command chips (@fix, @rewrite, ...) get the
+     *  accent gradient treatment since they *are* actions. */
+    private enum class ChipStyle { SUGGESTION, COMMAND }
+
+    private fun createChipView(
+        label: String,
+        style: ChipStyle,
+        isEmphasized: Boolean = false,
+        onClick: () -> Unit
+    ): TextView {
+        val shapeNormal: GradientDrawable
+        val shapePressed: GradientDrawable
+        val textColor: Int
+        val elevationDp: Float
+        val typefaceStyle: Int
+
+        when (style) {
+            ChipStyle.COMMAND -> {
+                shapeNormal = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(18f).toFloat()
+                    colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
+                    orientation = GradientDrawable.Orientation.TL_BR
+                }
+                shapePressed = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(18f).toFloat()
+                    setColor(theme.accentColor)
+                }
+                textColor = theme.chipTextColor
+                elevationDp = 1f
+                typefaceStyle = Typeface.BOLD
+            }
+            ChipStyle.SUGGESTION -> {
+                shapeNormal = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(16f).toFloat()
+                    setColor(theme.keyColor)
+                    setStroke(dpToPx(1f), if (isEmphasized) theme.accentColor else theme.dividerColor)
+                }
+                shapePressed = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(16f).toFloat()
+                    setColor(theme.keyPressedColor)
+                    setStroke(dpToPx(1f), if (isEmphasized) theme.accentColor else theme.dividerColor)
+                }
+                textColor = if (isEmphasized) theme.accentColor else theme.textColor
+                elevationDp = 0.5f
+                typefaceStyle = if (isEmphasized) Typeface.BOLD else Typeface.NORMAL
+            }
         }
 
         return TextView(context).apply {
             text = label
-            setTextColor(theme.chipTextColor)
+            setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-            setTypeface(null, Typeface.BOLD)
+            setTypeface(null, typefaceStyle)
             background = shapeNormal
-            elevation = dpToPx(1f).toFloat()
+            elevation = dpToPx(elevationDp).toFloat()
             gravity = Gravity.CENTER
             setPadding(dpToPx(14f), dpToPx(6f), dpToPx(14f), dpToPx(6f))
             layoutParams = LayoutParams(
