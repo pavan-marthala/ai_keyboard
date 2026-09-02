@@ -1597,42 +1597,35 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        val modeToggleKey = createKeyView(if (isSymbolPanel) "ABC" else "123", isSpecial = true, weight = 1.4f) {
+        val modeToggleKey = createKeyView(if (isSymbolPanel) "ABC" else "123", isSpecial = true, weight = 1.3f) {
             isSymbolPanel = !isSymbolPanel
             renderPanel()
         }
         bottomRow.addView(modeToggleKey)
 
-        val globeKey = createIconKeyView(
-            iconRes = R.drawable.ic_globe,
+        val emojiKey = createIconKeyView(
+            iconRes = R.drawable.ic_emoji,
             weight = 1.0f,
-            contentDescription = "Switch keyboard"
+            contentDescription = "Emoji"
         ) {
-            try {
-                val imm = context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                val binder = windowToken
-                if (imm != null && binder != null) {
-                    imm.switchToNextInputMethod(binder, false)
-                }
-            } catch (e: Exception) {
-                // Fallback
-            }
+            controller.setMode(KeyboardMode.EMOJI)
         }
-        bottomRow.addView(globeKey)
+        bottomRow.addView(emojiKey)
 
-        val settingsKey = createIconKeyView(
-            iconRes = R.drawable.ic_settings,
-            weight = 1.0f,
-            contentDescription = "Keyboard settings"
-        ) {
-            controller.openAppSettings()
+        val atKey = createKeyView("@", isSpecial = true, weight = 1.0f) {
+            controller.onKeyTyped("@")
         }
-        bottomRow.addView(settingsKey)
+        bottomRow.addView(atKey)
 
-        val spaceKey = createKeyView("English", weight = 4.2f, isSpace = true) {
+        val spaceKey = createKeyView("English", weight = 3.6f, isSpace = true) {
             controller.onKeyTyped(" ")
         }
         bottomRow.addView(spaceKey)
+
+        val commaKey = createKeyView(",", isSpecial = true, weight = 1.0f) {
+            controller.onKeyTyped(",")
+        }
+        bottomRow.addView(commaKey)
 
         val enterKey = createIconKeyView(
             iconRes = R.drawable.ic_enter,
