@@ -27,6 +27,7 @@ import com.pk.ai_keyboard.keyboard.KeyboardController
 import com.pk.ai_keyboard.keyboard.ShiftState
 import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.ui.theme.KeyboardTheme
+import com.pk.ai_keyboard.voice.VoiceState
 
 @SuppressLint("ClickableViewAccessibility")
 class KeyboardView @JvmOverloads constructor(
@@ -47,6 +48,7 @@ class KeyboardView @JvmOverloads constructor(
     private val letterKeyViews = mutableListOf<TextView>()
     private var shiftIconView: ImageView? = null
     private var enterIconView: ImageView? = null
+    private var micIconView: ImageView? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var backspaceRunnable: Runnable? = null
@@ -93,6 +95,9 @@ class KeyboardView @JvmOverloads constructor(
             if (isActive) {
                 renderAiCommands()
             }
+        }
+        controller.voiceInputController.onStateChanged = { voiceState ->
+            updateMicUi(voiceState)
         }
         refreshToolbar()
     }
@@ -183,6 +188,7 @@ class KeyboardView @JvmOverloads constructor(
                 controller.handleMicTap()
             }
         }
+        micIconView = micButton
         toolbarRoot.addView(micButton)
 
         // 4. Menu Button (Rightmost 3-dot)
@@ -212,6 +218,12 @@ class KeyboardView @JvmOverloads constructor(
         addView(mainPanelContainer)
 
         renderPanel()
+    }
+
+    private fun updateMicUi(voiceState: VoiceState) {
+        val isListening = voiceState == VoiceState.LISTENING
+        val tintColor = if (isListening) theme.accentColor else theme.textColor
+        micIconView?.drawable?.mutate()?.setTint(tintColor)
     }
 
     private fun createAppIconView(onClick: () -> Unit): ImageView {

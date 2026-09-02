@@ -16,6 +16,7 @@ import com.pk.ai_keyboard.suggestion.SuggestionEngine
 import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.text.TextEditor
 import com.pk.ai_keyboard.transform.AiTextTransformer
+import com.pk.ai_keyboard.voice.VoiceInputController
 import kotlinx.coroutines.*
 
 enum class ShiftState { LOWERCASE, SHIFT_ON, CAPS_LOCK }
@@ -24,7 +25,8 @@ class KeyboardController(
     private val context: Context,
     private val textEditor: TextEditor = TextEditor(),
     private val aiTextTransformer: AiTextTransformer = AiTextTransformer(context),
-    private val suggestionEngine: SuggestionEngine = AospSuggestionEngine(context)
+    private val suggestionEngine: SuggestionEngine = AospSuggestionEngine(context),
+    val voiceInputController: VoiceInputController = VoiceInputController(context)
 ) {
 
     companion object {
@@ -76,6 +78,10 @@ class KeyboardController(
         scope.launch(Dispatchers.IO) {
             suggestionEngine.initialize()
         }
+        voiceInputController.onTextRecognized = { text ->
+            textEditor.commitRecognizedText(text)
+            requestSuggestions()
+        }
     }
 
     fun handleAppIconTap() {
@@ -89,6 +95,7 @@ class KeyboardController(
 
     fun handleMicTap() {
         Log.d(TAG, "Mic button tapped")
+        voiceInputController.toggleVoiceInput()
         onMicClicked?.invoke()
     }
 
@@ -330,6 +337,7 @@ class KeyboardController(
     fun onDestroy() {
         invalidateInputContext()
         suggestionEngine.close()
+        voiceInputController.destroy()
         scope.cancel()
     }
 

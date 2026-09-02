@@ -37,6 +37,16 @@ class TextEditor {
         inputConnection?.commitText(text, newCursorPosition)
     }
 
+    fun commitRecognizedText(recognizedText: String) {
+        if (recognizedText.isEmpty()) return
+        val textBefore = getTextBeforeCursor(1)
+        val needsSpace = textBefore.isNotEmpty() &&
+                         !textBefore.last().isWhitespace() &&
+                         !recognizedText.first().isWhitespace()
+        val formattedText = if (needsSpace) " $recognizedText" else recognizedText
+        commitText(formattedText, 1)
+    }
+
     fun getCurrentWordBeforeCursor(): String {
         val textBefore = getTextBeforeCursor(100)
         if (textBefore.isEmpty()) return ""
