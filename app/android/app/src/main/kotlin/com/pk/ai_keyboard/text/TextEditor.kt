@@ -37,6 +37,11 @@ class TextEditor {
         inputConnection?.commitText(text, newCursorPosition)
     }
 
+    fun commitClipboardText(text: String): Boolean {
+        val connection = inputConnection ?: return false
+        return connection.commitText(text, 1)
+    }
+
     fun commitRecognizedText(recognizedText: String) {
         if (recognizedText.isEmpty()) return
         val textBefore = getTextBeforeCursor(1)

@@ -30,6 +30,7 @@ class KeyboardService : InputMethodService() {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         controller.onInputConnectionChanged(currentInputConnection)
+        controller.resetModeToMain()
         controller.onEditorInfoChanged(info)
         if (::keyboardView.isInitialized) {
             keyboardView.updateEditorInfo(info)

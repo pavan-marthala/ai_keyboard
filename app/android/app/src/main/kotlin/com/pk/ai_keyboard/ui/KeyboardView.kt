@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -112,9 +113,15 @@ class KeyboardView @JvmOverloads constructor(
         controller.onKeyboardModeChanged = { mode ->
             updateModeUi(mode)
         }
+        controller.clipboardHistoryManager.onHistoryUpdated = { _ ->
+            if (controller.keyboardMode == KeyboardMode.CLIPBOARD) {
+                renderPanel()
+            }
+        }
         controller.voiceInputController.onStateChanged = { voiceState ->
             updateDictationToolbar(voiceState)
         }
+        updateModeUi(controller.keyboardMode)
         refreshToolbar()
     }
 
@@ -282,14 +289,25 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun updateModeUi(mode: KeyboardMode) {
-        if (mode == KeyboardMode.MORE) {
-            appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_close)?.mutate()?.apply {
-                setTint(theme.textColor)
-            })
-            appIconView.contentDescription = "Close Tools Panel"
-        } else {
-            appIconView.setImageResource(R.mipmap.ic_launcher)
-            appIconView.contentDescription = "App Icon Mode Toggle"
+        if (!::controller.isInitialized) return
+        when (mode) {
+            KeyboardMode.MORE -> {
+                appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_close)?.mutate()?.apply {
+                    setTint(theme.textColor)
+                })
+                appIconView.contentDescription = "Close Tools Panel"
+            }
+            KeyboardMode.CLIPBOARD -> {
+                appIconView.setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_arrow_back)?.mutate()?.apply {
+                    setTint(theme.textColor)
+                })
+                appIconView.contentDescription = "Exit Clipboard History"
+                controller.clipboardHistoryManager.checkCurrentPrimaryClip()
+            }
+            else -> {
+                appIconView.setImageResource(R.mipmap.ic_launcher)
+                appIconView.contentDescription = "App Icon Mode Toggle"
+            }
         }
         renderPanel()
     }
@@ -298,12 +316,123 @@ class KeyboardView @JvmOverloads constructor(
         mainPanelContainer.removeAllViews()
         letterKeyViews.clear()
 
-        if (::controller.isInitialized && controller.keyboardMode == KeyboardMode.MORE) {
-            renderMoreToolsPanel()
-        } else if (isSymbolPanel) {
-            renderSymbolLayout()
+        if (!::controller.isInitialized) return
+
+        when (controller.keyboardMode) {
+            KeyboardMode.MORE -> renderMoreToolsPanel()
+            KeyboardMode.CLIPBOARD -> renderClipboardPanel()
+            else -> {
+                if (isSymbolPanel) {
+                    renderSymbolLayout()
+                } else {
+                    renderQwertyLayout()
+                }
+            }
+        }
+    }
+
+    private fun renderClipboardPanel() {
+        val clipboardContainer = LinearLayout(context).apply {
+            orientation = VERTICAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(180f))
+            setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
+        }
+
+        val history = controller.clipboardHistoryManager.getHistory()
+
+        if (history.isEmpty()) {
+            val emptyTextView = TextView(context).apply {
+                text = "No copied text yet"
+                setTextColor(theme.secondaryTextColor)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                gravity = Gravity.CENTER
+                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            }
+            clipboardContainer.addView(emptyTextView)
         } else {
-            renderQwertyLayout()
+            val scrollView = ScrollView(context).apply {
+                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+                isVerticalScrollBarEnabled = true
+            }
+
+            val listLayout = LinearLayout(context).apply {
+                orientation = VERTICAL
+                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            }
+
+            for (text in history) {
+                val card = createClipboardCardView(text) {
+                    controller.commitClipboardItem(text)
+                }
+                listLayout.addView(card)
+            }
+
+            scrollView.addView(listLayout)
+            clipboardContainer.addView(scrollView)
+        }
+
+        mainPanelContainer.addView(clipboardContainer)
+    }
+
+    private fun createClipboardCardView(text: String, onClick: () -> Unit): FrameLayout {
+        val shapeNormal = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(12f).toFloat()
+            setColor(theme.keyColor)
+            if (theme.keyStrokeColor != 0x00000000) {
+                setStroke(dpToPx(0.75f), theme.keyStrokeColor)
+            }
+        }
+
+        val shapePressed = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpToPx(12f).toFloat()
+            setColor(theme.keyPressedColor)
+        }
+
+        val textView = TextView(context).apply {
+            this.text = text
+            setTextColor(theme.textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            maxLines = 3
+            ellipsize = TextUtils.TruncateAt.END
+            setPadding(dpToPx(14f), dpToPx(10f), dpToPx(14f), dpToPx(10f))
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+
+        return FrameLayout(context).apply {
+            background = shapeNormal
+            elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+            isClickable = true
+            isFocusable = true
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, dpToPx(3f), 0, dpToPx(3f))
+            }
+            addView(textView)
+
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
+                        v.elevation = dpToPx(0.5f).toFloat()
+                        animatePress(v)
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
+                        v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                        animateRelease(v)
+                        onClick()
+                        v.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
+                        v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
+                        animateRelease(v)
+                    }
+                }
+                true
+            }
         }
     }
 

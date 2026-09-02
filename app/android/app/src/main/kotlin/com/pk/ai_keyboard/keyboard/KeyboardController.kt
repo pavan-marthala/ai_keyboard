@@ -8,6 +8,7 @@ import android.view.inputmethod.InputConnection
 import com.pk.ai_keyboard.MainActivity
 import com.pk.ai_keyboard.ai.AiFailure
 import com.pk.ai_keyboard.ai.AiResult
+import com.pk.ai_keyboard.clipboard.ClipboardHistoryManager
 import com.pk.ai_keyboard.command.CommandParser
 import com.pk.ai_keyboard.command.NativeCommandRegistry
 import com.pk.ai_keyboard.suggestion.AospSuggestionEngine
@@ -27,7 +28,8 @@ class KeyboardController(
     private val textEditor: TextEditor = TextEditor(),
     private val aiTextTransformer: AiTextTransformer = AiTextTransformer(context),
     private val suggestionEngine: SuggestionEngine = AospSuggestionEngine(context),
-    val voiceInputController: VoiceInputController = VoiceInputController(context)
+    val voiceInputController: VoiceInputController = VoiceInputController(context),
+    val clipboardHistoryManager: ClipboardHistoryManager = ClipboardHistoryManager(context)
 ) {
 
     companion object {
@@ -97,8 +99,22 @@ class KeyboardController(
         }
     }
 
+    fun resetModeToMain() {
+        if (keyboardMode != KeyboardMode.MAIN) {
+            setMode(KeyboardMode.MAIN)
+        }
+    }
+
+    fun commitClipboardItem(text: String): Boolean {
+        val committed = textEditor.commitClipboardText(text)
+        if (committed) {
+            setMode(KeyboardMode.MAIN)
+        }
+        return committed
+    }
+
     fun handleAppIconTap() {
-        if (keyboardMode == KeyboardMode.MORE) {
+        if (keyboardMode == KeyboardMode.MORE || keyboardMode == KeyboardMode.CLIPBOARD) {
             setMode(KeyboardMode.MAIN)
             return
         }
@@ -372,6 +388,7 @@ class KeyboardController(
         invalidateInputContext()
         suggestionEngine.close()
         voiceInputController.destroy()
+        clipboardHistoryManager.close()
         scope.cancel()
     }
 
