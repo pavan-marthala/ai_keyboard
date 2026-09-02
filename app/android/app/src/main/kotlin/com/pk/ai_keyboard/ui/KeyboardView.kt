@@ -60,6 +60,7 @@ class KeyboardView @JvmOverloads constructor(
 
     private var isSymbolPanel = false
     private var morePanelPageIndex = 0
+    private var isFixedKeyHeightMode = false
 
     private lateinit var toolbarContainer: LinearLayout
     private lateinit var mainPanelContainer: LinearLayout
@@ -148,6 +149,9 @@ class KeyboardView @JvmOverloads constructor(
             refreshToolbar()
         }
         controller.onKeyboardModeChanged = { mode ->
+            if (mode != KeyboardMode.RESIZE) {
+                isFixedKeyHeightMode = false
+            }
             updateModeUi(mode)
         }
         controller.onKeyboardHeightChanged = { _ ->
@@ -182,7 +186,11 @@ class KeyboardView @JvmOverloads constructor(
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         if (isLandscape) return 36f
         val contentHeightDp = if (::controller.isInitialized) {
-            controller.keyboardHeightRepository.getHeight().toFloat()
+            if (isFixedKeyHeightMode) {
+                KeyboardHeightRepository.DEFAULT_HEIGHT_DP.toFloat()
+            } else {
+                controller.keyboardHeightRepository.getHeight().toFloat()
+            }
         } else {
             216f
         }
@@ -687,129 +695,232 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun renderResizePanel() {
-        val resizeRootLayout = LinearLayout(context).apply {
-            orientation = VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
+        val container = FrameLayout(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
-            setPadding(dpToPx(16f), dpToPx(14f), dpToPx(16f), dpToPx(14f))
         }
 
-        val titleTextView = TextView(context).apply {
-            text = "Keyboard height"
-            setTextColor(theme.textColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            typeface = mediumTypeface
-            gravity = Gravity.CENTER
+        // Layer 0: Preview Keyboard Layout (Render QWERTY underneath with slight dim overlay)
+        val previewContainer = LinearLayout(context).apply {
+            orientation = VERTICAL
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            setPadding(dpToPx(4f), dpToPx(6f), dpToPx(4f), dpToPx(6f))
         }
-        resizeRootLayout.addView(titleTextView)
+        val tempMainContainer = mainPanelContainer
+        mainPanelContainer = previewContainer
+        renderQwertyLayout()
+        mainPanelContainer = tempMainContainer
 
-        val currentHeightDp = controller.keyboardHeightRepository.getHeight()
-
-        val heightValueTextView = TextView(context).apply {
-            text = "$currentHeightDp dp"
-            setTextColor(theme.accentColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
-            setTypeface(null, Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setPadding(0, dpToPx(6f), 0, dpToPx(10f))
+        val dimOverlay = View(context).apply {
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            setBackgroundColor(0x33000000.toInt())
         }
-        resizeRootLayout.addView(heightValueTextView)
+        container.addView(previewContainer)
+        container.addView(dimOverlay)
 
-        val seekBar = SeekBar(context).apply {
-            max = KeyboardHeightRepository.MAX_HEIGHT_DP - KeyboardHeightRepository.MIN_HEIGHT_DP
-            progress = currentHeightDp - KeyboardHeightRepository.MIN_HEIGHT_DP
-            progressTintList = ColorStateList.valueOf(theme.accentColor)
-            progressBackgroundTintList = ColorStateList.valueOf(theme.specialKeyColor)
-            thumbTintList = ColorStateList.valueOf(theme.accentColor)
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                setMargins(dpToPx(12f), dpToPx(4f), dpToPx(12f), dpToPx(8f))
+        // Layer 1: Border Frame around active boundary
+        val borderOverlay = View(context).apply {
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT).apply {
+                setMargins(dpToPx(2f), dpToPx(2f), dpToPx(2f), dpToPx(2f))
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(16f).toFloat()
+                setStroke(dpToPx(2.5f), theme.accentColor)
             }
         }
+        container.addView(borderOverlay)
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                val newHeightDp = KeyboardHeightRepository.MIN_HEIGHT_DP + progress
-                heightValueTextView.text = "$newHeightDp dp"
-                if (fromUser) {
-                    controller.setKeyboardHeight(newHeightDp)
-                }
+        // Layer 2: Top Handle Bar
+        val topHandle = View(context).apply {
+            val hWidth = dpToPx(44f)
+            val hHeight = dpToPx(5f)
+            layoutParams = FrameLayout.LayoutParams(hWidth, hHeight, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply {
+                topMargin = dpToPx(6f)
             }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
-        })
-        resizeRootLayout.addView(seekBar)
-
-        val labelsLayout = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-                setMargins(dpToPx(12f), 0, dpToPx(12f), dpToPx(16f))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(3f).toFloat()
+                setColor(theme.accentColor)
             }
         }
-        val minLabel = TextView(context).apply {
-            text = "MIN (${KeyboardHeightRepository.MIN_HEIGHT_DP} dp)"
-            setTextColor(theme.secondaryTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f)
-        }
-        val maxLabel = TextView(context).apply {
-            text = "MAX (${KeyboardHeightRepository.MAX_HEIGHT_DP} dp)"
-            setTextColor(theme.secondaryTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-            gravity = Gravity.END
-            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f)
-        }
-        labelsLayout.addView(minLabel)
-        labelsLayout.addView(maxLabel)
-        resizeRootLayout.addView(labelsLayout)
+        val topHandleTouchArea = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(36f), Gravity.TOP)
+            addView(topHandle)
 
-        // Reset button — same accent-gradient CTA + ghost-press pattern as the
-        // enter key and AI command chips, instead of a plain system Button.
-        val resetShapeNormal = buildKeyShape(theme.accentColor, isAccent = true)
-        val resetShapePressed = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(12f).toFloat()
-            setColor(theme.accentColorAlt)
-        }
-        val resetButton = TextView(context).apply {
-            text = "Reset to default"
-            setTextColor(theme.chipTextColor)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
-            typeface = mediumTypeface
-            gravity = Gravity.CENTER
-            background = resetShapeNormal
-            elevation = dpToPx(1.5f).toFloat()
-            setPadding(dpToPx(20f), dpToPx(10f), dpToPx(20f), dpToPx(10f))
-            layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
-            isClickable = true
-            isFocusable = true
-            setOnTouchListener { v, event ->
+            var initialRawY = 0f
+            var initialHeightDp = 0
+            setOnTouchListener { _, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        v.background = resetShapePressed
-                        animatePress(v)
-                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        initialRawY = event.rawY
+                        initialHeightDp = controller.keyboardHeightRepository.getHeight()
+                        isFixedKeyHeightMode = false
+                        true
                     }
-                    MotionEvent.ACTION_UP -> {
-                        v.background = resetShapeNormal
-                        animateRelease(v)
-                        v.performClick()
+                    MotionEvent.ACTION_MOVE -> {
+                        val deltaPx = initialRawY - event.rawY
+                        val deltaDp = (deltaPx / resources.displayMetrics.density).toInt()
+                        val newHeightDp = (initialHeightDp + deltaDp).coerceIn(
+                            KeyboardHeightRepository.MIN_HEIGHT_DP,
+                            KeyboardHeightRepository.MAX_HEIGHT_DP
+                        )
+                        if (newHeightDp != controller.keyboardHeightRepository.getHeight()) {
+                            controller.setKeyboardHeight(newHeightDp)
+                        }
+                        true
                     }
-                    MotionEvent.ACTION_CANCEL -> {
-                        v.background = resetShapeNormal
-                        animateRelease(v)
-                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
+                    else -> false
                 }
-                true
-            }
-            setOnClickListener {
-                val defaultDp = controller.resetKeyboardHeight()
-                seekBar.progress = defaultDp - KeyboardHeightRepository.MIN_HEIGHT_DP
-                heightValueTextView.text = "$defaultDp dp"
             }
         }
-        resizeRootLayout.addView(resetButton)
+        container.addView(topHandleTouchArea)
 
-        mainPanelContainer.addView(resizeRootLayout)
+        // Layer 3: Bottom Handle Bar
+        val bottomHandle = View(context).apply {
+            val hWidth = dpToPx(44f)
+            val hHeight = dpToPx(5f)
+            layoutParams = FrameLayout.LayoutParams(hWidth, hHeight, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
+                bottomMargin = dpToPx(6f)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(3f).toFloat()
+                setColor(theme.accentColor)
+            }
+        }
+        val bottomHandleTouchArea = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(36f), Gravity.BOTTOM)
+            addView(bottomHandle)
+
+            var initialRawY = 0f
+            var initialHeightDp = 0
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialRawY = event.rawY
+                        initialHeightDp = controller.keyboardHeightRepository.getHeight()
+                        isFixedKeyHeightMode = false
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val deltaPx = event.rawY - initialRawY
+                        val deltaDp = (deltaPx / resources.displayMetrics.density).toInt()
+                        val newHeightDp = (initialHeightDp + deltaDp).coerceIn(
+                            KeyboardHeightRepository.MIN_HEIGHT_DP,
+                            KeyboardHeightRepository.MAX_HEIGHT_DP
+                        )
+                        if (newHeightDp != controller.keyboardHeightRepository.getHeight()) {
+                            controller.setKeyboardHeight(newHeightDp)
+                        }
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
+                    else -> false
+                }
+            }
+        }
+        container.addView(bottomHandleTouchArea)
+
+        // Layer 4: Floating Controls Row (Reset, Middle Handle, Done)
+        val controlsRow = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.CENTER)
+        }
+
+        // Reset Button
+        val resetBtn = TextView(context).apply {
+            text = "Reset"
+            setTextColor(theme.textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            typeface = mediumTypeface
+            gravity = Gravity.CENTER
+            setPadding(dpToPx(16f), dpToPx(10f), dpToPx(16f), dpToPx(10f))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(20f).toFloat()
+                setColor(theme.specialKeyColor)
+            }
+            layoutParams = LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+                rightMargin = dpToPx(12f)
+            }
+            isClickable = true
+            setOnClickListener {
+                isFixedKeyHeightMode = false
+                controller.resetKeyboardHeight()
+            }
+        }
+        controlsRow.addView(resetBtn)
+
+        // Middle Handle (Center Circular Drag Handle)
+        val middleHandleView = ImageView(context).apply {
+            val sizePx = dpToPx(42f)
+            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
+                rightMargin = dpToPx(12f)
+            }
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(theme.specialKeyColor)
+            }
+            setImageDrawable(ContextCompat.getDrawable(context, R.drawable.ic_resize)?.mutate()?.apply {
+                setTint(theme.textColor)
+            })
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dpToPx(10f), dpToPx(10f), dpToPx(10f), dpToPx(10f))
+
+            var initialRawY = 0f
+            var initialHeightDp = 0
+            setOnTouchListener { _, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        initialRawY = event.rawY
+                        initialHeightDp = controller.keyboardHeightRepository.getHeight()
+                        isFixedKeyHeightMode = true
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        val deltaPx = initialRawY - event.rawY
+                        val deltaDp = (deltaPx / resources.displayMetrics.density).toInt()
+                        val newHeightDp = (initialHeightDp + deltaDp).coerceIn(
+                            KeyboardHeightRepository.MIN_HEIGHT_DP,
+                            KeyboardHeightRepository.MAX_HEIGHT_DP
+                        )
+                        if (newHeightDp != controller.keyboardHeightRepository.getHeight()) {
+                            controller.setKeyboardHeight(newHeightDp)
+                        }
+                        true
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> true
+                    else -> false
+                }
+            }
+        }
+        controlsRow.addView(middleHandleView)
+
+        // Done Button
+        val doneBtn = TextView(context).apply {
+            text = "Done"
+            setTextColor(theme.textColor)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+            typeface = mediumTypeface
+            gravity = Gravity.CENTER
+            setPadding(dpToPx(18f), dpToPx(10f), dpToPx(18f), dpToPx(10f))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpToPx(20f).toFloat()
+                setColor(theme.specialKeyColor)
+            }
+            layoutParams = LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT)
+            isClickable = true
+            setOnClickListener {
+                controller.setMode(KeyboardMode.MAIN)
+            }
+        }
+        controlsRow.addView(doneBtn)
+
+        container.addView(controlsRow)
+        mainPanelContainer.addView(container)
     }
 
     private fun fetchGifs(
