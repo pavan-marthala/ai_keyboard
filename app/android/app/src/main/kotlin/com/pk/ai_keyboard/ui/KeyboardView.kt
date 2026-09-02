@@ -59,6 +59,7 @@ class KeyboardView @JvmOverloads constructor(
     private var editorInfo: EditorInfo? = null
 
     private var isSymbolPanel = false
+    private var morePanelPageIndex = 0
 
     private lateinit var toolbarContainer: LinearLayout
     private lateinit var mainPanelContainer: LinearLayout
@@ -131,6 +132,9 @@ class KeyboardView @JvmOverloads constructor(
 
     fun init(keyboardController: KeyboardController) {
         this.controller = keyboardController
+        if (::mainPanelContainer.isInitialized) {
+            mainPanelContainer.layoutParams.height = getContentPanelHeightPx()
+        }
         controller.onShiftStateChanged = { shiftState ->
             updateShiftUi(shiftState)
         }
@@ -176,7 +180,13 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun getKeyHeightDp(): Float {
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        return if (isLandscape) 36f else 46f
+        if (isLandscape) return 36f
+        val contentHeightDp = if (::controller.isInitialized) {
+            controller.keyboardHeightRepository.getHeight().toFloat()
+        } else {
+            216f
+        }
+        return ((contentHeightDp - 12f) / 4f) - 8f
     }
 
     private fun getContentPanelHeightPx(): Int {
@@ -982,22 +992,34 @@ class KeyboardView @JvmOverloads constructor(
             ToolItemData(R.drawable.ic_resize, "Resize keyboard") { controller.setMode(KeyboardMode.RESIZE) }
         )
 
-        val rowHeightPx = dpToPx(getKeyHeightDp() * 1.25f)
+        val singleRowHeightPx = dpToPx(52f)
+        val totalHeightPx = getContentPanelHeightPx()
+        val reservedHeightPx = dpToPx(14f + 17f + 12f)
+        val availableGridHeightPx = (totalHeightPx - reservedHeightPx).coerceAtLeast(singleRowHeightPx)
+        val maxRowsPerPage = (availableGridHeightPx / singleRowHeightPx).coerceAtLeast(1)
+        val maxItemsPerPage = maxRowsPerPage * 2
+        val totalPages = (items.size + maxItemsPerPage - 1) / maxItemsPerPage
 
-        for (i in items.indices step 2) {
+        morePanelPageIndex = morePanelPageIndex.coerceIn(0, totalPages - 1)
+
+        val startIndex = morePanelPageIndex * maxItemsPerPage
+        val endIndex = (startIndex + maxItemsPerPage).coerceAtMost(items.size)
+        val pageItems = items.subList(startIndex, endIndex)
+
+        for (i in pageItems.indices step 2) {
             val row = LinearLayout(context).apply {
                 orientation = HORIZONTAL
-                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, rowHeightPx).apply {
+                layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(46f)).apply {
                     setMargins(0, dpToPx(3f), 0, dpToPx(3f))
                 }
             }
 
-            val item1 = items[i]
+            val item1 = pageItems[i]
             val btn1 = createGboardToolButton(item1.iconRes, item1.label, item1.onClick)
             row.addView(btn1)
 
-            if (i + 1 < items.size) {
-                val item2 = items[i + 1]
+            if (i + 1 < pageItems.size) {
+                val item2 = pageItems[i + 1]
                 val btn2 = createGboardToolButton(item2.iconRes, item2.label, item2.onClick)
                 row.addView(btn2)
             }
@@ -1013,17 +1035,26 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        val activeDot = View(context).apply {
-            val sizePx = dpToPx(7f)
-            layoutParams = LayoutParams(sizePx, sizePx).apply {
-                setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+        for (p in 0 until totalPages) {
+            val dot = View(context).apply {
+                val sizePx = dpToPx(7f)
+                layoutParams = LayoutParams(sizePx, sizePx).apply {
+                    setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+                }
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(if (p == morePanelPageIndex) theme.accentColor else theme.secondaryTextColor)
+                }
+                if (totalPages > 1) {
+                    isClickable = true
+                    setOnClickListener {
+                        morePanelPageIndex = p
+                        renderPanel()
+                    }
+                }
             }
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(theme.accentColor)
-            }
+            indicatorContainer.addView(dot)
         }
-        indicatorContainer.addView(activeDot)
 
         toolsContainer.addView(indicatorContainer)
         mainPanelContainer.addView(toolsContainer)
