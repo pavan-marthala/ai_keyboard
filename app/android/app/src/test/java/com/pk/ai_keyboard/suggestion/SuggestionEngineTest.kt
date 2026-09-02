@@ -15,9 +15,9 @@ class SuggestionEngineTest {
     }
 
     @Test
-    fun `updateInput with empty string returns empty result`() {
+    fun `updateInput with empty string returns top default dictionary candidates`() {
         val result = engine.updateInput("")
-        assertTrue(result.candidates.isEmpty())
+        assertFalse(result.candidates.isEmpty())
         assertNull(result.autoCorrection)
     }
 

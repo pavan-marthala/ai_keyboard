@@ -41,7 +41,6 @@ class KeyboardView @JvmOverloads constructor(
 
     private var isSymbolPanel = false
 
-    private lateinit var tvStatus: TextView
     private lateinit var toolbarContainer: LinearLayout
     private lateinit var mainPanelContainer: LinearLayout
 
@@ -81,9 +80,6 @@ class KeyboardView @JvmOverloads constructor(
 
     fun init(keyboardController: KeyboardController) {
         this.controller = keyboardController
-        controller.onStatusUpdate = { status ->
-            tvStatus.text = status
-        }
         controller.onShiftStateChanged = { shiftState ->
             updateShiftUi(shiftState)
         }
@@ -92,6 +88,11 @@ class KeyboardView @JvmOverloads constructor(
         }
         controller.onSuggestionsUpdated = { result ->
             renderSuggestions(result)
+        }
+        controller.onAiCommandModeToggled = { isActive ->
+            if (isActive) {
+                renderAiCommands()
+            }
         }
         refreshToolbar()
     }
@@ -139,7 +140,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun buildUi() {
         removeAllViews()
 
-        // Single horizontal toolbar container
+        // Single horizontal toolbar container: [APP ICON] [SUGGESTIONS / COMMANDS AREA] [MIC] [MENU]
         val toolbarRoot = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -148,7 +149,7 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        // 1. App Icon (Leftmost)
+        // 1. App Icon (Leftmost toggle control)
         val appIcon = createAppIconView {
             if (::controller.isInitialized) {
                 controller.handleAppIconTap()
@@ -169,15 +170,6 @@ class KeyboardView @JvmOverloads constructor(
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-
-        tvStatus = TextView(context).apply {
-            text = "✨ AI Keyboard"
-            setTextColor(theme.textColor)
-            setTypeface(null, Typeface.BOLD)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-            setPadding(dpToPx(6f), dpToPx(2f), dpToPx(12f), dpToPx(2f))
-        }
-        toolbarContainer.addView(tvStatus)
 
         toolbarScrollView.addView(toolbarContainer)
         toolbarRoot.addView(toolbarScrollView)
@@ -227,7 +219,7 @@ class KeyboardView @JvmOverloads constructor(
         return ImageView(context).apply {
             setImageResource(R.mipmap.ic_launcher)
             scaleType = ImageView.ScaleType.FIT_CENTER
-            contentDescription = "App Icon"
+            contentDescription = "App Icon Mode Toggle"
             isClickable = true
             isFocusable = true
             layoutParams = LayoutParams(sizePx, sizePx).apply {
@@ -294,10 +286,19 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     fun refreshToolbar() {
+        if (!::toolbarContainer.isInitialized || !::controller.isInitialized) return
+
+        if (controller.isAiCommandModeActive) {
+            renderAiCommands()
+        } else {
+            controller.requestSuggestions()
+        }
+    }
+
+    private fun renderAiCommands() {
         if (!::toolbarContainer.isInitialized) return
 
         toolbarContainer.removeAllViews()
-        toolbarContainer.addView(tvStatus)
 
         val commands = listOf(
             "@fix" to "✓ Fix",
@@ -325,15 +326,10 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun renderSuggestions(result: SuggestionResult) {
-        if (!::toolbarContainer.isInitialized) return
-
-        if (result.candidates.isEmpty()) {
-            refreshToolbar()
-            return
-        }
+        if (!::toolbarContainer.isInitialized || !::controller.isInitialized) return
+        if (controller.isAiCommandModeActive) return
 
         toolbarContainer.removeAllViews()
-        toolbarContainer.addView(tvStatus)
 
         for (candidate in result.candidates) {
             val label = if (candidate.isAutoCorrection) "${candidate.text} ✓" else candidate.text

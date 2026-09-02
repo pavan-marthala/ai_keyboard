@@ -101,13 +101,31 @@ class AospSuggestionEngine(
         previousContext: String,
         sequenceId: Long
     ): SuggestionResult {
-        if (!isInitialized || typedText.isBlank()) {
+        if (!isInitialized) {
             return SuggestionResult(emptyList(), null, sequenceId)
         }
 
         val cleanInput = typedText.trim().lowercase()
-        if (cleanInput.length < MIN_PREFIX_LENGTH) {
-            return SuggestionResult(emptyList(), null, sequenceId)
+
+        // If input is empty, return top frequency candidates from loaded dictionary
+        if (cleanInput.isEmpty()) {
+            val topWords = mutableListOf<Pair<String, Int>>()
+            userLearnedWords.forEach { (word, freq) ->
+                topWords.add(word to (freq + 500))
+            }
+            dictionaryWords.forEach { (word, score) ->
+                topWords.add(word to score)
+            }
+            topWords.sortByDescending { it.second }
+            val defaultCandidates = topWords.take(MAX_SUGGESTIONS).map { (word, score) ->
+                SuggestionCandidate(
+                    text = word,
+                    score = score,
+                    isAutoCorrection = false,
+                    isTypedWord = false
+                )
+            }
+            return SuggestionResult(defaultCandidates, null, sequenceId)
         }
 
         val candidates = mutableListOf<SuggestionCandidate>()

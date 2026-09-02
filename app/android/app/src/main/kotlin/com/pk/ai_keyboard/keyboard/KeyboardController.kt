@@ -54,6 +54,9 @@ class KeyboardController(
     var isSuggestionsDisabled = false
         private set
 
+    var isAiCommandModeActive = false
+        private set
+
     var shiftState = ShiftState.LOWERCASE
         private set
 
@@ -64,13 +67,24 @@ class KeyboardController(
     var onShiftStateChanged: ((ShiftState) -> Unit)? = null
     var onAiDisabledStateChanged: ((Boolean) -> Unit)? = null
     var onSuggestionsUpdated: ((SuggestionResult) -> Unit)? = null
+    var onAiCommandModeToggled: ((Boolean) -> Unit)? = null
     var onAppIconClicked: (() -> Unit)? = null
     var onMicClicked: (() -> Unit)? = null
     var onMenuClicked: (() -> Unit)? = null
 
+    init {
+        scope.launch(Dispatchers.IO) {
+            suggestionEngine.initialize()
+        }
+    }
+
     fun handleAppIconTap() {
-        Log.d(TAG, "App icon tapped")
-        onAppIconClicked?.invoke()
+        isAiCommandModeActive = !isAiCommandModeActive
+        Log.d(TAG, "App icon tapped. AI Command Mode: $isAiCommandModeActive")
+        onAiCommandModeToggled?.invoke(isAiCommandModeActive)
+        if (!isAiCommandModeActive) {
+            requestSuggestions()
+        }
     }
 
     fun handleMicTap() {
@@ -81,12 +95,6 @@ class KeyboardController(
     fun handleMenuTap() {
         Log.d(TAG, "Menu button tapped")
         onMenuClicked?.invoke()
-    }
-
-    init {
-        scope.launch(Dispatchers.IO) {
-            suggestionEngine.initialize()
-        }
     }
 
     fun onInputConnectionChanged(inputConnection: InputConnection?) {
@@ -198,25 +206,19 @@ class KeyboardController(
         val replaced = textEditor.replaceCurrentWord(candidate.text)
         if (replaced) {
             suggestionEngine.commitSuggestion(candidate.text)
-            onSuggestionsUpdated?.invoke(SuggestionResult())
+            requestSuggestions()
         }
     }
 
-    private fun requestSuggestions() {
-        if (isSuggestionsDisabled || isTransforming) {
+    fun requestSuggestions() {
+        if (isSuggestionsDisabled || isTransforming || isAiCommandModeActive) {
             onSuggestionsUpdated?.invoke(SuggestionResult())
             return
         }
 
         val textBefore = textEditor.getTextBeforeCursor(100)
-        if (textBefore.isEmpty()) {
-            onSuggestionsUpdated?.invoke(SuggestionResult())
-            return
-        }
-
         val lastWord = textEditor.getCurrentWordBeforeCursor()
 
-        // Suppress suggestions if typing an AI command token
         if (lastWord.startsWith("@") || textBefore.trim().startsWith("@")) {
             onSuggestionsUpdated?.invoke(SuggestionResult())
             return
@@ -227,7 +229,7 @@ class KeyboardController(
             val result = withContext(Dispatchers.IO) {
                 suggestionEngine.updateInput(typedText = lastWord, sequenceId = currentSeq)
             }
-            if (currentSeq == suggestionSequenceId && !isSuggestionsDisabled && !isTransforming) {
+            if (currentSeq == suggestionSequenceId && !isSuggestionsDisabled && !isTransforming && !isAiCommandModeActive) {
                 onSuggestionsUpdated?.invoke(result)
             }
         }
