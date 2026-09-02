@@ -1,50 +1,42 @@
 import UIKit
 
 class KeyboardViewController: UIInputViewController {
-    private let editor = TextDocumentEditor()
-    private var controller: KeyboardController!
-    private var keyboardView: KeyboardView!
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        editor.updateProxy(textDocumentProxy)
-        controller = KeyboardController(editor: editor)
+        NSLog("AIKeyboard: KeyboardViewController viewDidLoad")
+        NSLog("AIKeyboard: TEST VIEW LOADED")
 
-        let theme = KeyboardTheme.current(traitCollection: traitCollection)
-        keyboardView = KeyboardView(theme: theme)
-        keyboardView.bind(controller: controller)
+        view.backgroundColor = .systemRed
 
-        keyboardView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(keyboardView)
+        let label = UILabel()
+        label.text = "AI KEYBOARD TEST"
+        label.textColor = .white
+        label.font = .boldSystemFont(ofSize: 20)
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(label)
 
         NSLayoutConstraint.activate([
-            keyboardView.topAnchor.constraint(equalTo: view.topAnchor),
-            keyboardView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            keyboardView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            keyboardView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            label.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            label.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
+
+        let height = view.heightAnchor.constraint(equalToConstant: 256)
+        height.priority = .defaultHigh
+        height.isActive = true
     }
 
-    override func textWillChange(_ textInput: UITextInput?) {
-        super.textWillChange(textInput)
-        editor.updateProxy(textDocumentProxy)
-        controller?.invalidateInputContext()
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        NSLog("AIKeyboard: viewWillAppear")
+        NSLog("AIKeyboard: bounds = \(view.bounds)")
     }
 
-    override func textDidChange(_ textInput: UITextInput?) {
-        super.textDidChange(textInput)
-        editor.updateProxy(textDocumentProxy)
-        controller?.checkForCommandTrigger()
-    }
-
-    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-        super.traitCollectionDidChange(previousTraitCollection)
-        let theme = KeyboardTheme.current(traitCollection: traitCollection)
-        keyboardView?.updateTheme(theme)
-    }
-
-    deinit {
-        controller?.invalidateInputContext()
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        NSLog("AIKeyboard: viewDidAppear")
+        NSLog("AIKeyboard: bounds = \(view.bounds)")
     }
 }

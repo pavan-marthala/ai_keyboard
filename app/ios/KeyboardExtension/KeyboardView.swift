@@ -9,15 +9,19 @@ class KeyboardView: UIView {
     private let statusLabel = UILabel()
     private let toolbarScrollView = UIScrollView()
     private let toolbarStack = UIStackView()
-    private let mainPanelStack = UIStackView()
+    private let mainContainerStack = UIStackView()
 
-    private var letterKeyButtons: [UIButton] = []
-    private var shiftKeyButton: UIButton?
+    private let qwertyPanel = UIStackView()
+    private let symbolPanel = UIStackView()
+
+    private var letterKeyButtons: [KeyboardKeyButton] = []
+    private var shiftKeyButton: KeyboardKeyButton?
 
     init(theme: KeyboardTheme) {
         self.theme = theme
         super.init(frame: .zero)
         backgroundColor = theme.backgroundColor
+        translatesAutoresizingMaskIntoConstraints = false
         setupUi()
     }
 
@@ -28,10 +32,14 @@ class KeyboardView: UIView {
     func bind(controller: KeyboardController) {
         self.controller = controller
         controller.onStatusUpdate = { [weak self] status in
-            self?.statusLabel.text = status
+            DispatchQueue.main.async {
+                self?.statusLabel.text = status
+            }
         }
         controller.onShiftStateChanged = { [weak self] state in
-            self?.updateShiftStateUi(state)
+            DispatchQueue.main.async {
+                self?.updateShiftStateUi(state)
+            }
         }
         buildToolbarButtons()
     }
@@ -39,10 +47,13 @@ class KeyboardView: UIView {
     func updateTheme(_ theme: KeyboardTheme) {
         self.theme = theme
         backgroundColor = theme.backgroundColor
-        renderPanel()
+        toolbarScrollView.backgroundColor = theme.toolbarColor
+        statusLabel.textColor = theme.accentColor
+        renderPanels()
     }
 
     private func setupUi() {
+        // AI Toolbar ScrollView
         toolbarScrollView.showsHorizontalScrollIndicator = false
         toolbarScrollView.backgroundColor = theme.toolbarColor
         toolbarScrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -57,32 +68,45 @@ class KeyboardView: UIView {
         statusLabel.text = "✨ AI Keyboard"
         statusLabel.font = .boldSystemFont(ofSize: 13)
         statusLabel.textColor = theme.accentColor
+        statusLabel.accessibilityLabel = "AI Keyboard Status"
         toolbarStack.addArrangedSubview(statusLabel)
 
-        mainPanelStack.axis = .vertical
-        mainPanelStack.spacing = 6
-        mainPanelStack.distribution = .fillEqually
-        mainPanelStack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(mainPanelStack)
+        // Main Container Stack
+        mainContainerStack.axis = .vertical
+        mainContainerStack.spacing = 6
+        mainContainerStack.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(mainContainerStack)
 
         NSLayoutConstraint.activate([
             toolbarScrollView.topAnchor.constraint(equalTo: topAnchor),
             toolbarScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             toolbarScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            toolbarScrollView.heightAnchor.constraint(equalToConstant: 40),
+            toolbarScrollView.heightAnchor.constraint(equalToConstant: 38),
 
-            toolbarStack.topAnchor.constraint(equalTo: toolbarScrollView.topAnchor, constant: 4),
-            toolbarStack.bottomAnchor.constraint(equalTo: toolbarScrollView.bottomAnchor, constant: -4),
+            toolbarStack.topAnchor.constraint(equalTo: toolbarScrollView.topAnchor, constant: 3),
+            toolbarStack.bottomAnchor.constraint(equalTo: toolbarScrollView.bottomAnchor, constant: -3),
             toolbarStack.leadingAnchor.constraint(equalTo: toolbarScrollView.leadingAnchor, constant: 8),
             toolbarStack.trailingAnchor.constraint(equalTo: toolbarScrollView.trailingAnchor, constant: -8),
+            toolbarStack.heightAnchor.constraint(equalToConstant: 32),
 
-            mainPanelStack.topAnchor.constraint(equalTo: toolbarScrollView.bottomAnchor, constant: 6),
-            mainPanelStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-            mainPanelStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
-            mainPanelStack.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -4)
+            mainContainerStack.topAnchor.constraint(equalTo: toolbarScrollView.bottomAnchor, constant: 4),
+            mainContainerStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            mainContainerStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            mainContainerStack.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -4)
         ])
 
-        renderPanel()
+        qwertyPanel.axis = .vertical
+        qwertyPanel.spacing = 5
+        qwertyPanel.translatesAutoresizingMaskIntoConstraints = false
+        mainContainerStack.addArrangedSubview(qwertyPanel)
+
+        symbolPanel.axis = .vertical
+        symbolPanel.spacing = 5
+        symbolPanel.translatesAutoresizingMaskIntoConstraints = false
+        symbolPanel.isHidden = true
+        mainContainerStack.addArrangedSubview(symbolPanel)
+
+        renderPanels()
     }
 
     private func buildToolbarButtons() {
@@ -104,6 +128,7 @@ class KeyboardView: UIView {
             btn.backgroundColor = theme.accentColor
             btn.layer.cornerRadius = 14
             btn.contentEdgeInsets = UIEdgeInsets(top: 4, left: 10, bottom: 4, right: 10)
+            btn.accessibilityLabel = "AI Command \(label)"
 
             btn.addAction(UIAction { [weak self] _ in
                 if trigger == "@translate" {
@@ -127,6 +152,12 @@ class KeyboardView: UIView {
             })
         }
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = toolbarScrollView
+            popover.sourceRect = toolbarScrollView.bounds
+        }
+
         vc.present(alert, animated: true)
     }
 
@@ -141,140 +172,226 @@ class KeyboardView: UIView {
         return nil
     }
 
-    private func renderPanel() {
-        mainPanelStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+    private func renderPanels() {
+        qwertyPanel.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        symbolPanel.arrangedSubviews.forEach { $0.removeFromSuperview() }
         letterKeyButtons.removeAll()
 
-        if isSymbolPanel {
-            renderSymbolLayout()
-        } else {
-            renderQwertyLayout()
-        }
+        buildQwertyPanel()
+        buildSymbolPanel()
+
+        qwertyPanel.isHidden = isSymbolPanel
+        symbolPanel.isHidden = !isSymbolPanel
     }
 
-    private func renderQwertyLayout() {
-        let r1 = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
-        let r2 = ["a", "s", "d", "f", "g", "h", "j", "k", "l"]
-        let r3 = ["z", "x", "c", "v", "b", "n", "m"]
+    private func buildQwertyPanel() {
+        let r1Keys = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"]
+        let r2Keys = ["a", "s", "d", "f", "g", "h", "j", "k", "l"]
+        let r3Keys = ["z", "x", "c", "v", "b", "n", "m"]
 
-        mainPanelStack.addArrangedSubview(createRowStack(r1))
-        mainPanelStack.addArrangedSubview(createRowStack(r2))
-
-        let row3 = UIStackView()
-        row3.axis = .horizontal
-        row3.spacing = 4
-        row3.distribution = .fillProportionally
-
-        let shiftBtn = createKeyButton(title: "⇧", isSpecial: true) { [weak self] in
-            self?.controller?.onShiftPressed()
-        }
-        shiftKeyButton = shiftBtn
-        row3.addArrangedSubview(shiftBtn)
-
-        for char in r3 {
-            let btn = createKeyButton(title: char) { [weak self] in
-                self?.controller?.onKeyTyped(char)
-            }
+        // Row 1
+        let r1 = createFillRowStack()
+        for char in r1Keys {
+            let btn = KeyboardKeyButton(title: char, keyType: .letter, theme: theme)
+            btn.addAction(UIAction { [weak self] _ in self?.controller?.onKeyTyped(char) }, for: .touchUpInside)
             letterKeyButtons.append(btn)
-            row3.addArrangedSubview(btn)
+            r1.addArrangedSubview(btn)
+        }
+        qwertyPanel.addArrangedSubview(r1)
+
+        // Row 2 (Indented with 16pt side padding)
+        let r2Container = UIView()
+        r2Container.translatesAutoresizingMaskIntoConstraints = false
+        r2Container.heightAnchor.constraint(equalToConstant: 42).isActive = true
+
+        let r2 = createFillRowStack()
+        for char in r2Keys {
+            let btn = KeyboardKeyButton(title: char, keyType: .letter, theme: theme)
+            btn.addAction(UIAction { [weak self] _ in self?.controller?.onKeyTyped(char) }, for: .touchUpInside)
+            letterKeyButtons.append(btn)
+            r2.addArrangedSubview(btn)
         }
 
-        let backspaceBtn = createKeyButton(title: "⌫", isSpecial: true) { [weak self] in
+        r2Container.addSubview(r2)
+        NSLayoutConstraint.activate([
+            r2.topAnchor.constraint(equalTo: r2Container.topAnchor),
+            r2.bottomAnchor.constraint(equalTo: r2Container.bottomAnchor),
+            r2.leadingAnchor.constraint(equalTo: r2Container.leadingAnchor, constant: 16),
+            r2.trailingAnchor.constraint(equalTo: r2Container.trailingAnchor, constant: -16)
+        ])
+        qwertyPanel.addArrangedSubview(r2Container)
+
+        // Row 3
+        let r3 = UIStackView()
+        r3.axis = .horizontal
+        r3.spacing = 4
+        r3.distribution = .fillProportionally
+        r3.translatesAutoresizingMaskIntoConstraints = false
+        r3.heightAnchor.constraint(equalToConstant: 42).isActive = true
+
+        let shiftBtn = KeyboardKeyButton(iconName: "shift", keyType: .special, theme: theme)
+        shiftBtn.accessibilityLabel = "Shift"
+        shiftBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        shiftBtn.addAction(UIAction { [weak self] _ in self?.controller?.onShiftPressed() }, for: .touchUpInside)
+        shiftKeyButton = shiftBtn
+        r3.addArrangedSubview(shiftBtn)
+
+        let r3LetterStack = createFillRowStack()
+        for char in r3Keys {
+            let btn = KeyboardKeyButton(title: char, keyType: .letter, theme: theme)
+            btn.addAction(UIAction { [weak self] _ in self?.controller?.onKeyTyped(char) }, for: .touchUpInside)
+            letterKeyButtons.append(btn)
+            r3LetterStack.addArrangedSubview(btn)
+        }
+        r3.addArrangedSubview(r3LetterStack)
+
+        let backspaceBtn = KeyboardKeyButton(iconName: "delete.left", keyType: .special, theme: theme)
+        backspaceBtn.accessibilityLabel = "Delete"
+        backspaceBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        backspaceBtn.enableHoldToRepeat { [weak self] in
             self?.controller?.onBackspacePressed()
         }
-        row3.addArrangedSubview(backspaceBtn)
+        r3.addArrangedSubview(backspaceBtn)
 
-        mainPanelStack.addArrangedSubview(row3)
-        renderBottomRow()
+        qwertyPanel.addArrangedSubview(r3)
+
+        // Bottom Row
+        qwertyPanel.addArrangedSubview(createBottomRow(toggleTitle: "123"))
     }
 
-    private func renderSymbolLayout() {
-        let r1 = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
-        let r2 = ["@", "#", "$", "%", "&", "*", "(", ")", "-", "+"]
-        let r3 = ["_", "\"", "'", ":", ";", "!", "?", "/", "."]
+    private func buildSymbolPanel() {
+        let r1Keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+        let r2Keys = ["-", "/", ":", ";", "(", ")", "$", "&", "@"]
+        let r3Keys = [".", ",", "?", "!", "'", "\"", "_", "#", "%"]
 
-        mainPanelStack.addArrangedSubview(createRowStack(r1))
-        mainPanelStack.addArrangedSubview(createRowStack(r2))
+        // Row 1
+        let r1 = createFillRowStack()
+        for char in r1Keys {
+            let btn = KeyboardKeyButton(title: char, keyType: .letter, theme: theme)
+            btn.addAction(UIAction { [weak self] _ in self?.controller?.onKeyTyped(char) }, for: .touchUpInside)
+            r1.addArrangedSubview(btn)
+        }
+        symbolPanel.addArrangedSubview(r1)
 
-        let row3 = UIStackView()
-        row3.axis = .horizontal
-        row3.spacing = 4
-        row3.distribution = .fillProportionally
+        // Row 2
+        let r2Container = UIView()
+        r2Container.translatesAutoresizingMaskIntoConstraints = false
+        r2Container.heightAnchor.constraint(equalToConstant: 42).isActive = true
 
-        for char in r3 {
-            row3.addArrangedSubview(createKeyButton(title: char) { [weak self] in
-                self?.controller?.onKeyTyped(char)
-            })
+        let r2 = createFillRowStack()
+        for char in r2Keys {
+            let btn = KeyboardKeyButton(title: char, keyType: .letter, theme: theme)
+            btn.addAction(UIAction { [weak self] _ in self?.controller?.onKeyTyped(char) }, for: .touchUpInside)
+            r2.addArrangedSubview(btn)
         }
 
-        let backspaceBtn = createKeyButton(title: "⌫", isSpecial: true) { [weak self] in
+        r2Container.addSubview(r2)
+        NSLayoutConstraint.activate([
+            r2.topAnchor.constraint(equalTo: r2Container.topAnchor),
+            r2.bottomAnchor.constraint(equalTo: r2Container.bottomAnchor),
+            r2.leadingAnchor.constraint(equalTo: r2Container.leadingAnchor, constant: 16),
+            r2.trailingAnchor.constraint(equalTo: r2Container.trailingAnchor, constant: -16)
+        ])
+        symbolPanel.addArrangedSubview(r2Container)
+
+        // Row 3
+        let r3 = UIStackView()
+        r3.axis = .horizontal
+        r3.spacing = 4
+        r3.distribution = .fillProportionally
+        r3.translatesAutoresizingMaskIntoConstraints = false
+        r3.heightAnchor.constraint(equalToConstant: 42).isActive = true
+
+        let r3SymbolStack = createFillRowStack()
+        for char in r3Keys {
+            let btn = KeyboardKeyButton(title: char, keyType: .letter, theme: theme)
+            btn.addAction(UIAction { [weak self] _ in self?.controller?.onKeyTyped(char) }, for: .touchUpInside)
+            r3SymbolStack.addArrangedSubview(btn)
+        }
+        r3.addArrangedSubview(r3SymbolStack)
+
+        let backspaceBtn = KeyboardKeyButton(iconName: "delete.left", keyType: .special, theme: theme)
+        backspaceBtn.accessibilityLabel = "Delete"
+        backspaceBtn.widthAnchor.constraint(equalToConstant: 44).isActive = true
+        backspaceBtn.enableHoldToRepeat { [weak self] in
             self?.controller?.onBackspacePressed()
         }
-        row3.addArrangedSubview(backspaceBtn)
+        r3.addArrangedSubview(backspaceBtn)
 
-        mainPanelStack.addArrangedSubview(row3)
-        renderBottomRow()
+        symbolPanel.addArrangedSubview(r3)
+
+        // Bottom Row
+        symbolPanel.addArrangedSubview(createBottomRow(toggleTitle: "ABC"))
     }
 
-    private func renderBottomRow() {
+    private func createBottomRow(toggleTitle: String) -> UIStackView {
         let bottomStack = UIStackView()
         bottomStack.axis = .horizontal
         bottomStack.spacing = 4
         bottomStack.distribution = .fillProportionally
+        bottomStack.translatesAutoresizingMaskIntoConstraints = false
+        bottomStack.heightAnchor.constraint(equalToConstant: 42).isActive = true
 
-        let toggleBtn = createKeyButton(title: isSymbolPanel ? "ABC" : "123", isSpecial: true) { [weak self] in
+        let toggleBtn = KeyboardKeyButton(title: toggleTitle, keyType: .special, theme: theme)
+        toggleBtn.accessibilityLabel = toggleTitle == "123" ? "Numbers" : "Letters"
+        toggleBtn.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        toggleBtn.addAction(UIAction { [weak self] _ in
             self?.isSymbolPanel.toggle()
-            self?.renderPanel()
-        }
+            self?.qwertyPanel.isHidden = self?.isSymbolPanel ?? false
+            self?.symbolPanel.isHidden = !(self?.isSymbolPanel ?? false)
+        }, for: .touchUpInside)
         bottomStack.addArrangedSubview(toggleBtn)
 
-        let globeBtn = createKeyButton(title: "🌐", isSpecial: true) { [weak self] in
+        let globeBtn = KeyboardKeyButton(iconName: "globe", keyType: .special, theme: theme)
+        globeBtn.accessibilityLabel = "Globe"
+        globeBtn.widthAnchor.constraint(equalToConstant: 42).isActive = true
+        globeBtn.addAction(UIAction { [weak self] _ in
             self?.findViewController()?.advanceToNextInputMode()
-        }
+        }, for: .touchUpInside)
         bottomStack.addArrangedSubview(globeBtn)
 
-        let spaceBtn = createKeyButton(title: "space") { [weak self] in
+        let spaceBtn = KeyboardKeyButton(title: "space", keyType: .space, theme: theme)
+        spaceBtn.accessibilityLabel = "Space"
+        spaceBtn.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spaceBtn.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        spaceBtn.addAction(UIAction { [weak self] _ in
             self?.controller?.onKeyTyped(" ")
-        }
+        }, for: .touchUpInside)
         bottomStack.addArrangedSubview(spaceBtn)
 
-        let returnBtn = createKeyButton(title: "return", isSpecial: true) { [weak self] in
+        let returnBtn = KeyboardKeyButton(iconName: "return", keyType: .special, theme: theme)
+        returnBtn.accessibilityLabel = "Return"
+        returnBtn.widthAnchor.constraint(equalToConstant: 68).isActive = true
+        returnBtn.addAction(UIAction { [weak self] _ in
             self?.controller?.onKeyTyped("\n")
-        }
+        }, for: .touchUpInside)
         bottomStack.addArrangedSubview(returnBtn)
 
-        mainPanelStack.addArrangedSubview(bottomStack)
+        return bottomStack
     }
 
-    private func createRowStack(_ keys: [String]) -> UIStackView {
+    private func createFillRowStack() -> UIStackView {
         let stack = UIStackView()
         stack.axis = .horizontal
         stack.spacing = 4
         stack.distribution = .fillEqually
-        for char in keys {
-            let btn = createKeyButton(title: char) { [weak self] in
-                self?.controller?.onKeyTyped(char)
-            }
-            if !isSymbolPanel { letterKeyButtons.append(btn) }
-            stack.addArrangedSubview(btn)
-        }
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.heightAnchor.constraint(equalToConstant: 42).isActive = true
         return stack
     }
 
-    private func createKeyButton(title: String, isSpecial: Bool = false, onTap: @escaping () -> Void) -> UIButton {
-        let btn = UIButton(type: .system)
-        btn.setTitle(title, for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 18)
-        btn.setTitleColor(theme.textColor, for: .normal)
-        btn.backgroundColor = isSpecial ? theme.specialKeyColor : theme.keyColor
-        btn.layer.cornerRadius = 6
-        btn.addAction(UIAction { _ in onTap() }, for: .touchUpInside)
-        return btn
-    }
-
     private func updateShiftStateUi(_ state: ShiftState) {
-        shiftKeyButton?.setTitle(state == .capsLock ? "🔒" : (state == .shift ? "⇪" : "⇧"), for: .normal)
         let isUpper = state != .lowercase
+
+        switch state {
+        case .lowercase:
+            shiftKeyButton?.updateIcon(iconName: "shift")
+        case .shift:
+            shiftKeyButton?.updateIcon(iconName: "shift.fill")
+        case .capsLock:
+            shiftKeyButton?.updateIcon(iconName: "capslock.fill")
+        }
+
         for btn in letterKeyButtons {
             if let t = btn.title(for: .normal) {
                 btn.setTitle(isUpper ? t.uppercased() : t.lowercased(), for: .normal)
@@ -282,4 +399,3 @@ class KeyboardView: UIView {
         }
     }
 }
-
