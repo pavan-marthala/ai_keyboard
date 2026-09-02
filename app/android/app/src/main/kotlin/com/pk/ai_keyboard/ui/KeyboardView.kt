@@ -3,6 +3,7 @@ package com.pk.ai_keyboard.ui
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
@@ -14,7 +15,10 @@ import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.LinearInterpolator
+import android.view.animation.RotateAnimation
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
@@ -45,13 +49,30 @@ class KeyboardView @JvmOverloads constructor(
     private lateinit var toolbarContainer: LinearLayout
     private lateinit var mainPanelContainer: LinearLayout
 
+    // Normal Toolbar Views
+    private lateinit var appIconView: ImageView
+    private lateinit var toolbarScrollView: HorizontalScrollView
+    private lateinit var micButtonView: ImageView
+    private lateinit var menuButtonView: ImageView
+
+    // Dictation Toolbar Views
+    private lateinit var backArrowView: ImageView
+    private lateinit var dictationStatusTextView: TextView
+    private lateinit var dictationStateIconView: ImageView
+
     private val letterKeyViews = mutableListOf<TextView>()
     private var shiftIconView: ImageView? = null
     private var enterIconView: ImageView? = null
-    private var micIconView: ImageView? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var backspaceRunnable: Runnable? = null
+    private var rotateAnimation: RotateAnimation? = null
+
+    /** Suggestion chips (word candidates) are visually neutral — they're options to pick,
+     *  not actions to trigger. AI command chips (@fix, @rewrite, ...) get the accent
+     *  gradient treatment since they *are* actions. Mixing the two styles makes every
+     *  suggestion look like a demanding CTA, which is noisy during normal typing. */
+    private enum class ChipStyle { SUGGESTION, COMMAND }
 
     companion object {
         private const val KEY_CORNER_RADIUS_DP = 14f
@@ -60,6 +81,12 @@ class KeyboardView @JvmOverloads constructor(
         private const val PRESS_ANIM_MS = 70L
         private const val RELEASE_ANIM_MS = 120L
         private const val ICON_SIZE_DP = 22f
+
+        // Toolbar icon buttons (mic, menu, back, dictation state, app icon) all share
+        // this exact icon size and the same circular ghost-press touch target, so
+        // nothing in the toolbar reads as bigger/smaller/off-center than its neighbor.
+        private const val TOOLBAR_ICON_SIZE_DP = 22f
+        private const val TOOLBAR_TOUCH_TARGET_DP = 38f
     }
 
     init {
@@ -91,13 +118,11 @@ class KeyboardView @JvmOverloads constructor(
         controller.onSuggestionsUpdated = { result ->
             renderSuggestions(result)
         }
-        controller.onAiCommandModeToggled = { isActive ->
-            if (isActive) {
-                renderAiCommands()
-            }
+        controller.onAiCommandModeToggled = { _ ->
+            refreshToolbar()
         }
         controller.voiceInputController.onStateChanged = { voiceState ->
-            updateMicUi(voiceState)
+            updateDictationToolbar(voiceState)
         }
         refreshToolbar()
     }
@@ -142,33 +167,39 @@ class KeyboardView @JvmOverloads constructor(
         }
     }
 
+    // ---------------------------------------------------------------------
+    // Toolbar
+    // ---------------------------------------------------------------------
+
     private fun buildUi() {
         removeAllViews()
 
-        // Single horizontal toolbar container: [APP ICON] [SUGGESTIONS / COMMANDS AREA] [MIC] [MENU]
+        // Single horizontal toolbar container
         val toolbarRoot = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setBackgroundColor(theme.toolbarColor)
-            setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
+            setPadding(dpToPx(8f), dpToPx(6f), dpToPx(8f), dpToPx(6f))
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        // 1. App Icon (Leftmost toggle control)
-        val appIcon = createAppIconView {
+        // --- NORMAL TOOLBAR VIEWS ---
+        // 1. App Icon (brand mark — gets touch feedback, but never tinted)
+        appIconView = createAppIconView {
             if (::controller.isInitialized) {
                 controller.handleAppIconTap()
             }
         }
-        toolbarRoot.addView(appIcon)
+        toolbarRoot.addView(appIconView)
 
-        // 2. Suggestion / Dynamic Content Area (Center, 75-80% flexible width)
-        val toolbarScrollView = HorizontalScrollView(context).apply {
+        // 2. Suggestion / Dynamic Content Area (center, flexible width)
+        toolbarScrollView = HorizontalScrollView(context).apply {
             layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f).apply {
                 gravity = Gravity.CENTER_VERTICAL
             }
             isHorizontalScrollBarEnabled = false
             overScrollMode = View.OVER_SCROLL_NEVER
+            setPadding(dpToPx(4f), 0, dpToPx(4f), 0)
         }
 
         toolbarContainer = LinearLayout(context).apply {
@@ -180,7 +211,7 @@ class KeyboardView @JvmOverloads constructor(
         toolbarRoot.addView(toolbarScrollView)
 
         // 3. Microphone Button
-        val micButton = createToolbarIconButton(
+        micButtonView = createToolbarIconButton(
             drawableRes = R.drawable.ic_mic,
             contentDescription = "Voice Input"
         ) {
@@ -188,11 +219,10 @@ class KeyboardView @JvmOverloads constructor(
                 controller.handleMicTap()
             }
         }
-        micIconView = micButton
-        toolbarRoot.addView(micButton)
+        toolbarRoot.addView(micButtonView)
 
-        // 4. Menu Button (Rightmost 3-dot)
-        val menuButton = createToolbarIconButton(
+        // 4. Menu Button (rightmost 3-dot)
+        menuButtonView = createToolbarIconButton(
             drawableRes = R.drawable.ic_more_vert,
             contentDescription = "Menu Options"
         ) {
@@ -200,7 +230,52 @@ class KeyboardView @JvmOverloads constructor(
                 controller.handleMenuTap()
             }
         }
-        toolbarRoot.addView(menuButton)
+        toolbarRoot.addView(menuButtonView)
+
+        // --- DICTATION TOOLBAR VIEWS ---
+        // 5. Back Arrow [ ← ] (leftmost exit control)
+        backArrowView = createToolbarIconButton(
+            drawableRes = R.drawable.ic_arrow_back,
+            contentDescription = "Exit Dictation Mode"
+        ) {
+            if (::controller.isInitialized) {
+                controller.handleBackFromDictation()
+            }
+        }.apply {
+            visibility = View.GONE
+        }
+        toolbarRoot.addView(backArrowView)
+
+        // 6. Dictation Status Text (center message)
+        dictationStatusTextView = TextView(context).apply {
+            setTextColor(theme.textColor)
+            setTypeface(null, Typeface.BOLD)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 13.5f)
+            gravity = Gravity.CENTER
+            setPadding(dpToPx(8f), 0, dpToPx(8f), 0)
+            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            visibility = View.GONE
+        }
+        toolbarRoot.addView(dictationStatusTextView)
+
+        // 7. Dictation State Icon (rightmost state indicator / mic toggle)
+        dictationStateIconView = createToolbarIconButton(
+            drawableRes = R.drawable.ic_mic,
+            contentDescription = "Dictation State"
+        ) {
+            if (::controller.isInitialized) {
+                if (controller.voiceInputController.currentState == VoiceState.MIC_STOPPED || controller.voiceInputController.currentState == VoiceState.ERROR) {
+                    controller.voiceInputController.restartDictationFromStopped()
+                } else if (controller.voiceInputController.currentState == VoiceState.LISTENING || controller.voiceInputController.currentState == VoiceState.SPEAK_NOW) {
+                    controller.voiceInputController.stopMicrophoneKeepDictation()
+                }
+            }
+        }.apply {
+            visibility = View.GONE
+        }
+        toolbarRoot.addView(dictationStateIconView)
 
         addView(toolbarRoot)
 
@@ -220,36 +295,153 @@ class KeyboardView @JvmOverloads constructor(
         renderPanel()
     }
 
-    private fun updateMicUi(voiceState: VoiceState) {
-        val isListening = voiceState == VoiceState.LISTENING
-        val tintColor = if (isListening) theme.accentColor else theme.textColor
-        micIconView?.drawable?.mutate()?.setTint(tintColor)
+    private fun updateDictationToolbar(voiceState: VoiceState) {
+        if (!::controller.isInitialized) return
+        val isDictationActive = controller.voiceInputController.isDictationModeActive
+
+        if (isDictationActive) {
+            appIconView.visibility = View.GONE
+            toolbarScrollView.visibility = View.GONE
+            micButtonView.visibility = View.GONE
+            menuButtonView.visibility = View.GONE
+
+            backArrowView.visibility = View.VISIBLE
+            dictationStatusTextView.visibility = View.VISIBLE
+            dictationStateIconView.visibility = View.VISIBLE
+
+            when (voiceState) {
+                VoiceState.LOADING -> {
+                    setDictationStatus("Starting…", accent = false)
+                    setDictationIcon(R.drawable.ic_sync, theme.textColor, isRotating = true)
+                }
+                VoiceState.LISTENING -> {
+                    setDictationStatus("Listening…", accent = true)
+                    setDictationIcon(R.drawable.ic_mic_active, theme.accentColor, isRotating = false)
+                }
+                VoiceState.SPEAK_NOW -> {
+                    setDictationStatus("Speak now", accent = true)
+                    setDictationIcon(R.drawable.ic_mic_active, theme.accentColor, isRotating = false)
+                }
+                VoiceState.PROCESSING -> {
+                    setDictationStatus("Processing…", accent = false)
+                    setDictationIcon(R.drawable.ic_sync, theme.textColor, isRotating = true)
+                }
+                VoiceState.MIC_STOPPED -> {
+                    setDictationStatus("Tap mic to dictate", accent = false)
+                    setDictationIcon(R.drawable.ic_mic, theme.textColor, isRotating = false)
+                }
+                VoiceState.ERROR -> {
+                    setDictationStatus("Voice error", accent = false, isError = true)
+                    setDictationIcon(R.drawable.ic_mic, theme.textColor, isRotating = false)
+                }
+                VoiceState.IDLE -> {
+                    setDictationStatus("Tap mic to dictate", accent = false)
+                    setDictationIcon(R.drawable.ic_mic, theme.textColor, isRotating = false)
+                }
+            }
+        } else {
+            stopRotationAnimation()
+            backArrowView.visibility = View.GONE
+            dictationStatusTextView.visibility = View.GONE
+            dictationStateIconView.visibility = View.GONE
+
+            appIconView.visibility = View.VISIBLE
+            toolbarScrollView.visibility = View.VISIBLE
+            micButtonView.visibility = View.VISIBLE
+            menuButtonView.visibility = View.VISIBLE
+
+            refreshToolbar()
+        }
+    }
+
+    private fun setDictationStatus(text: String, accent: Boolean, isError: Boolean = false) {
+        dictationStatusTextView.text = text
+        dictationStatusTextView.setTextColor(
+            when {
+                isError -> Color.parseColor("#F38BA8")
+                accent -> theme.accentColor
+                else -> theme.textColor
+            }
+        )
+    }
+
+    private fun setDictationIcon(drawableRes: Int, tintColor: Int, isRotating: Boolean) {
+        val drawable = ContextCompat.getDrawable(context, drawableRes)?.mutate()?.apply {
+            setTint(tintColor)
+        }
+        dictationStateIconView.setImageDrawable(drawable)
+
+        if (isRotating) {
+            startRotationAnimation()
+        } else {
+            stopRotationAnimation()
+        }
+    }
+
+    private fun startRotationAnimation() {
+        if (rotateAnimation == null) {
+            rotateAnimation = RotateAnimation(
+                0f, 360f,
+                Animation.RELATIVE_TO_SELF, 0.5f,
+                Animation.RELATIVE_TO_SELF, 0.5f
+            ).apply {
+                duration = 1000L
+                repeatCount = Animation.INFINITE
+                interpolator = LinearInterpolator()
+            }
+        }
+        dictationStateIconView.startAnimation(rotateAnimation)
+    }
+
+    private fun stopRotationAnimation() {
+        dictationStateIconView.clearAnimation()
+    }
+
+    /** Circular ghost-press background shared by every toolbar icon button, so mic,
+     *  menu, back-arrow, dictation-state and the app icon all give identical tap
+     *  feedback instead of each behaving/looking slightly different. */
+    private fun buildToolbarGhostShape(fillColor: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(fillColor)
+        }
     }
 
     private fun createAppIconView(onClick: () -> Unit): ImageView {
-        val sizePx = dpToPx(28f)
+        val touchTargetPx = dpToPx(TOOLBAR_TOUCH_TARGET_DP)
+        val shapeNormal = buildToolbarGhostShape(Color.TRANSPARENT)
+        val shapePressed = buildToolbarGhostShape(theme.keyPressedColor)
+
         return ImageView(context).apply {
             setImageResource(R.mipmap.ic_launcher)
+            // Never tint the launcher icon — it's full-color brand art, not a
+            // monochrome glyph like the rest of the toolbar.
             scaleType = ImageView.ScaleType.FIT_CENTER
             contentDescription = "App Icon Mode Toggle"
             isClickable = true
             isFocusable = true
-            layoutParams = LayoutParams(sizePx, sizePx).apply {
-                setMargins(dpToPx(4f), 0, dpToPx(6f), 0)
+            background = shapeNormal
+            clipToOutline = true
+            setPadding(dpToPx(4f), dpToPx(4f), dpToPx(4f), dpToPx(4f))
+            layoutParams = LayoutParams(touchTargetPx, touchTargetPx).apply {
+                setMargins(dpToPx(2f), 0, dpToPx(4f), 0)
                 gravity = Gravity.CENTER_VERTICAL
             }
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
                         animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     }
                     MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                         onClick()
                         v.performClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                     }
                 }
@@ -260,35 +452,44 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun createToolbarIconButton(
         drawableRes: Int,
-        sizeDp: Float = 24f,
         contentDescription: String,
         onClick: () -> Unit
     ): ImageView {
-        val sizePx = dpToPx(sizeDp)
+        val touchTargetPx = dpToPx(TOOLBAR_TOUCH_TARGET_DP)
+        val iconPaddingPx = (touchTargetPx - dpToPx(TOOLBAR_ICON_SIZE_DP)) / 2
+
+        val shapeNormal = buildToolbarGhostShape(Color.TRANSPARENT)
+        val shapePressed = buildToolbarGhostShape(theme.keyPressedColor)
+
         return ImageView(context).apply {
             setImageDrawable(ContextCompat.getDrawable(context, drawableRes)?.mutate()?.apply {
                 setTint(theme.textColor)
             })
             scaleType = ImageView.ScaleType.FIT_CENTER
             this.contentDescription = contentDescription
+            background = shapeNormal
+            setPadding(iconPaddingPx, iconPaddingPx, iconPaddingPx, iconPaddingPx)
             isClickable = true
             isFocusable = true
-            layoutParams = LayoutParams(sizePx, sizePx).apply {
-                setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+            layoutParams = LayoutParams(touchTargetPx, touchTargetPx).apply {
+                setMargins(dpToPx(2f), 0, dpToPx(2f), 0)
                 gravity = Gravity.CENTER_VERTICAL
             }
             setOnTouchListener { v, event ->
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
+                        v.background = shapePressed
                         animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     }
                     MotionEvent.ACTION_UP -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                         onClick()
                         v.performClick()
                     }
                     MotionEvent.ACTION_CANCEL -> {
+                        v.background = shapeNormal
                         animateRelease(v)
                     }
                 }
@@ -299,6 +500,7 @@ class KeyboardView @JvmOverloads constructor(
 
     fun refreshToolbar() {
         if (!::toolbarContainer.isInitialized || !::controller.isInitialized) return
+        if (controller.voiceInputController.isDictationModeActive) return
 
         if (controller.isAiCommandModeActive) {
             renderAiCommands()
@@ -324,7 +526,7 @@ class KeyboardView @JvmOverloads constructor(
 
         for ((trigger, label) in commands) {
             if (NativeCommandRegistry.isCommandEnabled(context, trigger)) {
-                val chip = createChipView(label) {
+                val chip = createChipView(label, ChipStyle.COMMAND) {
                     if (controller.isTransforming) return@createChipView
                     if (trigger == "@translate") {
                         showLanguageSelectorPopup()
@@ -339,39 +541,78 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun renderSuggestions(result: SuggestionResult) {
         if (!::toolbarContainer.isInitialized || !::controller.isInitialized) return
-        if (controller.isAiCommandModeActive) return
+        if (controller.isAiCommandModeActive || controller.voiceInputController.isDictationModeActive) return
 
         toolbarContainer.removeAllViews()
 
         for (candidate in result.candidates) {
             val label = if (candidate.isAutoCorrection) "${candidate.text} ✓" else candidate.text
-            val chip = createChipView(label) {
+            val chip = createChipView(label, ChipStyle.SUGGESTION, isEmphasized = candidate.isAutoCorrection) {
                 controller.onSuggestionCandidateClicked(candidate)
             }
             toolbarContainer.addView(chip)
         }
     }
 
-    private fun createChipView(label: String, onClick: () -> Unit): TextView {
-        val shapeNormal = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(18f).toFloat()
-            colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
-            orientation = GradientDrawable.Orientation.TL_BR
-        }
-        val shapePressed = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpToPx(18f).toFloat()
-            setColor(theme.accentColor)
+    private fun createChipView(
+        label: String,
+        style: ChipStyle,
+        isEmphasized: Boolean = false,
+        onClick: () -> Unit
+    ): TextView {
+        val shapeNormal: GradientDrawable
+        val shapePressed: GradientDrawable
+        val textColor: Int
+        val elevationDp: Float
+        val typeface: Int
+
+        when (style) {
+            ChipStyle.COMMAND -> {
+                shapeNormal = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(18f).toFloat()
+                    colors = intArrayOf(theme.accentColorAlt, theme.accentColor)
+                    orientation = GradientDrawable.Orientation.TL_BR
+                }
+                shapePressed = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(18f).toFloat()
+                    setColor(theme.accentColor)
+                }
+                textColor = theme.chipTextColor
+                elevationDp = 1f
+                typeface = Typeface.BOLD
+            }
+            ChipStyle.SUGGESTION -> {
+                // Neutral pill — same key-card language as the rest of the keyboard
+                // (flat fill + hairline stroke), not a purple CTA. The one emphasized
+                // candidate (the auto-correction) gets an accent-colored stroke + text
+                // instead of a full accent fill, so it stands out without shouting.
+                shapeNormal = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(16f).toFloat()
+                    setColor(theme.keyColor)
+                    setStroke(dpToPx(1f), if (isEmphasized) theme.accentColor else theme.dividerColor)
+                }
+                shapePressed = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dpToPx(16f).toFloat()
+                    setColor(theme.keyPressedColor)
+                    setStroke(dpToPx(1f), if (isEmphasized) theme.accentColor else theme.dividerColor)
+                }
+                textColor = if (isEmphasized) theme.accentColor else theme.textColor
+                elevationDp = 0.5f
+                typeface = if (isEmphasized) Typeface.BOLD else Typeface.NORMAL
+            }
         }
 
         return TextView(context).apply {
             text = label
-            setTextColor(theme.chipTextColor)
+            setTextColor(textColor)
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f)
-            setTypeface(null, Typeface.BOLD)
+            setTypeface(null, typeface)
             background = shapeNormal
-            elevation = dpToPx(1f).toFloat()
+            elevation = dpToPx(elevationDp).toFloat()
             gravity = Gravity.CENTER
             setPadding(dpToPx(14f), dpToPx(6f), dpToPx(14f), dpToPx(6f))
             layoutParams = LayoutParams(
@@ -458,6 +699,10 @@ class KeyboardView @JvmOverloads constructor(
         popupWindow.elevation = dpToPx(8f).toFloat()
         popupWindow.showAtLocation(this, Gravity.CENTER, 0, 0)
     }
+
+    // ---------------------------------------------------------------------
+    // Main key panel (unchanged from before — letters, symbols, bottom row)
+    // ---------------------------------------------------------------------
 
     private fun renderPanel() {
         mainPanelContainer.removeAllViews()

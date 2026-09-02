@@ -17,6 +17,7 @@ import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.text.TextEditor
 import com.pk.ai_keyboard.transform.AiTextTransformer
 import com.pk.ai_keyboard.voice.VoiceInputController
+import com.pk.ai_keyboard.voice.VoiceState
 import kotlinx.coroutines.*
 
 enum class ShiftState { LOWERCASE, SHIFT_ON, CAPS_LOCK }
@@ -95,8 +96,19 @@ class KeyboardController(
 
     fun handleMicTap() {
         Log.d(TAG, "Mic button tapped")
-        voiceInputController.toggleVoiceInput()
+        if (!voiceInputController.isDictationModeActive) {
+            voiceInputController.startDictationMode()
+        } else if (voiceInputController.currentState == VoiceState.MIC_STOPPED) {
+            voiceInputController.restartDictationFromStopped()
+        } else {
+            voiceInputController.stopMicrophoneKeepDictation()
+        }
         onMicClicked?.invoke()
+    }
+
+    fun handleBackFromDictation() {
+        Log.d(TAG, "Back button tapped from Dictation Mode")
+        voiceInputController.exitDictationMode()
     }
 
     fun handleMenuTap() {
