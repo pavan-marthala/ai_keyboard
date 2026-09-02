@@ -10,6 +10,10 @@ import com.pk.ai_keyboard.ai.AiFailure
 import com.pk.ai_keyboard.ai.AiResult
 import com.pk.ai_keyboard.command.CommandParser
 import com.pk.ai_keyboard.command.NativeCommandRegistry
+import com.pk.ai_keyboard.suggestion.AospSuggestionEngine
+import com.pk.ai_keyboard.suggestion.SuggestionCandidate
+import com.pk.ai_keyboard.suggestion.SuggestionEngine
+import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.text.TextEditor
 import com.pk.ai_keyboard.transform.AiTextTransformer
 import kotlinx.coroutines.*
@@ -19,7 +23,8 @@ enum class ShiftState { LOWERCASE, SHIFT_ON, CAPS_LOCK }
 class KeyboardController(
     private val context: Context,
     private val textEditor: TextEditor = TextEditor(),
-    private val aiTextTransformer: AiTextTransformer = AiTextTransformer(context)
+    private val aiTextTransformer: AiTextTransformer = AiTextTransformer(context),
+    private val suggestionEngine: SuggestionEngine = AospSuggestionEngine(context)
 ) {
 
     companion object {
@@ -46,17 +51,51 @@ class KeyboardController(
     var isAiDisabled = false
         private set
 
+    var isSuggestionsDisabled = false
+        private set
+
     var shiftState = ShiftState.LOWERCASE
         private set
 
     private var lastShiftTapTime = 0L
+    private var suggestionSequenceId: Long = 0L
 
     var onStatusUpdate: ((String) -> Unit)? = null
     var onShiftStateChanged: ((ShiftState) -> Unit)? = null
     var onAiDisabledStateChanged: ((Boolean) -> Unit)? = null
+    var onSuggestionsUpdated: ((SuggestionResult) -> Unit)? = null
+    var onAppIconClicked: (() -> Unit)? = null
+    var onMicClicked: (() -> Unit)? = null
+    var onMenuClicked: (() -> Unit)? = null
+
+    fun handleAppIconTap() {
+        Log.d(TAG, "App icon tapped")
+        onAppIconClicked?.invoke()
+    }
+
+    fun handleMicTap() {
+        Log.d(TAG, "Mic button tapped")
+        onMicClicked?.invoke()
+    }
+
+    fun handleMenuTap() {
+        Log.d(TAG, "Menu button tapped")
+        onMenuClicked?.invoke()
+    }
+
+    init {
+        scope.launch(Dispatchers.IO) {
+            suggestionEngine.initialize()
+        }
+    }
 
     fun onInputConnectionChanged(inputConnection: InputConnection?) {
         textEditor.setInputConnection(inputConnection)
+        if (inputConnection != null) {
+            requestSuggestions()
+        } else {
+            onSuggestionsUpdated?.invoke(SuggestionResult())
+        }
     }
 
     fun onEditorInfoChanged(editorInfo: EditorInfo?) {
@@ -64,7 +103,14 @@ class KeyboardController(
         val password = TextEditor.isPasswordField(editorInfo)
         val numeric = TextEditor.isNumericField(editorInfo)
         isAiDisabled = password || numeric
+        isSuggestionsDisabled = TextEditor.isProtectedField(editorInfo)
+
         onAiDisabledStateChanged?.invoke(isAiDisabled)
+        if (isSuggestionsDisabled) {
+            onSuggestionsUpdated?.invoke(SuggestionResult())
+        } else {
+            requestSuggestions()
+        }
     }
 
     fun invalidateInputContext() {
@@ -73,6 +119,8 @@ class KeyboardController(
         activeJob = null
         activeRequestContext = null
         isTransforming = false
+        suggestionSequenceId++
+        onSuggestionsUpdated?.invoke(SuggestionResult())
         onStatusUpdate?.invoke("✨ AI Keyboard")
     }
 
@@ -90,6 +138,7 @@ class KeyboardController(
 
         textEditor.commitText(charToCommit, 1)
         checkForCommandTrigger()
+        requestSuggestions()
     }
 
     fun onShiftPressed() {
@@ -144,6 +193,46 @@ class KeyboardController(
         checkForCommandTrigger()
     }
 
+    fun onSuggestionCandidateClicked(candidate: SuggestionCandidate) {
+        if (isTransforming || isSuggestionsDisabled) return
+        val replaced = textEditor.replaceCurrentWord(candidate.text)
+        if (replaced) {
+            suggestionEngine.commitSuggestion(candidate.text)
+            onSuggestionsUpdated?.invoke(SuggestionResult())
+        }
+    }
+
+    private fun requestSuggestions() {
+        if (isSuggestionsDisabled || isTransforming) {
+            onSuggestionsUpdated?.invoke(SuggestionResult())
+            return
+        }
+
+        val textBefore = textEditor.getTextBeforeCursor(100)
+        if (textBefore.isEmpty()) {
+            onSuggestionsUpdated?.invoke(SuggestionResult())
+            return
+        }
+
+        val lastWord = textEditor.getCurrentWordBeforeCursor()
+
+        // Suppress suggestions if typing an AI command token
+        if (lastWord.startsWith("@") || textBefore.trim().startsWith("@")) {
+            onSuggestionsUpdated?.invoke(SuggestionResult())
+            return
+        }
+
+        val currentSeq = ++suggestionSequenceId
+        scope.launch {
+            val result = withContext(Dispatchers.IO) {
+                suggestionEngine.updateInput(typedText = lastWord, sequenceId = currentSeq)
+            }
+            if (currentSeq == suggestionSequenceId && !isSuggestionsDisabled && !isTransforming) {
+                onSuggestionsUpdated?.invoke(result)
+            }
+        }
+    }
+
     private fun executeSelectionTransformation(selectedText: String, prompt: String, actionName: String) {
         if (selectedText.length > MAX_TRANSFORMATION_CHARS) {
             onStatusUpdate?.invoke("⚠️ Text too long")
@@ -158,6 +247,7 @@ class KeyboardController(
         activeRequestContext = requestContext
         isTransforming = true
         onStatusUpdate?.invoke(if (actionName.startsWith("✨")) actionName else "✨ $actionName...")
+        onSuggestionsUpdated?.invoke(SuggestionResult())
 
         activeJob = scope.launch {
             try {
@@ -199,6 +289,7 @@ class KeyboardController(
 
     fun onBackspacePressed() {
         textEditor.sendBackspace()
+        requestSuggestions()
     }
 
     fun onEnterPressed(editorInfo: EditorInfo?) {
@@ -220,6 +311,7 @@ class KeyboardController(
             else -> textEditor.sendEnter()
         }
         checkForCommandTrigger()
+        requestSuggestions()
     }
 
     fun openAppSettings() {
@@ -235,6 +327,7 @@ class KeyboardController(
 
     fun onDestroy() {
         invalidateInputContext()
+        suggestionEngine.close()
         scope.cancel()
     }
 
@@ -259,6 +352,7 @@ class KeyboardController(
         activeRequestContext = requestContext
         isTransforming = true
         onStatusUpdate?.invoke(parsedCommand.statusMessage)
+        onSuggestionsUpdated?.invoke(SuggestionResult())
 
         activeJob = scope.launch {
             try {

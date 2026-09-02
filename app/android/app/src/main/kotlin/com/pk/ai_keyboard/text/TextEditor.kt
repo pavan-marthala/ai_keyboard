@@ -37,6 +37,28 @@ class TextEditor {
         inputConnection?.commitText(text, newCursorPosition)
     }
 
+    fun getCurrentWordBeforeCursor(): String {
+        val textBefore = getTextBeforeCursor(100)
+        if (textBefore.isEmpty()) return ""
+        val lastSpaceIndex = textBefore.lastIndexOfAny(charArrayOf(' ', '\n', '\t'))
+        return if (lastSpaceIndex == -1) textBefore else textBefore.substring(lastSpaceIndex + 1)
+    }
+
+    fun replaceCurrentWord(replacement: String): Boolean {
+        val connection = inputConnection ?: return false
+        val textBefore = getTextBeforeCursor(100)
+        if (textBefore.isEmpty()) return false
+
+        val lastSpaceIndex = textBefore.lastIndexOfAny(charArrayOf(' ', '\n', '\t'))
+        val currentWordLength = if (lastSpaceIndex == -1) textBefore.length else textBefore.length - lastSpaceIndex - 1
+
+        if (currentWordLength > 0) {
+            connection.deleteSurroundingText(currentWordLength, 0)
+        }
+        connection.commitText("$replacement ", 1)
+        return true
+    }
+
     fun sendBackspace() {
         val connection = inputConnection ?: return
         connection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DEL))
@@ -85,7 +107,26 @@ class TextEditor {
         fun isNumericField(editorInfo: EditorInfo?): Boolean {
             if (editorInfo == null) return false
             val clazz = editorInfo.inputType and InputType.TYPE_MASK_CLASS
-            return clazz == InputType.TYPE_CLASS_NUMBER || clazz == InputType.TYPE_CLASS_PHONE
+            return clazz == InputType.TYPE_CLASS_NUMBER || clazz == InputType.TYPE_CLASS_PHONE || clazz == InputType.TYPE_CLASS_DATETIME
+        }
+
+        fun isProtectedField(editorInfo: EditorInfo?): Boolean {
+            if (editorInfo == null) return false
+            if (isPasswordField(editorInfo) || isNumericField(editorInfo)) return true
+
+            val inputType = editorInfo.inputType
+            val variation = inputType and InputType.TYPE_MASK_VARIATION
+            val clazz = inputType and InputType.TYPE_MASK_CLASS
+
+            if (clazz == InputType.TYPE_CLASS_TEXT) {
+                if (variation == InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS ||
+                    variation == InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS ||
+                    variation == InputType.TYPE_TEXT_VARIATION_URI
+                ) {
+                    return true
+                }
+            }
+            return false
         }
     }
 }

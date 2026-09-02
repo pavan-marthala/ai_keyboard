@@ -25,6 +25,7 @@ import com.pk.ai_keyboard.R
 import com.pk.ai_keyboard.command.NativeCommandRegistry
 import com.pk.ai_keyboard.keyboard.KeyboardController
 import com.pk.ai_keyboard.keyboard.ShiftState
+import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.ui.theme.KeyboardTheme
 
 @SuppressLint("ClickableViewAccessibility")
@@ -57,10 +58,6 @@ class KeyboardView @JvmOverloads constructor(
         private const val PRESS_SCALE = 0.93f
         private const val PRESS_ANIM_MS = 70L
         private const val RELEASE_ANIM_MS = 120L
-
-        // Every control-key icon (shift, backspace, globe, settings, enter) is forced
-        // to this exact box size, regardless of each vector asset's own intrinsic
-        // viewport — this is what keeps them visually consistent and centered.
         private const val ICON_SIZE_DP = 22f
     }
 
@@ -93,6 +90,9 @@ class KeyboardView @JvmOverloads constructor(
         controller.onAiDisabledStateChanged = { _ ->
             refreshToolbar()
         }
+        controller.onSuggestionsUpdated = { result ->
+            renderSuggestions(result)
+        }
         refreshToolbar()
     }
 
@@ -110,8 +110,6 @@ class KeyboardView @JvmOverloads constructor(
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         return if (isLandscape) 36f else 46f
     }
-
-    // ---------- shared press-animation helpers (used by every key type) ----------
 
     private fun animatePress(view: View) {
         view.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE).setDuration(PRESS_ANIM_MS).start()
@@ -141,13 +139,30 @@ class KeyboardView @JvmOverloads constructor(
     private fun buildUi() {
         removeAllViews()
 
-        // 1. Top AI Toolbar
-        val toolbarLayout = HorizontalScrollView(context).apply {
+        // Single horizontal toolbar container
+        val toolbarRoot = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setBackgroundColor(theme.toolbarColor)
+            setPadding(dpToPx(8f), dpToPx(4f), dpToPx(8f), dpToPx(4f))
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+        }
+
+        // 1. App Icon (Leftmost)
+        val appIcon = createAppIconView {
+            if (::controller.isInitialized) {
+                controller.handleAppIconTap()
+            }
+        }
+        toolbarRoot.addView(appIcon)
+
+        // 2. Suggestion / Dynamic Content Area (Center, 75-80% flexible width)
+        val toolbarScrollView = HorizontalScrollView(context).apply {
+            layoutParams = LayoutParams(0, LayoutParams.WRAP_CONTENT, 1.0f).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
             isHorizontalScrollBarEnabled = false
             overScrollMode = View.OVER_SCROLL_NEVER
-            setBackgroundColor(theme.toolbarColor)
-            setPadding(dpToPx(10f), dpToPx(6f), dpToPx(10f), dpToPx(6f))
         }
 
         toolbarContainer = LinearLayout(context).apply {
@@ -164,17 +179,39 @@ class KeyboardView @JvmOverloads constructor(
         }
         toolbarContainer.addView(tvStatus)
 
-        toolbarLayout.addView(toolbarContainer)
-        addView(toolbarLayout)
+        toolbarScrollView.addView(toolbarContainer)
+        toolbarRoot.addView(toolbarScrollView)
 
-        // Subtle divider
+        // 3. Microphone Button
+        val micButton = createToolbarIconButton(
+            drawableRes = R.drawable.ic_mic,
+            contentDescription = "Voice Input"
+        ) {
+            if (::controller.isInitialized) {
+                controller.handleMicTap()
+            }
+        }
+        toolbarRoot.addView(micButton)
+
+        // 4. Menu Button (Rightmost 3-dot)
+        val menuButton = createToolbarIconButton(
+            drawableRes = R.drawable.ic_more_vert,
+            contentDescription = "Menu Options"
+        ) {
+            if (::controller.isInitialized) {
+                controller.handleMenuTap()
+            }
+        }
+        toolbarRoot.addView(menuButton)
+
+        addView(toolbarRoot)
+
         val divider = View(context).apply {
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dpToPx(1f))
             setBackgroundColor(theme.dividerColor)
         }
         addView(divider)
 
-        // 2. Main Keyboard Panel Container
         mainPanelContainer = LinearLayout(context).apply {
             orientation = VERTICAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -183,6 +220,77 @@ class KeyboardView @JvmOverloads constructor(
         addView(mainPanelContainer)
 
         renderPanel()
+    }
+
+    private fun createAppIconView(onClick: () -> Unit): ImageView {
+        val sizePx = dpToPx(28f)
+        return ImageView(context).apply {
+            setImageResource(R.mipmap.ic_launcher)
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            contentDescription = "App Icon"
+            isClickable = true
+            isFocusable = true
+            layoutParams = LayoutParams(sizePx, sizePx).apply {
+                setMargins(dpToPx(4f), 0, dpToPx(6f), 0)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        animatePress(v)
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        animateRelease(v)
+                        onClick()
+                        v.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        animateRelease(v)
+                    }
+                }
+                true
+            }
+        }
+    }
+
+    private fun createToolbarIconButton(
+        drawableRes: Int,
+        sizeDp: Float = 24f,
+        contentDescription: String,
+        onClick: () -> Unit
+    ): ImageView {
+        val sizePx = dpToPx(sizeDp)
+        return ImageView(context).apply {
+            setImageDrawable(ContextCompat.getDrawable(context, drawableRes)?.mutate()?.apply {
+                setTint(theme.textColor)
+            })
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            this.contentDescription = contentDescription
+            isClickable = true
+            isFocusable = true
+            layoutParams = LayoutParams(sizePx, sizePx).apply {
+                setMargins(dpToPx(4f), 0, dpToPx(4f), 0)
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            setOnTouchListener { v, event ->
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        animatePress(v)
+                        v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        animateRelease(v)
+                        onClick()
+                        v.performClick()
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        animateRelease(v)
+                    }
+                }
+                true
+            }
+        }
     }
 
     fun refreshToolbar() {
@@ -213,6 +321,26 @@ class KeyboardView @JvmOverloads constructor(
                 }
                 toolbarContainer.addView(chip)
             }
+        }
+    }
+
+    private fun renderSuggestions(result: SuggestionResult) {
+        if (!::toolbarContainer.isInitialized) return
+
+        if (result.candidates.isEmpty()) {
+            refreshToolbar()
+            return
+        }
+
+        toolbarContainer.removeAllViews()
+        toolbarContainer.addView(tvStatus)
+
+        for (candidate in result.candidates) {
+            val label = if (candidate.isAutoCorrection) "${candidate.text} ✓" else candidate.text
+            val chip = createChipView(label) {
+                controller.onSuggestionCandidateClicked(candidate)
+            }
+            toolbarContainer.addView(chip)
         }
     }
 
@@ -342,7 +470,6 @@ class KeyboardView @JvmOverloads constructor(
         mainPanelContainer.addView(createKeyRow(row1))
         mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 12f))
 
-        // Row 3: Shift + Letters + Backspace
         val row3Layout = LinearLayout(context).apply {
             orientation = HORIZONTAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
@@ -371,7 +498,7 @@ class KeyboardView @JvmOverloads constructor(
             weight = 1.4f,
             contentDescription = "Delete"
         ) {
-            // no-op: repeat behavior below overrides the click/touch handling
+            // no-op
         }
         setupBackspaceRepeat(backspaceKey)
         row3Layout.addView(backspaceKey)
@@ -407,7 +534,7 @@ class KeyboardView @JvmOverloads constructor(
             weight = 1.4f,
             contentDescription = "Delete"
         ) {
-            // no-op: repeat behavior below overrides the click/touch handling
+            // no-op
         }
         setupBackspaceRepeat(backspaceKey)
         row3Layout.addView(backspaceKey)
@@ -422,14 +549,12 @@ class KeyboardView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
         }
 
-        // 123 / ABC Toggle (text key, intentionally not an icon)
         val modeToggleKey = createKeyView(if (isSymbolPanel) "ABC" else "123", isSpecial = true, weight = 1.4f) {
             isSymbolPanel = !isSymbolPanel
             renderPanel()
         }
         bottomRow.addView(modeToggleKey)
 
-        // Globe Switcher
         val globeKey = createIconKeyView(
             iconRes = R.drawable.ic_globe,
             weight = 1.0f,
@@ -447,7 +572,6 @@ class KeyboardView @JvmOverloads constructor(
         }
         bottomRow.addView(globeKey)
 
-        // Settings Key
         val settingsKey = createIconKeyView(
             iconRes = R.drawable.ic_settings,
             weight = 1.0f,
@@ -457,13 +581,11 @@ class KeyboardView @JvmOverloads constructor(
         }
         bottomRow.addView(settingsKey)
 
-        // Space Bar
         val spaceKey = createKeyView("English", weight = 4.2f, isSpace = true) {
             controller.onKeyTyped(" ")
         }
         bottomRow.addView(spaceKey)
 
-        // Enter Key — premium gradient CTA, always an icon (never falls back to a glyph)
         val enterKey = createIconKeyView(
             iconRes = R.drawable.ic_enter,
             weight = 1.5f,
@@ -499,7 +621,6 @@ class KeyboardView @JvmOverloads constructor(
         return row
     }
 
-    /** Text keys: letters, numbers, symbols, and the "123"/"ABC" toggle. */
     private fun createKeyView(
         label: String,
         isSpecial: Boolean = false,
@@ -557,12 +678,6 @@ class KeyboardView @JvmOverloads constructor(
         }
     }
 
-    /**
-     * Icon-only keys: shift, backspace, globe, settings, enter.
-     * Uses an ImageView pinned to a fixed [ICON_SIZE_DP] box inside a FrameLayout,
-     * so every control icon renders at the same visual size and is perfectly
-     * centered — regardless of that vector asset's own intrinsic dimensions.
-     */
     private fun createIconKeyView(
         iconRes: Int,
         weight: Float,
