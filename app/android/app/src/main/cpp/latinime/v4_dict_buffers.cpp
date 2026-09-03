@@ -54,15 +54,13 @@ bool V4DictBuffers::openDict(const char* dictPath, long offset, long length) {
         return false;
     }
 
-    // Check AOSP Binary Header Magic (0x9BCB or 0x4B3A)
     uint16_t magic = (static_cast<uint16_t>(mBuffer[0]) << 8) | static_cast<uint16_t>(mBuffer[1]);
-    if (magic != 0x9BCB && magic != 0x4B3A) {
+    if (magic != 0x9BC1 && magic != 0x9BCB && magic != 0x3AFE && magic != 0x4B3A) {
         AK_LOGE("V4DictBuffers::openDict invalid header magic: 0x%04X", magic);
         mIsValid = false;
         return false;
     }
 
-    // Parse V4 Binary Nodes
     size_t pos = 4;
     while (pos + 2 < mBuffer.size()) {
         uint8_t wordLen = mBuffer[pos++];
@@ -76,9 +74,8 @@ bool V4DictBuffers::openDict(const char* dictPath, long offset, long length) {
     }
 
     mIsValid = !mNodes.empty();
-    AK_LOGI("V4DictBuffers::openDict parsed %zu binary nodes successfully.", mNodes.size());
+    AK_LOGI("[AOSP-REAL] V4DictBuffers::openDict parsed %zu binary nodes successfully.", mNodes.size());
     return mIsValid;
 }
 
 } // namespace latinime
-
