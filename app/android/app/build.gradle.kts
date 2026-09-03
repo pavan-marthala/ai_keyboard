@@ -46,6 +46,13 @@ android {
         buildConfigField("String", "GIPHY_API_KEY", "\"$giphyApiKey\"")
     }
 
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.

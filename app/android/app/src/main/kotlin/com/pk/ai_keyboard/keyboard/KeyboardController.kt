@@ -28,7 +28,7 @@ class KeyboardController(
     private val context: Context,
     private val textEditor: TextEditor = TextEditor(),
     private val aiTextTransformer: AiTextTransformer = AiTextTransformer(context),
-    private val suggestionEngine: SuggestionEngine = AospSuggestionEngine(context),
+    private val suggestionEngine: SuggestionEngine = com.pk.ai_keyboard.suggestion.aosp.AospSuggestionAdapter(context),
     val voiceInputController: VoiceInputController = VoiceInputController(context),
     val clipboardHistoryManager: ClipboardHistoryManager = ClipboardHistoryManager(context),
     val gifProvider: GifProvider = GiphyGifProvider(),
