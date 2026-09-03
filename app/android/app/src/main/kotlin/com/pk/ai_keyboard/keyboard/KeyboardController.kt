@@ -125,6 +125,12 @@ class KeyboardController(
         return applied
     }
 
+    fun updateGeometry(widthPx: Int, heightPx: Int, useNumbers: Boolean) {
+        if (suggestionEngine is com.pk.ai_keyboard.suggestion.aosp.AospSuggestionAdapter) {
+            suggestionEngine.updateGeometry(widthPx, heightPx, useNumbers)
+        }
+    }
+
     fun resetKeyboardHeight(): Int {
         val defaultHeight = keyboardHeightRepository.reset()
         onKeyboardHeightChanged?.invoke(defaultHeight)
@@ -308,7 +314,7 @@ class KeyboardController(
     }
 
     fun requestSuggestions() {
-        if (isSuggestionsDisabled || isTransforming || isAiCommandModeActive) {
+        if (isSuggestionsDisabled || isTransforming || isAiCommandModeActive || TextEditor.isProtectedField(currentEditorInfo)) {
             onSuggestionsUpdated?.invoke(SuggestionResult())
             return
         }

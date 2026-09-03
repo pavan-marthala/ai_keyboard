@@ -41,17 +41,30 @@ class AospSuggestionAdapter(
     private val suggest = Suggest()
     private val wordComposer = WordComposer()
     private var isInitialized = false
+    private var currentProximityInfo: ProximityInfo = ProximityInfo.EMPTY
 
     override fun initialize() {
         suggest.initialize(context)
         isInitialized = true
-        safeLogI(TAG, "[AOSP-SUGGEST] adapter_initialized native_loaded=${NativeBinaryDictionary.isNativeLoaded()}")
+        safeLogI(TAG, "[AOSP-REAL] adapter_initialized native_loaded=${NativeBinaryDictionary.isNativeLoaded()}")
+    }
+
+    fun updateProximityInfo(proximityInfo: ProximityInfo) {
+        currentProximityInfo = proximityInfo
+        safeLogI(TAG, "[AOSP-REAL] ProximityInfo synchronized keyCount=${proximityInfo.keyBoundsMap.size}")
+    }
+
+    fun updateGeometry(totalWidthPx: Int, totalHeightPx: Int, useNumbers: Boolean) {
+        if (totalWidthPx <= 0 || totalHeightPx <= 0) return
+        val newProximity = KeyboardGeometryBuilder.buildProximityInfo(totalWidthPx, totalHeightPx, useNumbers)
+        currentProximityInfo = newProximity
+        safeLogI(TAG, "[AOSP-REAL] ProximityInfo updated width=$totalWidthPx height=$totalHeightPx useNumbers=$useNumbers keyCount=${newProximity.keyBoundsMap.size}")
     }
 
     fun getSuggestionsWithGeometry(
         typedText: String,
         previousContext: String = "",
-        proximityInfo: ProximityInfo = ProximityInfo.EMPTY,
+        proximityInfo: ProximityInfo = currentProximityInfo,
         sequenceId: Long = 0L
     ): SuggestionResult {
         if (!isInitialized) {
@@ -63,7 +76,7 @@ class AospSuggestionAdapter(
             return SuggestionResult(emptyList(), null, sequenceId)
         }
 
-        safeLogI(TAG, "[AOSP-SUGGEST] adapter_request native_loaded=${NativeBinaryDictionary.isNativeLoaded()}")
+        safeLogI(TAG, "[AOSP-REAL] adapter_request native_loaded=${NativeBinaryDictionary.isNativeLoaded()}")
 
         wordComposer.setTypedText(cleanInput)
         val ngramContext = NgramContext.fromPreviousText(previousContext)
@@ -88,7 +101,7 @@ class AospSuggestionAdapter(
             )
         }
 
-        safeLogI(TAG, "[AOSP-SUGGEST] adapter_result_count=${candidates.size}")
+        safeLogI(TAG, "[AOSP-REAL] adapter_result_count=${candidates.size}")
 
         return SuggestionResult(
             candidates = candidates,
@@ -102,7 +115,7 @@ class AospSuggestionAdapter(
         previousContext: String,
         sequenceId: Long
     ): SuggestionResult {
-        return getSuggestionsWithGeometry(typedText, previousContext, ProximityInfo.EMPTY, sequenceId)
+        return getSuggestionsWithGeometry(typedText, previousContext, currentProximityInfo, sequenceId)
     }
 
     override fun commitSuggestion(word: String) {
