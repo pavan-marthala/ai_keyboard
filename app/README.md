@@ -53,6 +53,7 @@ graph TD
 The Flutter application shell serves as the primary configuration and testing surface.
 
 ### Architecture & Design Patterns
+
 - **Clean Architecture:** Domain entities and repositories are decoupled from data providers and presentation logic.
 - **State Management:** BLoC pattern using `flutter_bloc`.
 - **Dependency Injection:** `get_it` service locator registered via `injectable` code generation.
@@ -61,6 +62,7 @@ The Flutter application shell serves as the primary configuration and testing su
 - **Error Handling:** Functional `Result<T, Failure>` pattern using explicit Success/Failure variants.
 
 ### Feature Structure
+
 - `features/ai_service/`:
   - `domain/entities/`: `AiModel`, `AiRequest`, `AiResponse`, `AiProviderConfig`.
   - `domain/repositories/`: `AiRepository` interface.
@@ -91,6 +93,7 @@ The Flutter application shell serves as the primary configuration and testing su
 The Android keyboard is implemented natively in Kotlin and C++ to ensure low-latency keystroke handling, zero runtime overhead during standard typing, and seamless integration with the Android `InputMethodService` framework.
 
 ### Key Components
+
 - **`KeyboardService` (`keyboard/KeyboardService.kt`):**
   - Subclasses `android.inputmethodservice.InputMethodService`.
   - Oversees lifecycle callbacks: `onCreate`, `onCreateInputView`, `onStartInput`, `onStartInputView`, `onFinishInputView`, `onFinishInput`, `onDestroy`.
@@ -163,6 +166,7 @@ The iOS implementation provides a native keyboard extension built in Swift using
 Inter-process communication between the Flutter app shell and the native host is handled via Flutter `MethodChannel`:
 
 ### Android Method Channels
+
 1. **`com.pk.ai_keyboard/credentials` (`MainActivity.kt`):**
    - `saveApiKey(provider, apiKey)`: Encrypts and persists key in Android KeyStore.
    - `getApiKey(provider)`: Retrieves decrypted API key.
@@ -177,6 +181,7 @@ Inter-process communication between the Flutter app shell and the native host is
    - `getUseNumbers` / `setUseNumbers`: Controls number row visibility.
 
 ### iOS Method Channel
+
 1. **`com.pk.ai_keyboard/credentials` (`AppDelegate.swift`):**
    - `saveApiKey`, `getApiKey`, `deleteApiKey`, `hasApiKey`, `saveConfig`, `saveDisabledCommands`.
    - Reads/writes to iOS Keychain and App Group `UserDefaults`.
@@ -186,6 +191,7 @@ Inter-process communication between the Flutter app shell and the native host is
 ## 6. End-to-End Execution Flows
 
 ### AI Text Transformation Flow
+
 ```text
 User types: "We should meet tomorrow @pro"
                     │
@@ -218,6 +224,7 @@ User types: "We should meet tomorrow @pro"
 ```
 
 ### Word Suggestion Flow (Android)
+
 ```text
 User taps letter key (e.g. 'h' -> 'e' -> 'l')
                     │
@@ -255,6 +262,7 @@ User taps letter key (e.g. 'h' -> 'e' -> 'l')
 ## 7. Developer Workflows
 
 ### Setup
+
 ```bash
 git clone https://github.com/pavan-marthala/ai_keyboard.git
 cd ai_keyboard/app
@@ -262,12 +270,15 @@ flutter pub get
 ```
 
 ### Code Generation
+
 Whenever entities, Freezed models, or Injectable modules are updated:
+
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
 ### Testing
+
 ```bash
 # Run Flutter tests
 flutter test
@@ -277,6 +288,7 @@ cd android && ./gradlew test
 ```
 
 ### Building
+
 ```bash
 # Debug APK
 flutter build apk --debug

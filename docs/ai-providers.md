@@ -36,6 +36,7 @@ A critical architectural design of the AI Keyboard is that **native keyboards in
 - **Default Model:** `gemini-1.5-flash`
 - **Custom Base URL Override:** Supported. If configured, endpoint becomes `{customBaseUrl}/models/{cleanModelId}:generateContent?key={apiKey}`.
 - **Request Payload Structure:**
+
   ```json
   {
     "systemInstruction": {
@@ -52,6 +53,7 @@ A critical architectural design of the AI Keyboard is that **native keyboards in
     }
   }
   ```
+
 - **Response Extraction:** Reads `candidates[0].content.parts[0].text`.
 - **Key Registration:** [Google AI Studio](https://aistudio.google.com/app/apikey).
 
@@ -64,6 +66,7 @@ A critical architectural design of the AI Keyboard is that **native keyboards in
 - **Custom Base URL Override:** Supported. If configured, endpoint becomes `{customBaseUrl}/chat/completions`.
 - **Authentication:** `Authorization: Bearer {apiKey}` header.
 - **Request Payload Structure:**
+
   ```json
   {
     "model": "gpt-4o-mini",
@@ -75,6 +78,7 @@ A critical architectural design of the AI Keyboard is that **native keyboards in
     ]
   }
   ```
+
 - **Response Extraction:** Reads `choices[0].message.content`.
 - **Key Registration:** [OpenAI Platform](https://platform.openai.com/api-keys).
 
@@ -109,11 +113,13 @@ A critical architectural design of the AI Keyboard is that **native keyboards in
 Provider configurations and API credentials are saved separately to guarantee security:
 
 ### Non-Sensitive Settings (Active Provider, Active Model, Base URL)
+
 - **Android:** Stored in `SharedPreferences` under `ai_keyboard_config_prefs` via `NativeSecureStorage.saveConfig(...)`.
 - **iOS:** Stored in `UserDefaults(suiteName: "group.com.pk.ai_keyboard.shared")` via `SharedConfigurationStore.saveConfig(...)`.
 - **Flutter:** Persisted in `SharedPreferences` via `SettingsRepositoryImpl.dart`.
 
 ### Sensitive Credentials (API Keys)
+
 - **Android:** Encrypted using Android KeyStore AES-256-GCM (`AiKeyboardKeyStoreKey`) and stored as Base64 ciphertext in `ai_keyboard_secure_prefs`.
 - **iOS:** Stored in the iOS Keychain under service identifier `com.pk.ai_keyboard.apiKey`.
 - **Flutter:** Managed through `FlutterSecureStorage`.

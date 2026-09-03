@@ -74,6 +74,7 @@ flowchart TD
 The Flutter application serves as the user-facing configuration, account management, and test harness shell.
 
 ### Technology Stack
+
 - **Framework:** Flutter 3.13+ / Dart SDK `^3.13.2`.
 - **State Management:** BLoC pattern using `package:flutter_bloc` (v9.1.1).
 - **Code Generation & Models:** `package:freezed_annotation`, `package:json_annotation` powered by `build_runner`.
@@ -84,6 +85,7 @@ The Flutter application serves as the user-facing configuration, account managem
 - **Local Database:** `package:drift` (v2.34.3) with SQLite.
 
 ### Directory Structure & Responsibilities
+
 ```text
 app/lib/
 ├── core/
@@ -140,6 +142,7 @@ KeyboardService (InputMethodService)
 ```
 
 ### Class Roles
+
 1. **`KeyboardService.kt`:**
    - Entry point for the Android Input Method Engine (IME).
    - Manages input views and window tokens.
@@ -167,6 +170,7 @@ KeyboardService (InputMethodService)
 The text suggestion pipeline is derived from the open-source LatinIME engine developed by the Android Open Source Project (AOSP), licensed under Apache 2.0.
 
 ### AOSP Components
+
 - **Origin:** Android Open Source Project LatinIME (`packages/inputmethods/LatinIME`, Copyright 2010–2014 The Android Open Source Project).
 - **C++ Engine:** Source located in `app/android/app/src/main/cpp/aosp_latinime/src/` and `app/android/app/src/main/cpp/latinime/`.
 - **Build Configuration:** Configured via `app/android/app/src/main/cpp/CMakeLists.txt` compiling into `liblatinime.so` targeting C++17.
@@ -177,6 +181,7 @@ The text suggestion pipeline is derived from the open-source LatinIME engine dev
   - `closeNative(dictPtr)`: Releases allocated native memory structures.
 
 ### Runtime Integration Path
+
 ```text
 KeyboardController
      │
@@ -213,6 +218,7 @@ BinaryDictionary
 The iOS keyboard runs as an `UIInputViewController` extension within an isolated system sandbox.
 
 ### Component Structure
+
 - **`KeyboardViewController.swift`:** Subclasses `UIInputViewController`, managing extension lifecycle and the root view.
 - **`KeyboardView.swift`:** UIKit layout constructed with `UIStackView`, `UIScrollView`, `UILabel`, and `KeyboardKeyButton`.
 - **`KeyboardController.swift`:** Coordinates keyboard events, shift states, and command dispatching.
@@ -230,6 +236,7 @@ The iOS keyboard runs as an `UIInputViewController` extension within an isolated
 Communication between the Flutter application shell and native platforms is achieved through Flutter `MethodChannel`:
 
 ### Channel: `com.pk.ai_keyboard/credentials`
+
 Implemented in `MainActivity.kt` (Android) and `AppDelegate.swift` (iOS).
 
 | Method | Arguments | Description |
@@ -242,13 +249,14 @@ Implemented in `MainActivity.kt` (Android) and `AppDelegate.swift` (iOS).
 | `saveDisabledCommands` | `disabledTriggers: List<String>` | Persists list of disabled command triggers. |
 
 ### Channel: `com.pk.ai_keyboard/keyboard`
+
 Implemented in `MainActivity.kt` (Android only).
 
 | Method | Arguments | Description |
 | :--- | :--- | :--- |
 | `isAiKeyboardActive` | None | Returns whether AI Keyboard is selected as active IME in Android Settings. |
-| `getCurrentInputMethod`| None | Returns the package identifier of the active system IME. |
-| `openKeyboardSettings`| None | Dispatches `Settings.ACTION_INPUT_METHOD_SETTINGS` intent. |
+| `getCurrentInputMethod` | None | Returns the package identifier of the active system IME. |
+| `openKeyboardSettings` | None | Dispatches `Settings.ACTION_INPUT_METHOD_SETTINGS` intent. |
 | `getKeyboardHeight` | None | Returns configured height in dp. |
 | `setKeyboardHeight` | `height: Int` | Updates and persists keyboard height in dp. |
 | `resetKeyboardHeight` | None | Resets keyboard height to default (260 dp). |

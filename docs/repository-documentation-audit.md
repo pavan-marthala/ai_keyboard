@@ -1,18 +1,23 @@
 # Repository Documentation Audit
 
 ## Audit Date
+
 2026-09-03
 
 ## Repository Commit
+
 `0412672e7dc839345f7dc8ce6d4cdb52d3f0471d`
 
 ## Scope
+
 Comprehensive repository audit, documentation hardening, and governance alignment for the `ai_keyboard` repository (`https://github.com/pavan-marthala/ai_keyboard`). The audit covered root governance files, in-depth architectural guides, issue and pull request templates, and technical specifications, comparing every statement against the authoritative source code across Flutter (`app/lib/`), native Android (`app/android/`), native iOS (`app/ios/`), and native C++ AOSP (`app/android/app/src/main/cpp/`).
 
 ---
 
 ## Files Reviewed
+
 The following Markdown, template, and configuration files were reviewed during the audit:
+
 - `README.md`
 - `app/README.md`
 - `docs/architecture.md`
@@ -85,6 +90,7 @@ Every technical claim made in the revised documentation was verified directly ag
 ## Architecture Documentation
 
 The system architecture is structured as follows:
+
 - **Layer 1 (Flutter Host):** Settings, provider management, and testing playground utilizing BLoC, Freezed, and Injectable. Communicates with native platforms via MethodChannels `com.pk.ai_keyboard/credentials` and `com.pk.ai_keyboard/keyboard`.
 - **Layer 2 (Android Native Keyboard):** Kotlin `InputMethodService` (`KeyboardService`), `KeyboardController`, `KeyboardView` (Android Views), and direct HTTPS calls (`HttpURLConnection`) to AI providers.
 - **Layer 3 (iOS Native Keyboard):** Swift `UIInputViewController` (`KeyboardViewController`), UIKit `KeyboardView`, and direct HTTPS calls (`URLSession`) to AI providers.
@@ -95,6 +101,7 @@ The system architecture is structured as follows:
 ## Command Documentation
 
 The verified command syntax consists of 7 trailing commands:
+
 - `@fix`: Corrects grammar, spelling, punctuation, and capitalization.
 - `@rewrite`: Rewrites text while preserving meaning.
 - `@pro`: Adjusts tone to professional and formal.
@@ -133,12 +140,15 @@ Rules: Commands must appear at the end of input text separated by whitespace, wi
 ## GitHub Repository Setup
 
 ### Suggested Repository Description
+>
 > "AI-powered keyboard for Android and iOS with native keyboard features, AI text transformation, and Android AOSP-based suggestions."
 
 ### Recommended Repository Topics
+
 `ai`, `keyboard`, `flutter`, `android`, `ios`, `aosp`, `latinime`, `kotlin`, `swift`, `dart`, `ai-keyboard`, `ime`
 
 ### Templates & Workflows
+
 - Issue Templates: `bug_report.md`, `feature_request.md`, `improvement.md` in `.github/ISSUE_TEMPLATE/`.
 - Pull Request Template: `pull_request_template.md` in `.github/`.
 - Contact Information: `mgpavank@gmail.com` consistently used across `SECURITY.md`, `CODE_OF_CONDUCT.md`, and `CONTRIBUTING.md`.
@@ -160,6 +170,7 @@ Rules: Commands must appear at the end of input text separated by whitespace, wi
 ## Remaining Limitations
 
 The following limitations exist in the application implementation and are transparently documented:
+
 1. **Suggestion Engine Language Support:** The suggestion engine currently bundles and loads a single English dictionary (`main_en.dict`). Multi-language suggestions are not supported.
 2. **User Dictionary Persistence:** Custom learned words in the AOSP engine are currently held in memory during the active session and do not persist across device restarts.
 3. **iOS Keyboard Extension:** Lacks predictive word suggestions; provides basic typing and AI text transformations only.
@@ -180,4 +191,3 @@ The following limitations exist in the application implementation and are transp
 **No application source code was modified during this documentation phase.**
 
 All `.dart`, `.kt`, `.java`, `.swift`, `.cpp`, `.h`, `.xml`, `.gradle`, `.kts`, and dictionary files remain completely untouched.
-

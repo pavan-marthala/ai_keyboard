@@ -166,17 +166,20 @@ For deep architectural diagrams and data-flow specifications, see [app/README.md
 ## Setup & Installation
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/pavan-marthala/ai_keyboard.git
    cd ai_keyboard/app
    ```
 
 2. **Install Flutter dependencies:**
+
    ```bash
    flutter pub get
    ```
 
 3. **Run code generation (Freezed & Injectable):**
+
    ```bash
    dart run build_runner build --delete-conflicting-outputs
    ```
@@ -234,6 +237,12 @@ For full cryptographic and privacy details, see [docs/security.md](docs/security
 Contributions are welcome! Please review [CONTRIBUTING.md](CONTRIBUTING.md) for branch naming conventions, Conventional Commit standards, and guidelines on preserving AOSP licensing when touching native code.
 
 All participants are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+<p >
+  <a href="https://github.com/pavan-marthala/ai_keyboard/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=pavan-marthala/ai_keyboard" />
+  </a>
+</p>
 
 ---
 

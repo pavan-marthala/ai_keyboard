@@ -13,6 +13,7 @@ All contributors and maintainers are expected to follow our [Code of Conduct](CO
 ## Development Prerequisites
 
 Before beginning development, verify that your machine has the necessary toolchains installed:
+
 - **Flutter SDK:** Version 3.13.2+ (Dart SDK `^3.13.2`)
 - **Android SDK:** `compileSdk 37`, Android NDK, and CMake `3.22.1`
 - **JDK:** Java 17
@@ -25,31 +26,40 @@ Before beginning development, verify that your machine has the necessary toolcha
 Follow this step-by-step workflow when making contributions:
 
 1. **Fork & Clone:**
+
    ```bash
    git clone https://github.com/<your-username>/ai_keyboard.git
    cd ai_keyboard
    ```
+
 2. **Install Dependencies:**
+
    ```bash
    cd app
    flutter pub get
    ```
+
 3. **Run Code Generation:**
+
    ```bash
    dart run build_runner build --delete-conflicting-outputs
    ```
+
 4. **Create a Feature Branch:**
    Create a focused branch from `master` using the standard naming conventions below.
 5. **Implement Changes:**
    Keep changes modular, focused, and aligned with existing architectural layers.
 6. **Static Analysis & Formatting:**
+
    ```bash
    cd app
    flutter analyze
    dart format --set-exit-if-changed .
    ```
+
 7. **Execute Tests:**
    Ensure all existing and newly added tests pass:
+
    ```bash
    # Flutter tests
    cd app && flutter test
@@ -57,6 +67,7 @@ Follow this step-by-step workflow when making contributions:
    # Android native unit tests
    cd app/android && ./gradlew test
    ```
+
 8. **Test on Hardware:**
    Whenever possible, test input method changes on actual Android or iOS devices to verify touch response, IME window tokens, and lifecycle transitions.
 9. **Update Documentation:**
@@ -75,7 +86,7 @@ Branch names must be lowercase, concise, and structured with a category prefix:
 | `feature/<description>` | Adding new capabilities or enhancements | `feature/clipboard-search` |
 | `fix/<description>` | Resolving bugs or unexpected behaviors | `fix/cursor-position-shift` |
 | `docs/<description>` | Documentation additions or updates | `docs/update-ai-endpoints` |
-| `refactor/<description>`| Non-functional code cleanup or restructuring | `refactor/text-editor-methods` |
+| `refactor/<description>` | Non-functional code cleanup or restructuring | `refactor/text-editor-methods` |
 | `test/<description>` | Adding or updating unit/widget/native tests | `test/add-command-parser-cases` |
 | `chore/<description>` | Tooling, metadata, or dependency adjustments | `chore/update-gitignore` |
 
@@ -96,6 +107,7 @@ We enforce the [Conventional Commits](https://www.conventionalcommits.org/) spec
 - `perf:` Performance improvements.
 
 **Example Commit Messages:**
+
 ```text
 feat: Add Kannada language support to @translate command
 fix: Handle null textDocumentProxy gracefully on iOS extension launch

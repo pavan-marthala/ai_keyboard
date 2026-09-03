@@ -9,6 +9,7 @@ This document provides an exhaustive technical reference for the native Android 
 The Android keyboard is implemented as a native input method engine (IME) using the standard Android `InputMethodService` framework.
 
 ### Service Entry Point: `KeyboardService.kt`
+
 Located in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/KeyboardService.kt`.
 
 - **Inheritance:** Extends `android.inputmethodservice.InputMethodService`.
@@ -29,6 +30,7 @@ Located in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/Keyboard
 The `KeyboardController` coordinates state, UI events, hardware feedback, AI transformations, and text editing operations.
 
 ### Dependencies
+
 - `TextEditor`: Abstraction over `android.view.inputmethod.InputConnection`.
 - `AiTextTransformer`: Coordinates AI API invocations.
 - `SuggestionEngine`: Interface fulfilled by `AospSuggestionAdapter`.
@@ -41,7 +43,9 @@ The `KeyboardController` coordinates state, UI events, hardware feedback, AI tra
 - `NumberRowRepository`: Manages number row visibility.
 
 ### Keyboard Modes (`KeyboardMode.kt`)
+
 The controller manages keyboard mode transitions using the `KeyboardMode` enum:
+
 1. `MAIN`: Primary QWERTY alphanumeric layout.
 2. `MORE`: Secondary symbol and special character layout.
 3. `EMOJI`: Emoji selection surface powered by AndroidX Emoji2.
@@ -51,6 +55,7 @@ The controller manages keyboard mode transitions using the `KeyboardMode` enum:
 7. `RESIZE`: On-screen keyboard height adjustment mode.
 
 ### Shift State Handling
+
 - `ShiftState` enum: `LOWERCASE`, `SHIFT_ON`, `CAPS_LOCK`.
 - Double-tap detection on the Shift key within 300ms locks the state to `CAPS_LOCK`.
 
@@ -61,6 +66,7 @@ The controller manages keyboard mode transitions using the `KeyboardMode` enum:
 The keyboard UI is constructed entirely with standard Android Views (not Jetpack Compose).
 
 ### View Architecture
+
 - **Root Class:** `class KeyboardView : LinearLayout`.
 - **Layout & Structure:**
   - Toolbar container with action buttons (AI commands, mic, emoji, clipboard, GIF, number row, settings).
@@ -94,6 +100,7 @@ The keyboard UI is constructed entirely with standard Android Views (not Jetpack
 The Android keyboard integrates an AOSP LatinIME-derived suggestion engine:
 
 ### Components & Architecture
+
 - **Adapter:** `AospSuggestionAdapter.kt` implements the `SuggestionEngine` interface.
 - **Suggest Controller:** `Suggest.kt` delegates to `DictionaryFacilitatorImpl.kt`.
 - **Dictionary Implementation:** `BinaryDictionary.kt` manages dictionary assets.
@@ -147,18 +154,21 @@ TextEditor.commitText(transformedText, 1)
 ## 7. Media & Supporting Features
 
 ### GIF Search & Insertion
+
 - **Provider:** `GiphyGifProvider.kt` queries `https://api.giphy.com/v1/gifs/search`.
 - **Configuration:** Uses `BuildConfig.GIPHY_API_KEY` (configured via `GIPHY_API_KEY` environment variable or `local.properties`).
 - **Insertion:** `GifInserter.kt` uses `InputConnection.commitContent(...)` with `InputContentInfo` to send image URIs to supported target apps.
 - **Analytics:** Silently pings Giphy's `onsend` analytics URL as required by Giphy API usage terms.
 
 ### Voice Input
+
 - **Controller:** `VoiceInputController.kt` interfaces with Android's `SpeechRecognizer`.
 - **Permission Flow:** An invisible transparent activity (`PermissionRequestActivity.kt`) requests `Manifest.permission.RECORD_AUDIO` on behalf of the IME service.
 - **State Machine:** `VoiceState` (`IDLE`, `LISTENING`, `SPEAK_NOW`, `PROCESSING`, `ERROR`).
 - **Timeouts:** 3000ms initial silence timeout, 7000ms long idle timeout.
 
 ### Clipboard History
+
 - **Manager:** `ClipboardHistoryManager.kt` monitors system clipboard changes using `ClipboardManager.OnPrimaryClipChangedListener`.
 - **Persistence:** Recent clips are stored in `SharedPreferences` under `ai_keyboard_clipboard_prefs`.
 

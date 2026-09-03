@@ -35,19 +35,23 @@ The AI Keyboard operates on a **Bring Your Own Key (BYOK)** model. Users supply 
 ```
 
 #### Android Native Storage (`NativeSecureStorage.kt`)
+
 - **Key Generation & Storage:** Keys are generated within the Android KeyStore (`AndroidKeyStore`) under the alias `AiKeyboardKeyStoreKey`.
 - **Cipher Transformation:** `AES/GCM/NoPadding` with a 256-bit key and 128-bit authentication tag (`GCMParameterSpec`).
 - **Encrypted Payload Format:** A byte array containing `[1 byte IV length] + [IV bytes] + [GCM ciphertext with auth tag]` is encoded with `Base64.NO_WRAP` and saved in private SharedPreferences (`ai_keyboard_secure_prefs`).
 - **Decryption Access:** Credentials are only decrypted in memory during the execution of an explicit `@` text transformation command and are immediately discarded after the request completes.
 
 #### iOS Native Storage (`KeychainCredentialStore.swift`)
+
 - **Storage Subsystem:** Apple Keychain Services using the `kSecClassGenericPassword` item class.
 - **Service Identifier:** `com.pk.ai_keyboard.apiKey`.
 - **Account Key:** Stored per provider (`provider.lowercased()`).
 - **Accessibility:** Configured for access by both the main container application and the keyboard extension target.
 
 #### Non-Sensitive Configuration Separation
+
 Non-sensitive configuration items—such as active provider selection, model identifiers, custom base URLs, and disabled command triggers—are deliberately separated from secrets:
+
 - Android: Stored in unencrypted SharedPreferences (`ai_keyboard_config_prefs`).
 - iOS: Stored in shared `UserDefaults` using the App Group suite `group.com.pk.ai_keyboard.shared`.
 
@@ -65,6 +69,7 @@ The AI Keyboard establishes external network connections strictly for user-reque
 | **Voice Recognition** | Android System `SpeechRecognizer` | Tapping the microphone toolbar icon | Audio captured from device microphone, processed on-device or via the user's configured system speech engine. |
 
 ### What Never Leaves the Device
+
 - **Ordinary Typing:** Keystrokes, words, sentences, and composition events that do not invoke an explicit `@` command are handled strictly on-device by the keyboard view and AOSP suggestion engine.
 - **Keystroke Logging:** The keyboard does not log keystrokes to disk or external servers.
 - **Telemetry & Crash Tracking:** The AI Keyboard project bundles **no** telemetry SDKs, analytics tracking libraries (Firebase, Mixpanel, Amplitude), or crash reporting frameworks (Crashlytics, Sentry).
