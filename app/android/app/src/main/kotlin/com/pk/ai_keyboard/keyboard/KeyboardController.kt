@@ -17,7 +17,10 @@ import com.pk.ai_keyboard.suggestion.SuggestionCandidate
 import com.pk.ai_keyboard.suggestion.SuggestionEngine
 import com.pk.ai_keyboard.suggestion.SuggestionResult
 import com.pk.ai_keyboard.text.TextEditor
+import android.os.SystemClock
 import com.pk.ai_keyboard.transform.AiTextTransformer
+import com.pk.ai_keyboard.voice.VoiceImeHelper
+import com.pk.ai_keyboard.voice.VoiceImeSwitcher
 import com.pk.ai_keyboard.voice.VoiceInputController
 import com.pk.ai_keyboard.voice.VoiceState
 import kotlinx.coroutines.*
@@ -35,12 +38,15 @@ class KeyboardController(
     val recentGifManager: RecentGifManager = RecentGifManager(context),
     val gifInserter: GifInserter = GifInserter(context),
     val keyboardHeightRepository: KeyboardHeightRepository = KeyboardHeightRepository(context),
-    val numberRowRepository: NumberRowRepository = NumberRowRepository(context)
+    val numberRowRepository: NumberRowRepository = NumberRowRepository(context),
+    voiceImeSwitcher: VoiceImeSwitcher? = null,
+    val voiceImeHelper: VoiceImeHelper = VoiceImeHelper(context, voiceImeSwitcher)
 ) {
 
     companion object {
         private const val TAG = "KeyboardController"
         private const val DOUBLE_TAP_TIMEOUT_MS = 300L
+        private const val MIC_TAP_DEBOUNCE_MS = 500L
         const val MAX_TRANSFORMATION_CHARS = 4000
     }
 
@@ -75,6 +81,7 @@ class KeyboardController(
         private set
 
     private var lastShiftTapTime = 0L
+    private var lastMicTapTime = 0L
     private var suggestionSequenceId: Long = 0L
 
     var onStatusUpdate: ((String) -> Unit)? = null
@@ -173,15 +180,41 @@ class KeyboardController(
     }
 
     fun handleMicTap() {
-        Log.d(TAG, "Mic button tapped")
+        val now = SystemClock.uptimeMillis()
+        if (now - lastMicTapTime < MIC_TAP_DEBOUNCE_MS) {
+            Log.d(TAG, "Ignoring rapid mic tap (debounced)")
+            return
+        }
+        lastMicTapTime = now
+
+        Log.d(TAG, "Microphone clicked")
         if (!voiceInputController.isDictationModeActive) {
-            voiceInputController.startDictationMode()
+            startDictation()
         } else if (voiceInputController.currentState == VoiceState.MIC_STOPPED) {
             voiceInputController.restartDictationFromStopped()
         } else {
             voiceInputController.stopMicrophoneKeepDictation()
         }
         onMicClicked?.invoke()
+    }
+
+    fun startDictation() {
+        if (voiceImeHelper.isVoiceImeAvailable()) {
+            val switched = voiceImeHelper.switchToVoiceIme()
+            if (switched) {
+                Log.i(TAG, "Switch to voice IME succeeded")
+                return
+            }
+            Log.i(TAG, "Falling back to existing dictation: Switch attempt failed or returned false")
+        } else {
+            Log.i(TAG, "Falling back to existing dictation: No suitable voice-capable IME available")
+        }
+
+        startExistingDictation()
+    }
+
+    fun startExistingDictation() {
+        voiceInputController.startDictationMode()
     }
 
     fun handleBackFromDictation() {

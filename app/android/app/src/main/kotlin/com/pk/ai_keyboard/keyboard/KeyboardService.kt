@@ -1,13 +1,17 @@
 package com.pk.ai_keyboard.keyboard
 
 import android.inputmethodservice.InputMethodService
+import android.util.Log
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodSubtype
 import com.pk.ai_keyboard.ui.KeyboardView
+import com.pk.ai_keyboard.voice.VoiceImeSwitcher
 
-class KeyboardService : InputMethodService() {
+class KeyboardService : InputMethodService(), VoiceImeSwitcher {
 
     companion object {
+        private const val TAG = "KeyboardService"
         var activeInstance: KeyboardService? = null
             private set
     }
@@ -18,7 +22,30 @@ class KeyboardService : InputMethodService() {
     override fun onCreate() {
         super.onCreate()
         activeInstance = this
-        controller = KeyboardController(applicationContext)
+        controller = KeyboardController(
+            context = applicationContext,
+            voiceImeSwitcher = this
+        )
+    }
+
+    override fun switchToVoiceIme(imeId: String, subtype: InputMethodSubtype?): Boolean {
+        return try {
+            if (subtype != null) {
+                switchInputMethod(imeId, subtype)
+            } else {
+                switchInputMethod(imeId)
+            }
+            true
+        } catch (t: Throwable) {
+            Log.w(TAG, "switchInputMethod with subtype failed, trying without subtype: $imeId", t)
+            try {
+                switchInputMethod(imeId)
+                true
+            } catch (t2: Throwable) {
+                Log.e(TAG, "switchInputMethod failed for $imeId", t2)
+                false
+            }
+        }
     }
 
     fun updateUseNumbers(enabled: Boolean) {
