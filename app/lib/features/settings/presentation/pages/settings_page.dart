@@ -4,7 +4,6 @@ import 'package:ai_keyboard/core/utils/app_buitton.dart';
 import 'package:ai_keyboard/core/utils/app_text_field.dart';
 import 'package:ai_keyboard/core/utils/app_toast.dart';
 import 'package:ai_keyboard/core/utils/sized_context.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart';
@@ -319,33 +318,93 @@ class _SettingsPageState extends State<SettingsPage> {
                     style: TextStyle(color: Colors.grey.shade600),
                   )
                 else
-                  DropdownButtonFormField<String>(
-                    initialValue:
-                        models.any((m) => m.id == state.settings.activeModelId)
-                        ? state.settings.activeModelId
-                        : models.first.id,
-                    decoration: const InputDecoration(
-                      labelText: 'Select Model',
-                      border: OutlineInputBorder(),
+                  // DropdownButtonFormField<String>(
+                  //   initialValue:
+                  //       models.any((m) => m.id == state.settings.activeModelId)
+                  //       ? state.settings.activeModelId
+                  //       : models.first.id,
+                  //   decoration: const InputDecoration(
+                  //     labelText: 'Select Model',
+                  //     border: OutlineInputBorder(),
+                  //   ),
+                  //   items: models.map((AiModel model) {
+                  //     return DropdownMenuItem<String>(
+                  //       value: model.id,
+                  //       child: Text(
+                  //         model.displayName,
+                  //         overflow: TextOverflow.ellipsis,
+                  //       ),
+                  //     );
+                  //   }).toList(),
+                  //   onChanged: (value) {
+                  //     if (value != null) {
+                  //       context.read<SettingsBloc>().add(
+                  //         SettingsEvent.selectModel(value),
+                  //       );
+                  //     }
+                  //   },
+                  // ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 300),
+                    child: AnimatedSize(
+                      duration: const Duration(milliseconds: 300),
+                      alignment: Alignment.topCenter,
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: models.length,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 6),
+                        itemBuilder: (context, index) {
+                          final model = models[index];
+                          final isSelected =
+                              model.id == state.settings.activeModelId;
+                          return GestureDetector(
+                            onTap: () {
+                              context.read<SettingsBloc>().add(
+                                SettingsEvent.selectModel(model.id),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colors.surfaceDark,
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? colors.primary
+                                      : colors.border,
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_unchecked,
+                                    color: isSelected
+                                        ? colors.primary
+                                        : colors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    model.displayName,
+                                    style: typo.bodyMedium.copyWith(
+                                      color: colors.textPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                    items: models.map((AiModel model) {
-                      return DropdownMenuItem<String>(
-                        value: model.id,
-                        child: Text(
-                          model.displayName,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        context.read<SettingsBloc>().add(
-                          SettingsEvent.selectModel(value),
-                        );
-                      }
-                    },
                   ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 16),
                 Text(
