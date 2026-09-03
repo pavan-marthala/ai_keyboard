@@ -49,23 +49,28 @@ data class KeyDef(
 - **`hint`**: Small top-right hint label (e.g. `"1"` for key `Q` when number row is disabled). If `null`, no hint view is created.
 - **`moreKeysSpec`**: Comma-separated alternative characters available on long-press.
 
-## 4. Single vs Multi-Alternative Behavior
+## 4. Single vs Multi-Alternative Behavior (Phase 9.3)
 
-### Single-Alternative Auto-Commit (`!noPanelAutoMoreKey!`)
+### Case A — No More Keys
 
-- When a key is configured with a single alternative marked with `!noPanelAutoMoreKey!` (e.g. `"!noPanelAutoMoreKey!,2"` on `W`):
-  - Touching down starts the long-press detection.
-  - When the long-press timer expires, haptic feedback triggers and the character is directly committed without displaying any popup.
-  - Normal release does not re-type the primary letter.
+- Touching down and releasing performs normal key tap. Long-pressing does nothing extra.
 
-### Multi-Alternative Drag-Selection
+### Case B — One Unique Automatic Alternative (`!noPanelAutoMoreKey!`)
 
-- When a key is configured with multiple alternatives (e.g. `"1,¹,₁"` on `Q`, or 34 special characters on `,`):
-  - Long-press timer expires -> `MoreKeysKeyboardView` popup opens immediately above the parent key.
-  - Active pointer is transferred to the popup panel.
-  - User drags finger across alternatives -> `MoreKeysDetector` updates the hit key and highlights the selected alternative in real-time.
-  - User releases finger -> the highlighted alternative is committed via `controller.onKeyTyped(char)` and the popup dismisses.
-  - User drags outside the slide allowance -> popup cancels without inserting unintended characters.
+- When a key has a single unique alternative (e.g. Row 1 keys `Q` through `P` with numbers `1` through `0` when the number row is disabled):
+  - Long-press timer expires -> haptic feedback fires and the alternative is directly committed to `controller.onKeyTyped(...)`.
+  - No popup is opened. No duplicate alternatives (e.g. `Q` commits `1` directly).
+  - Releasing finger does not re-type the primary letter.
+
+### Case C — Multiple Unique Alternatives (Pointer Handoff & Drag Selection)
+
+- When a key has multiple unique alternatives (e.g. Comma key `,` with 34 special characters):
+  - Original finger is **STILL DOWN** when the long-press timer expires.
+  - The More Keys popup opens above the key, and the existing pointer ID is immediately handed off to `MoreKeysKeyboardView.onDownEvent(...)`.
+  - **Below-Popup Touch Projection**: `MoreKeysDetector` projects touch from the parent key onto the bottom row of the popup, so the alternative directly above the finger is immediately selected and highlighted with haptic feedback.
+  - **Drag Selection**: As the user drags (`ACTION_MOVE`), `MoreKeysDetector` updates the highlighted alternative in real-time with haptic feedback on change. Moving horizontally navigates columns; moving vertically up navigates higher rows.
+  - **Commit on Release**: When the user releases (`ACTION_UP`), the highlighted alternative is committed via `controller.onKeyTyped(char)` and the popup dismisses cleanly.
+  - **Cancellation**: Dragging far outside the allowable bounds cancels the selection without committing.
 
 ## 5. Comma Key Configuration
 
@@ -82,9 +87,10 @@ val commaMoreKeys = ". , ? , ! , : , ; , ' , \" , - , _ , ( , ) , [ , ] , { , } 
 ## 6. Verification and Test Results
 
 - **Unit Tests**:
-  - `MoreKeySpecTest`: 5 unit tests pass.
-  - `MoreKeysKeyboardTest`: 4 unit tests pass.
-  - Gradle test command: `./gradlew testDebugUnitTest` (55 total tests pass).
+  - `MoreKeySpecTest`: 6 unit tests pass (including duplicate alternative deduplication).
+  - `MoreKeysKeyboardTest`: 4 unit tests pass (single-row, grid layout, edge clamping).
+  - `MoreKeysDetectorTest`: 5 unit tests pass (direct hit, below-popup projection, horizontal drag, vertical row navigation, out-of-bounds cancellation).
+  - Full suite `./gradlew testDebugUnitTest`: **BUILD SUCCESSFUL** (all 61 tests pass).
 - **APK Compilation**:
-  - Gradle build command: `./gradlew assembleDebug` (BUILD SUCCESSFUL).
-  - Output: `app/build/app/outputs/apk/debug/app-debug.apk`.
+  - Gradle build command: `./gradlew assembleDebug`: **BUILD SUCCESSFUL**.
+  - Output APK: `app/build/app/outputs/apk/debug/app-debug.apk`.

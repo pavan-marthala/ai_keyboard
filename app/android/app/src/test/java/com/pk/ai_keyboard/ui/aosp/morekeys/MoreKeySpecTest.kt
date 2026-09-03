@@ -58,5 +58,13 @@ class MoreKeySpecTest {
         assertEquals("€", specs[30].label)
         assertEquals("₹", specs[33].label)
     }
+
+    @Test
+    fun `parseMoreKeys deduplicates identical alternatives`() {
+        val (specs, _) = MoreKeySpec.parseMoreKeys("1,1,1,2,2")
+        assertEquals(2, specs.size)
+        assertEquals("1", specs[0].label)
+        assertEquals("2", specs[1].label)
+    }
 }
 

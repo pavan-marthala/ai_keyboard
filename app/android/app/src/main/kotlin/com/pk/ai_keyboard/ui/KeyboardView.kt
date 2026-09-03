@@ -95,7 +95,7 @@ class KeyboardView @JvmOverloads constructor(
         override fun onReleaseKey(primaryCode: Int, withSliding: Boolean) {}
         override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
             if (::controller.isInitialized && primaryCode != 0) {
-                val char = Character.toString(primaryCode)
+                val char = String(Character.toChars(primaryCode))
                 controller.onKeyTyped(char)
             }
         }
@@ -1788,18 +1788,7 @@ class KeyboardView @JvmOverloads constructor(
 
         val row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
         val row1Hints = if (useNumbers) null else listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
-        val row1MoreKeys = if (useNumbers) null else listOf(
-            "1,¹,₁",
-            "!noPanelAutoMoreKey!,2",
-            "!noPanelAutoMoreKey!,3",
-            "!noPanelAutoMoreKey!,4",
-            "!noPanelAutoMoreKey!,5",
-            "!noPanelAutoMoreKey!,6",
-            "!noPanelAutoMoreKey!,7",
-            "!noPanelAutoMoreKey!,8",
-            "!noPanelAutoMoreKey!,9",
-            "!noPanelAutoMoreKey!,0"
-        )
+        val row1MoreKeys = row1Hints?.map { "!noPanelAutoMoreKey!,$it" }
         val row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
         val row3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
@@ -2034,64 +2023,80 @@ class KeyboardView @JvmOverloads constructor(
 
             var isLongPressed = false
             var isShowingMoreKeys = false
+            var activePointerId = -1
+            var downX = 0f
+            var downY = 0f
             var lastMotionX = 0f
             var lastMotionY = 0f
-            var downRawX = 0f
-            var downRawY = 0f
 
             val (parsedSpecs, hasNoPanelAuto) = MoreKeySpec.parseMoreKeys(effectiveSpec)
 
             val longPressRunnable = Runnable {
-                if (hasNoPanelAuto && parsedSpecs.size == 1) {
-                    isLongPressed = true
-                    container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    controller.onKeyTyped(parsedSpecs[0].label)
-                } else if (parsedSpecs.isNotEmpty()) {
-                    isShowingMoreKeys = true
-                    container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                when {
+                    // Case A — no More Keys
+                    parsedSpecs.isEmpty() -> {
+                        // Preserve existing behavior
+                    }
 
-                    val keyLocation = IntArray(2)
-                    container.getLocationInWindow(keyLocation)
-                    val wrapperLocation = IntArray(2)
-                    contentWrapper.getLocationInWindow(wrapperLocation)
-                    val keyX = keyLocation[0] - wrapperLocation[0]
-                    val keyY = keyLocation[1] - wrapperLocation[1]
+                    // Case B — one unique automatic alternative
+                    parsedSpecs.size == 1 || hasNoPanelAuto -> {
+                        isLongPressed = true
+                        container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        val textToCommit = parsedSpecs[0].outputText ?: parsedSpecs[0].label
+                        controller.onKeyTyped(textToCommit)
+                    }
 
-                    val parentAospKey = AospKey(
-                        x = keyX,
-                        y = keyY,
-                        width = container.width,
-                        height = container.height
-                    )
+                    // Case C — multiple unique alternatives (original finger STILL DOWN)
+                    else -> {
+                        isShowingMoreKeys = true
+                        container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
 
-                    val moreKeysKeyboard = MoreKeysKeyboard.Builder(
-                        parentKey = parentAospKey,
-                        moreKeysSpecs = parsedSpecs,
-                        keyboardWidth = contentWrapper.width,
-                        defaultKeyWidth = dpToPx(42f).toInt(),
-                        defaultRowHeight = container.height,
-                        maxColumns = 8
-                    ).build()
+                        val keyLocation = IntArray(2)
+                        container.getLocationInWindow(keyLocation)
+                        val wrapperLocation = IntArray(2)
+                        contentWrapper.getLocationInWindow(wrapperLocation)
+                        val keyX = keyLocation[0] - wrapperLocation[0]
+                        val keyY = keyLocation[1] - wrapperLocation[1]
 
-                    moreKeysKeyboardView.setKeyboard(moreKeysKeyboard)
-                    moreKeysKeyboardView.updateTheme(theme)
-                    moreKeysKeyboardView.showMoreKeysPanel(
-                        parentView = contentWrapper,
-                        controller = moreKeysController,
-                        pointX = keyX + container.width / 2,
-                        pointY = keyY,
-                        listener = moreKeysActionListener
-                    )
-                    moreKeysKeyboardView.showInParent(moreKeysOverlayContainer)
+                        val parentAospKey = AospKey(
+                            x = keyX,
+                            y = keyY,
+                            width = container.width,
+                            height = container.height
+                        )
 
-                    val touchX = lastMotionX - wrapperLocation[0]
-                    val touchY = lastMotionY - wrapperLocation[1]
-                    moreKeysKeyboardView.onDownEvent(
-                        moreKeysKeyboardView.translateX(touchX.toInt()),
-                        moreKeysKeyboardView.translateY(touchY.toInt()),
-                        0,
-                        SystemClock.uptimeMillis()
-                    )
+                        val moreKeysKeyboard = MoreKeysKeyboard.Builder(
+                            parentKey = parentAospKey,
+                            moreKeysSpecs = parsedSpecs,
+                            keyboardWidth = contentWrapper.width,
+                            defaultKeyWidth = dpToPx(42f).toInt(),
+                            defaultRowHeight = container.height,
+                            maxColumns = 8
+                        ).build()
+
+                        moreKeysKeyboardView.setKeyboard(moreKeysKeyboard)
+                        moreKeysKeyboardView.updateTheme(theme)
+                        moreKeysKeyboardView.showMoreKeysPanel(
+                            parentView = contentWrapper,
+                            controller = moreKeysController,
+                            pointX = keyX + container.width / 2,
+                            pointY = keyY,
+                            listener = moreKeysActionListener
+                        )
+                        moreKeysKeyboardView.showInParent(moreKeysOverlayContainer)
+
+                        // Seamless pointer handoff while original finger remains DOWN
+                        val wrapperX = keyX + lastMotionX
+                        val wrapperY = keyY + lastMotionY
+                        val transX = moreKeysKeyboardView.translateX(wrapperX.toInt())
+                        val transY = moreKeysKeyboardView.translateY(wrapperY.toInt())
+                        moreKeysKeyboardView.onDownEvent(
+                            transX,
+                            transY,
+                            activePointerId,
+                            SystemClock.uptimeMillis()
+                        )
+                    }
                 }
             }
 
@@ -2100,10 +2105,11 @@ class KeyboardView @JvmOverloads constructor(
                     MotionEvent.ACTION_DOWN -> {
                         isLongPressed = false
                         isShowingMoreKeys = false
-                        downRawX = event.rawX
-                        downRawY = event.rawY
-                        lastMotionX = event.rawX
-                        lastMotionY = event.rawY
+                        activePointerId = event.getPointerId(0)
+                        downX = event.getX(0)
+                        downY = event.getY(0)
+                        lastMotionX = downX
+                        lastMotionY = downY
                         v.background = shapePressed
                         v.elevation = dpToPx(0.5f).toFloat()
                         animatePress(v)
@@ -2114,24 +2120,34 @@ class KeyboardView @JvmOverloads constructor(
                         }
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        lastMotionX = event.rawX
-                        lastMotionY = event.rawY
-                        if (isShowingMoreKeys) {
-                            val wrapperLocation = IntArray(2)
-                            contentWrapper.getLocationInWindow(wrapperLocation)
-                            val touchX = event.rawX - wrapperLocation[0]
-                            val touchY = event.rawY - wrapperLocation[1]
-                            moreKeysKeyboardView.onMoveEvent(
-                                moreKeysKeyboardView.translateX(touchX.toInt()),
-                                moreKeysKeyboardView.translateY(touchY.toInt()),
-                                0,
-                                event.eventTime
-                            )
-                        } else if (!isLongPressed) {
-                            val dx = event.rawX - downRawX
-                            val dy = event.rawY - downRawY
-                            if (Math.hypot(dx.toDouble(), dy.toDouble()) > dpToPx(12f)) {
-                                handler.removeCallbacks(longPressRunnable)
+                        val pointerIndex = event.findPointerIndex(activePointerId)
+                        if (pointerIndex >= 0) {
+                            lastMotionX = event.getX(pointerIndex)
+                            lastMotionY = event.getY(pointerIndex)
+                            if (isShowingMoreKeys) {
+                                val keyLocation = IntArray(2)
+                                container.getLocationInWindow(keyLocation)
+                                val wrapperLocation = IntArray(2)
+                                contentWrapper.getLocationInWindow(wrapperLocation)
+                                val keyX = keyLocation[0] - wrapperLocation[0]
+                                val keyY = keyLocation[1] - wrapperLocation[1]
+
+                                val wrapperX = keyX + lastMotionX
+                                val wrapperY = keyY + lastMotionY
+                                val transX = moreKeysKeyboardView.translateX(wrapperX.toInt())
+                                val transY = moreKeysKeyboardView.translateY(wrapperY.toInt())
+                                moreKeysKeyboardView.onMoveEvent(
+                                    transX,
+                                    transY,
+                                    activePointerId,
+                                    event.eventTime
+                                )
+                            } else if (!isLongPressed) {
+                                val dx = lastMotionX - downX
+                                val dy = lastMotionY - downY
+                                if (Math.hypot(dx.toDouble(), dy.toDouble()) > dpToPx(12f)) {
+                                    handler.removeCallbacks(longPressRunnable)
+                                }
                             }
                         }
                     }
@@ -2141,20 +2157,27 @@ class KeyboardView @JvmOverloads constructor(
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
                         animateRelease(v)
                         if (isShowingMoreKeys) {
+                            val keyLocation = IntArray(2)
+                            container.getLocationInWindow(keyLocation)
                             val wrapperLocation = IntArray(2)
                             contentWrapper.getLocationInWindow(wrapperLocation)
-                            val touchX = event.rawX - wrapperLocation[0]
-                            val touchY = event.rawY - wrapperLocation[1]
+                            val keyX = keyLocation[0] - wrapperLocation[0]
+                            val keyY = keyLocation[1] - wrapperLocation[1]
+
+                            val wrapperX = keyX + lastMotionX
+                            val wrapperY = keyY + lastMotionY
+                            val transX = moreKeysKeyboardView.translateX(wrapperX.toInt())
+                            val transY = moreKeysKeyboardView.translateY(wrapperY.toInt())
                             moreKeysKeyboardView.onUpEvent(
-                                moreKeysKeyboardView.translateX(touchX.toInt()),
-                                moreKeysKeyboardView.translateY(touchY.toInt()),
-                                0,
+                                transX,
+                                transY,
+                                activePointerId,
                                 event.eventTime
                             )
                             moreKeysKeyboardView.dismissMoreKeysPanel()
                             isShowingMoreKeys = false
                         } else if (isLongPressed) {
-                            // Single alternative auto-commit already handled
+                            // Case B auto-commit already handled on timeout
                         } else {
                             onClick()
                         }

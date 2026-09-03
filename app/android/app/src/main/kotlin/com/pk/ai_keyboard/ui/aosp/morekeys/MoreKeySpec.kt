@@ -84,7 +84,17 @@ data class MoreKeySpec(
                 specs.add(MoreKeySpec(code = code, label = label, outputText = outputText))
             }
 
-            return Pair(specs, hasNoPanelAuto)
+            // Deduplicate alternatives based on output text/label so no redundant entries exist
+            val uniqueSpecs = mutableListOf<MoreKeySpec>()
+            val seen = mutableSetOf<String>()
+            for (spec in specs) {
+                val keyId = spec.outputText ?: spec.label
+                if (seen.add(keyId)) {
+                    uniqueSpecs.add(spec)
+                }
+            }
+
+            return Pair(uniqueSpecs, hasNoPanelAuto)
         }
 
         /**
