@@ -1,32 +1,46 @@
 # Security Policy
 
-## Security Policy Statement
-We take the security of AI Keyboard seriously. This document outlines our security policies and procedures for reporting vulnerabilities.
+## Supported Versions
 
-## Reporting Vulnerabilities
-If you discover a security vulnerability in this project, please report it privately.
+The AI Keyboard project is currently in active pre-release development. As an early-stage open-source milestone, formal version support matrices and backported security releases are not currently maintained. Security fixes are applied directly to the `master` branch.
 
-**Do NOT disclose vulnerabilities publicly via GitHub Issues.**
+| Branch / Version | Supported |
+| :--- | :--- |
+| `master` | :white_check_mark: |
+| Historical commits / tags | :x: |
 
-Instead, please send an email to: **mgpavank@gmail.com**
+---
 
-Please include the following information in your report:
-- A detailed description of the vulnerability.
-- Steps to reproduce the issue.
-- An assessment of the potential impact.
+## Reporting a Vulnerability
 
-Expected response time: Best effort. Please keep in mind that this is an open-source project maintained by volunteers.
+If you discover a security vulnerability or sensitive flaw within this repository, please disclose it responsibly.
 
-## API Key Handling
-- Users provide their own AI provider API keys.
-- Keys are securely stored using platform-specific secure storage (Android KeyStore / iOS Keychain).
-- Keys are **NEVER** committed to version control.
-- Contributors must ensure they never hardcode secrets or API keys in the source code.
+> [!CAUTION]
+> **Do NOT disclose security vulnerabilities publicly via GitHub Issues, Discussions, or Pull Requests.**
 
-## Data Handling
-- AI text transformations are processed by sending data to third-party API endpoints configured by the user.
-- Users should be aware that their text is transmitted to their chosen AI provider for processing.
-- No telemetry, analytics, or usage data is collected by the AI Keyboard app.
+### Private Reporting Channel
+Please report all security vulnerabilities via email to:
+**`mgpavank@gmail.com`**
 
-## Responsible Disclosure Guidance
-We ask that you follow responsible disclosure guidelines. Please give us a reasonable amount of time to investigate and patch the vulnerability before disclosing it publicly. We will work with you to resolve the issue as quickly as possible.
+### What to Include in Your Report
+To help us triage and investigate the issue efficiently, please provide:
+1. **Description:** A detailed summary of the vulnerability and its potential severity.
+2. **Reproduction Steps:** Step-by-step instructions, minimal proof-of-concept (PoC) code, or payload examples.
+3. **Affected Components:** The relevant platform (Android, iOS, or Flutter app shell) and source files involved.
+4. **Impact Assessment:** The potential risk (e.g. credential exposure, unauthorized network transmission, denial of service).
+
+### Response & Handling Timeline
+- **Acknowledgment:** We aim to acknowledge receipt of security reports within 48 to 72 hours on a best-effort basis.
+- **Investigation:** The maintainers will investigate and validate the report.
+- **Remediation:** If validated, a fix will be prepared and merged into `master`.
+
+---
+
+## Responsible Disclosure Policy
+
+We kindly ask reporters to:
+- Allow reasonable time for investigation and remediation before publicly disclosing details.
+- Avoid accessing, destroying, or modifying user data without authorization during testing.
+- Not perform denial-of-service (DoS) attacks against third-party AI provider endpoints.
+
+For technical details regarding on-device cryptographic storage and data transmission, refer to our [Security & Privacy Specification](docs/security.md).

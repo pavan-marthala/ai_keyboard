@@ -1,22 +1,31 @@
 ---
 name: Improvement
-about: Suggest an improvement to an existing feature
+about: Suggest an improvement, performance optimization, or UX refinement to an existing feature
 title: '[Improvement] '
 labels: 'improvement'
 assignees: ''
 ---
 
 ## Current Behavior
-<!-- Describe how the feature currently behaves. -->
+<!-- Describe how the feature currently works and where it can be improved. -->
 
 ## Suggested Improvement
-<!-- Describe the improvement you'd like to see. -->
+<!-- Describe the specific refinement, optimization, or behavior change you propose. -->
+
+## Affected Component
+- [ ] Keyboard Layout & Views (Android View hierarchy / iOS UIKit)
+- [ ] AOSP Suggestion Engine / Dictionary Lookup
+- [ ] AI Text Transformation Pipeline
+- [ ] Clipboard / History Manager
+- [ ] GIF Search / Insertion
+- [ ] Voice Dictation
+- [ ] Flutter Settings & Configuration UI
+- [ ] Build System / Tooling / Documentation
 
 ## Platform
-- **Platform:** (Android / iOS / Both)
-
-## Affected Area
-<!-- What area does this improve? (keyboard UI, AI service, suggestions, settings, etc.) -->
+- [ ] Android
+- [ ] iOS
+- [ ] Both
 
 ## Additional Context
-<!-- Add any other context or screenshots about the improvement here. -->
+<!-- Add benchmarks, profiling traces, or screenshots if applicable. -->

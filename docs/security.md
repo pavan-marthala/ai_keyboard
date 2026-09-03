@@ -1,57 +1,101 @@
-# Security and Privacy
+# Security, Cryptography & Privacy Specification
 
-Security and user privacy are core tenets of the AI Keyboard project. This document outlines how sensitive data is handled and our development practices.
+This document details the security architecture, cryptographic implementations, network transmission characteristics, and privacy posture of the AI Keyboard.
 
-## 1. API Key Storage
+---
 
-API keys are treated as highly sensitive user credentials and are stored using industry-standard secure storage mechanisms on each platform:
+## 1. Credential Management & Storage Architecture
 
-*   **Android**: Utilizes the Android KeyStore with AES-256-GCM encryption via `NativeSecureStorage.kt`. Keys are hardware-backed on supported devices.
-*   **iOS**: Utilizes the iOS Keychain with `kSecClassGenericPassword` via `KeychainCredentialStore.swift`.
-*   **Flutter (App Shell)**: Uses the `flutter_secure_storage` package, which acts as a secure wrapper around the aforementioned platform-specific stores.
-*   **Encryption at Rest**: All API keys are encrypted at rest and only decrypted in memory when an API call is required.
+The AI Keyboard operates on a **Bring Your Own Key (BYOK)** model. Users supply their own API keys for the AI providers they choose to enable. No default or shared API credentials are baked into the repository or release binaries.
 
-## 2. Data Flow
+### Storage Implementations by Platform
 
-When a user invokes an AI text transformation:
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                       Flutter App Shell                     │
+│               (flutter_secure_storage)                      │
+└──────────────┬───────────────────────────────┬──────────────┘
+               │                               │
+       MethodChannel                   MethodChannel
+ (com.pk.ai_keyboard/credentials) (com.pk.ai_keyboard/credentials)
+               │                               │
+               ▼                               ▼
+┌─────────────────────────────┐ ┌─────────────────────────────┐
+│       Android Native        │ │         iOS Native          │
+│    (NativeSecureStorage)    │ │   (KeychainCredentialStore) │
+│                             │ │                             │
+│ • Android KeyStore provider │ │ • iOS Keychain Services     │
+│ • AES-256-GCM cipher        │ │ • kSecClassGenericPassword  │
+│ • Hardware-backed on device │ │ • Service: com.pk.ai_keyboard│
+│ • Key alias:                │ │   .apiKey                   │
+│   AiKeyboardKeyStoreKey     │ │ • Accessible by host and   │
+│ • IV + ciphertext stored in │ │   keyboard extension        │
+│   private SharedPreferences │ └─────────────────────────────┘
+└─────────────────────────────┘
+```
 
-1.  **Input**: User types text (e.g., "rewrite this: hello world").
-2.  **Request Construction**: The native keyboard constructs an HTTP request containing the selected text and the system prompt.
-3.  **Authentication**: The API key is injected into the request (as a query parameter for Gemini, or as a Bearer token for OpenAI/Groq/OpenRouter).
-4.  **Transmission**: The request is sent directly to the configured AI provider.
-5.  **Encryption in Transit**: All API communication is strictly conducted over HTTPS.
+#### Android Native Storage (`NativeSecureStorage.kt`)
+- **Key Generation & Storage:** Keys are generated within the Android KeyStore (`AndroidKeyStore`) under the alias `AiKeyboardKeyStoreKey`.
+- **Cipher Transformation:** `AES/GCM/NoPadding` with a 256-bit key and 128-bit authentication tag (`GCMParameterSpec`).
+- **Encrypted Payload Format:** A byte array containing `[1 byte IV length] + [IV bytes] + [GCM ciphertext with auth tag]` is encoded with `Base64.NO_WRAP` and saved in private SharedPreferences (`ai_keyboard_secure_prefs`).
+- **Decryption Access:** Credentials are only decrypted in memory during the execution of an explicit `@` text transformation command and are immediately discarded after the request completes.
 
-## 3. What Data Leaves the Device
+#### iOS Native Storage (`KeychainCredentialStore.swift`)
+- **Storage Subsystem:** Apple Keychain Services using the `kSecClassGenericPassword` item class.
+- **Service Identifier:** `com.pk.ai_keyboard.apiKey`.
+- **Account Key:** Stored per provider (`provider.lowercased()`).
+- **Accessibility:** Configured for access by both the main container application and the keyboard extension target.
 
-We believe in complete transparency regarding network activity. The following data leaves the device:
+#### Non-Sensitive Configuration Separation
+Non-sensitive configuration items—such as active provider selection, model identifiers, custom base URLs, and disabled command triggers—are deliberately separated from secrets:
+- Android: Stored in unencrypted SharedPreferences (`ai_keyboard_config_prefs`).
+- iOS: Stored in shared `UserDefaults` using the App Group suite `group.com.pk.ai_keyboard.shared`.
 
-*   **Text Content**: Only the specific text being transformed by a command is sent to the selected AI provider.
-*   **API Key**: Sent solely to authenticate with the respective provider.
-*   **GIF Queries**: Search terms for GIFs are sent to Giphy.
-*   **Voice Audio**: Audio data is sent to the device's default speech recognition service (which may be processed on-device depending on OS capabilities).
+---
 
-> [!IMPORTANT]
-> **No Telemetry**: The AI Keyboard does not collect any telemetry, analytics, keystroke logs, or crash reporting data.
+## 2. Network Data Transmission
 
-## 4. Development Security Practices
+The AI Keyboard establishes external network connections strictly for user-requested features:
 
-Contributors must adhere to the following practices:
+| Traffic Category | Destination Endpoint | Trigger Mechanism | Data Transmitted |
+| :--- | :--- | :--- | :--- |
+| **AI Text Transformation** | Selected Provider API (Google, OpenAI, Groq, OpenRouter) | Entering a trailing `@` command (e.g. `@fix`) | Preceding user text, system prompt, and API key. |
+| **GIF Search** | `api.giphy.com` | Entering search queries in GIF mode | User-entered search query string and Giphy API key. |
+| **GIF Analytics Pingback** | Giphy analytics endpoint (`onsend` URL) | Tapping a GIF item to insert it | An HTTP ping is sent to Giphy's `sendAnalyticsUrl` to comply with Giphy API attribution terms. |
+| **Voice Recognition** | Android System `SpeechRecognizer` | Tapping the microphone toolbar icon | Audio captured from device microphone, processed on-device or via the user's configured system speech engine. |
 
-*   **No Secrets in Source**: Never commit API keys, signing certificates, or other secrets to the repository.
-*   **Build Configurations**: Use environment variables for build-time secrets (e.g., `GIPHY_API_KEY`).
-*   **Ignored Files**: Ensure `local.properties`, `.env` files, keystores, and certificate files remain in `.gitignore`.
-*   Always review changes against the root `.gitignore` before committing.
+### What Never Leaves the Device
+- **Ordinary Typing:** Keystrokes, words, sentences, and composition events that do not invoke an explicit `@` command are handled strictly on-device by the keyboard view and AOSP suggestion engine.
+- **Keystroke Logging:** The keyboard does not log keystrokes to disk or external servers.
+- **Telemetry & Crash Tracking:** The AI Keyboard project bundles **no** telemetry SDKs, analytics tracking libraries (Firebase, Mixpanel, Amplitude), or crash reporting frameworks (Crashlytics, Sentry).
 
-## 5. Third-Party Dependencies
+---
 
-*   **Direct API Access**: AI providers are accessed directly via their public REST APIs to minimize third-party SDK footprint.
-*   **No Tracking SDKs**: No Firebase, analytics, or tracking SDKs are included in the project.
-*   **Dependency Management**: Dependencies are strictly managed and audited via `pubspec.yaml` (Flutter) and `build.gradle.kts` (Android).
+## 3. Network Security & Transport Encryption
 
-## 6. Reporting Security Issues
+- **Mandatory HTTPS:** All communication with AI providers and Giphy uses HTTPS (TLS 1.2+).
+- **No Plaintext Transmissions:** Plaintext HTTP endpoints are disallowed by default on modern Android (`usesCleartextTraffic=false`) and iOS (App Transport Security).
+- **Custom Base URLs:** If a user specifies a custom base URL for private or self-hosted LLM endpoints, HTTPS remains strongly recommended.
 
-If you discover a security vulnerability, we appreciate your help in disclosing it responsibly.
+---
 
-*   **Contact**: Please email mgpavank@gmail.com directly.
-*   **Do Not Use Public Issues**: Do not create public GitHub issues for unpatched security vulnerabilities.
-*   For full details on our disclosure policy, please see the `SECURITY.md` file in the root directory.
+## 4. Source Control & Secret Hygiene
+
+To ensure no sensitive materials are accidentally committed to the repository:
+
+1. **Pre-Configured `.gitignore`:**
+   - Secrets files: `.env`, `.env.*`
+   - Key material: `*.jks`, `*.keystore`, `*.p12`, `*.pem`, `*.key`
+   - Build environment: `app/android/local.properties`
+   - Firebase & cloud configs: `google-services.json`, `GoogleService-Info.plist`, `firebase_options.dart`, `service-account*.json`
+2. **Build-Time Key Injection:**
+   - Keys such as `GIPHY_API_KEY` are read from environment variables or ignored `local.properties` files during Gradle builds.
+   - The fallback key in `build.gradle.kts` (`dc6zaTOxFJmzC`) is Giphy's public demo/test key intended solely for development validation.
+3. **Commit Scrutiny:**
+   - All pull requests and commits are verified to ensure no developer keys or tokens are introduced.
+
+---
+
+## 5. Security Disclosure & Contact
+
+If you discover a vulnerability or security flaw, please review [SECURITY.md](../SECURITY.md) for reporting instructions. Do not disclose vulnerabilities in public GitHub issues.

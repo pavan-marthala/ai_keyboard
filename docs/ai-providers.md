@@ -1,51 +1,127 @@
-# AI Providers
+# AI Provider Integration Reference
 
-The AI Keyboard supports multiple AI providers for text transformation. This document details the supported providers, configuration, and internal architecture.
+This document provides a detailed specification for the AI providers integrated into the AI Keyboard, covering network protocols, authentication mechanisms, default models, runtime parameters, and storage locations across Android, iOS, and Flutter.
 
-## 1. Supported Providers
+---
 
-| Provider | Platforms | API Style | Key URL |
-|----------|-----------|-----------|----------|
-| **Google Gemini** | Android, iOS, Flutter | REST (`generateContent`) | [Get Key](https://aistudio.google.com/app/apikey) |
-| **OpenAI** | Android, iOS, Flutter | REST (`chat/completions`) | [Get Key](https://platform.openai.com/api-keys) |
-| **Groq** | Android, iOS, Flutter | REST (`chat/completions`, OpenAI-compatible) | [Get Key](https://console.groq.com/keys) |
-| **OpenRouter** | Android, iOS, Flutter | REST (`chat/completions`, OpenAI-compatible) | [Get Key](https://openrouter.ai/keys) |
+## 1. Supported Providers Overview
 
-## 2. Configuring API Keys
+The AI Keyboard supports four AI providers. All four providers are implemented natively across Android and iOS, as well as within the Flutter application shell:
 
-Users must provide their own API keys to use the AI transformation features.
+| Provider | Platform Support | API Protocol | Default Model | Authentication Style |
+| :--- | :--- | :--- | :--- | :--- |
+| **Google Gemini** | Android, iOS, Flutter | REST (`generateContent`) | `gemini-1.5-flash` | Query parameter: `?key={apiKey}` |
+| **OpenAI** | Android, iOS, Flutter | REST (`chat/completions`) | `gpt-4o-mini` | Header: `Authorization: Bearer {apiKey}` |
+| **Groq** | Android, iOS, Flutter | REST (`chat/completions`) | `llama-3.3-70b-versatile` | Header: `Authorization: Bearer {apiKey}` |
+| **OpenRouter** | Android, iOS, Flutter | REST (`chat/completions`) | `openai/gpt-4o-mini` | Header: `Authorization: Bearer {apiKey}` |
 
-1.  Open the AI Keyboard app.
-2.  Go to **Settings**.
-3.  Select a provider from the list.
-4.  Enter your API key (e.g., `your-api-key-here`).
+---
 
-**Key Storage**: Keys are stored securely on the device using platform-native secure storage (Android KeyStore / iOS Keychain). Keys *never* leave the device except when making direct API calls to the chosen provider.
+## 2. Execution Architecture & Direct Native Calls
 
-## 3. How AI Transformation Works
+A critical architectural design of the AI Keyboard is that **native keyboards invoke AI provider endpoints directly without routing through the Flutter runtime**:
 
-1.  **Invocation**: The user types text and invokes a command (e.g., using a slash command or UI button).
-2.  **Request**: The native keyboard reads the input text, constructs a prompt, and sends it directly to the selected provider's API.
-3.  **Response**: The generated response is returned and replaces or augments the input text in the text editor.
+- **Android Native Keyboard:** Invokes AI endpoints using `java.net.HttpURLConnection` inside Kotlin coroutines on `Dispatchers.IO` (`GeminiProvider.kt`, `OpenAiProvider.kt`, `GroqProvider.kt`, `OpenRouterProvider.kt`).
+- **iOS Native Keyboard:** Invokes AI endpoints using Swift's `URLSession` async APIs (`GeminiProvider.swift`, `OpenAiProvider.swift`, `GroqProvider.swift`, `OpenRouterProvider.swift`).
+- **Flutter App Shell:** Uses `Dio` for model discovery and sandbox playground testing (`gemini_provider.dart`, `openai_provider.dart`, etc.).
 
-**Default Parameters**:
-*   Temperature: `0.0` (for deterministic, predictable outputs).
-*   Max tokens: `1024`.
+---
 
-## 4. Provider Architecture
+## 3. Detailed Provider Specifications
 
-The AI layer is designed with a consistent interface across platforms.
+### Google Gemini
 
-*   **Interface**: `AiProvider` defines a common `transform()` method.
-*   **Factory**: `AiProviderFactory` is responsible for selecting and instantiating the provider based on user configuration.
-*   **Implementation**: Each provider implements its own HTTP communication independently without relying on heavy SDKs.
-    *   **Android**: Uses `HttpURLConnection` for lightweight, native networking.
-    *   **iOS**: Uses `URLSession`.
-    *   **Flutter (App Shell)**: Uses the `Dio` HTTP client for testing and configuration.
+- **Default Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/{cleanModelId}:generateContent?key={apiKey}`
+- **Model ID Sanitization:** Automatically removes any preceding `"models/"` prefix (e.g. `models/gemini-1.5-flash` becomes `gemini-1.5-flash`).
+- **Default Model:** `gemini-1.5-flash`
+- **Custom Base URL Override:** Supported. If configured, endpoint becomes `{customBaseUrl}/models/{cleanModelId}:generateContent?key={apiKey}`.
+- **Request Payload Structure:**
+  ```json
+  {
+    "systemInstruction": {
+      "parts": [{ "text": "<system_prompt>" }]
+    },
+    "contents": [
+      {
+        "parts": [{ "text": "<input_text>" }]
+      }
+    ],
+    "generationConfig": {
+      "temperature": 0.0,
+      "maxOutputTokens": 1024
+    }
+  }
+  ```
+- **Response Extraction:** Reads `candidates[0].content.parts[0].text`.
+- **Key Registration:** [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-## 5. Security Considerations
+---
 
-*   **User-Provided Keys**: API keys are supplied by the user. The app does not bundle or provide shared API keys.
-*   **Data Transmission**: Text input is sent to third-party APIs. Users should be aware that content transformed by the AI is sent to the selected provider.
-*   **Source Control**: No API keys are stored in source control.
-*   **Encryption**: All API communication is conducted over HTTPS to ensure data in transit is encrypted.
+### OpenAI
+
+- **Default Endpoint:** `https://api.openai.com/v1/chat/completions`
+- **Default Model:** `gpt-4o-mini`
+- **Custom Base URL Override:** Supported. If configured, endpoint becomes `{customBaseUrl}/chat/completions`.
+- **Authentication:** `Authorization: Bearer {apiKey}` header.
+- **Request Payload Structure:**
+  ```json
+  {
+    "model": "gpt-4o-mini",
+    "temperature": 0.0,
+    "max_tokens": 1024,
+    "messages": [
+      { "role": "system", "content": "<system_prompt>" },
+      { "role": "user", "content": "<system_prompt>\n\nText:\n<input_text>" }
+    ]
+  }
+  ```
+- **Response Extraction:** Reads `choices[0].message.content`.
+- **Key Registration:** [OpenAI Platform](https://platform.openai.com/api-keys).
+
+---
+
+### Groq
+
+- **Default Endpoint:** `https://api.groq.com/openai/v1/chat/completions`
+- **Default Model:** `llama-3.3-70b-versatile`
+- **Custom Base URL Override:** Supported. If configured, endpoint becomes `{customBaseUrl}/chat/completions`.
+- **Authentication:** `Authorization: Bearer {apiKey}` header.
+- **Request Payload Structure:** Matches the OpenAI-compatible chat completion payload with `temperature: 0.0` and `max_tokens: 1024`.
+- **Response Extraction:** Reads `choices[0].message.content`.
+- **Key Registration:** [Groq Console](https://console.groq.com/keys).
+
+---
+
+### OpenRouter
+
+- **Default Endpoint:** `https://openrouter.ai/api/v1/chat/completions`
+- **Default Model:** `openai/gpt-4o-mini`
+- **Custom Base URL Override:** Supported. If configured, endpoint becomes `{customBaseUrl}/chat/completions`.
+- **Authentication:** `Authorization: Bearer {apiKey}` header.
+- **Request Payload Structure:** Matches the OpenAI-compatible chat completion payload with `temperature: 0.0` and `max_tokens: 1024`.
+- **Response Extraction:** Reads `choices[0].message.content`.
+- **Key Registration:** [OpenRouter](https://openrouter.ai/keys).
+
+---
+
+## 4. Configuration Storage Locations
+
+Provider configurations and API credentials are saved separately to guarantee security:
+
+### Non-Sensitive Settings (Active Provider, Active Model, Base URL)
+- **Android:** Stored in `SharedPreferences` under `ai_keyboard_config_prefs` via `NativeSecureStorage.saveConfig(...)`.
+- **iOS:** Stored in `UserDefaults(suiteName: "group.com.pk.ai_keyboard.shared")` via `SharedConfigurationStore.saveConfig(...)`.
+- **Flutter:** Persisted in `SharedPreferences` via `SettingsRepositoryImpl.dart`.
+
+### Sensitive Credentials (API Keys)
+- **Android:** Encrypted using Android KeyStore AES-256-GCM (`AiKeyboardKeyStoreKey`) and stored as Base64 ciphertext in `ai_keyboard_secure_prefs`.
+- **iOS:** Stored in the iOS Keychain under service identifier `com.pk.ai_keyboard.apiKey`.
+- **Flutter:** Managed through `FlutterSecureStorage`.
+
+---
+
+## 5. Security & Privacy Considerations
+
+- **User-Supplied Keys Only:** No shared, bundled, or developer API keys are included in the repository or application binaries.
+- **Strict HTTPS:** All endpoints default to HTTPS and require valid TLS certificates.
+- **Targeted Data Transmission:** Only text preceding an `@` command is sent to the selected AI provider. Standard keystrokes typed without an `@` command are never transmitted over the network.

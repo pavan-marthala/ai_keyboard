@@ -1,88 +1,133 @@
 # Contributing to AI Keyboard
 
-Welcome! We appreciate your interest in contributing to the AI-powered keyboard for Android and iOS. This document outlines the process for contributing to the project.
-
-## Code of Conduct
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Please read it to understand what behavior is expected.
-
-## Prerequisites
-Before you begin, ensure you have the following installed:
-- Flutter SDK (^3.13.2 Dart SDK)
-- Android SDK with NDK (compileSdk 37)
-- CMake 3.22.1
-- Xcode (for iOS development)
-
-## Local Setup
-To set up the project locally, run the following commands:
-```bash
-git clone https://github.com/pavan-marthala/ai_keyboard.git
-cd ai_keyboard/app
-flutter pub get
-dart run build_runner build --delete-conflicting-outputs
-flutter run
-```
-
-## Development Workflow
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Make your changes
-4. Run tests: `cd app && flutter test`
-5. Submit a Pull Request
-
-## Branch Naming Conventions
-Please use the following prefixes for your branches:
-- `feature/description`
-- `fix/description`
-- `docs/description`
-- `refactor/description`
-
-## Commit Messages
-We use conventional commits. Please use the following prefixes:
-- `feat:` for new features
-- `fix:` for bug fixes
-- `docs:` for documentation changes
-- `refactor:` for code refactoring
-- `test:` for adding or updating tests
-- `chore:` for maintenance tasks
-
-## Testing Expectations
-- Add tests for new features to ensure they work as expected.
-- Existing tests must pass before a PR is accepted.
-- Run `flutter test` locally before submitting your PR.
-- Android native tests are located in `app/android/app/src/test/`.
-
-## Pull Request Expectations
-- Fill out the PR template when submitting.
-- Link to any related issues.
-- Include screenshots or videos for UI changes.
-- Keep PRs focused and reasonably sized for easier review.
-
-## Security Requirements
-- **NEVER** commit API keys, tokens, passwords, or secrets.
-- Use environment variables or secure storage for sensitive data.
-- If you accidentally commit a secret, notify maintainers immediately at mgpavank@gmail.com.
-- Redact sensitive information from logs in bug reports.
-
-## Guidance for Native Code
-- Android Kotlin code is in `app/android/app/src/main/kotlin/`.
-- iOS Swift code is in `app/ios/KeyboardExtension/` and `app/ios/Shared/`.
-- AOSP C/C++ code is in `app/android/app/src/main/cpp/`.
-- Test native changes on actual devices when possible.
-
-## Guidance for AOSP Suggestion Engine
-- Files in `suggestion/aosp/` and `cpp/aosp_latinime/` are derived from AOSP LatinIME.
-- Preserve existing Apache 2.0 copyright headers.
-- Do not remove or alter upstream license notices.
-- When modifying AOSP-derived code, add a comment noting the modification.
-
-## Documentation
-Please update documentation (`.md` files) if your changes affect the behavior of the application.
-
-## Issues
-Before creating a new issue, please search existing issues to avoid duplicates. When creating a new issue, use the provided issue templates.
-
-## Contact
-If you have any questions, feel free to reach out at mgpavank@gmail.com.
+Thank you for your interest in contributing to AI Keyboard. This guide explains how to set up your environment, follow project conventions, develop features, and submit pull requests.
 
 ---
-This contributing guide is specific to the AI Keyboard project.
+
+## Code of Conduct
+
+All contributors and maintainers are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md). Please report unacceptable behavior to **`mgpavank@gmail.com`**.
+
+---
+
+## Development Prerequisites
+
+Before beginning development, verify that your machine has the necessary toolchains installed:
+- **Flutter SDK:** Version 3.13.2+ (Dart SDK `^3.13.2`)
+- **Android SDK:** `compileSdk 37`, Android NDK, and CMake `3.22.1`
+- **JDK:** Java 17
+- **Xcode:** 15+ (for iOS development on macOS)
+
+---
+
+## Local Development Workflow
+
+Follow this step-by-step workflow when making contributions:
+
+1. **Fork & Clone:**
+   ```bash
+   git clone https://github.com/<your-username>/ai_keyboard.git
+   cd ai_keyboard
+   ```
+2. **Install Dependencies:**
+   ```bash
+   cd app
+   flutter pub get
+   ```
+3. **Run Code Generation:**
+   ```bash
+   dart run build_runner build --delete-conflicting-outputs
+   ```
+4. **Create a Feature Branch:**
+   Create a focused branch from `master` using the standard naming conventions below.
+5. **Implement Changes:**
+   Keep changes modular, focused, and aligned with existing architectural layers.
+6. **Static Analysis & Formatting:**
+   ```bash
+   cd app
+   flutter analyze
+   dart format --set-exit-if-changed .
+   ```
+7. **Execute Tests:**
+   Ensure all existing and newly added tests pass:
+   ```bash
+   # Flutter tests
+   cd app && flutter test
+
+   # Android native unit tests
+   cd app/android && ./gradlew test
+   ```
+8. **Test on Hardware:**
+   Whenever possible, test input method changes on actual Android or iOS devices to verify touch response, IME window tokens, and lifecycle transitions.
+9. **Update Documentation:**
+   Update relevant Markdown documents in `docs/` and `README.md` whenever adding commands, modifying APIs, or altering behavior.
+10. **Submit a Pull Request:**
+    Push your branch and submit a PR using the [Pull Request Template](.github/pull_request_template.md).
+
+---
+
+## Branch Naming Conventions
+
+Branch names must be lowercase, concise, and structured with a category prefix:
+
+| Prefix | Use Case | Example |
+| :--- | :--- | :--- |
+| `feature/<description>` | Adding new capabilities or enhancements | `feature/clipboard-search` |
+| `fix/<description>` | Resolving bugs or unexpected behaviors | `fix/cursor-position-shift` |
+| `docs/<description>` | Documentation additions or updates | `docs/update-ai-endpoints` |
+| `refactor/<description>`| Non-functional code cleanup or restructuring | `refactor/text-editor-methods` |
+| `test/<description>` | Adding or updating unit/widget/native tests | `test/add-command-parser-cases` |
+| `chore/<description>` | Tooling, metadata, or dependency adjustments | `chore/update-gitignore` |
+
+---
+
+## Commit Message Guidelines
+
+We enforce the [Conventional Commits](https://www.conventionalcommits.org/) specification. Messages must be concise, written in the imperative mood, and lowercase after the type:
+
+- `feat:` Adds a new user-facing feature or capability.
+- `fix:` Patches a bug or defect.
+- `docs:` Documentation-only changes.
+- `refactor:` Code refactoring that neither fixes a bug nor adds a feature.
+- `test:` Adding missing tests or correcting existing tests.
+- `chore:` Routine repository maintenance, gitignore, or metadata changes.
+- `build:` Build system changes (Gradle, CMake, CocoaPods).
+- `ci:` Continuous integration configuration.
+- `perf:` Performance improvements.
+
+**Example Commit Messages:**
+```text
+feat: Add Kannada language support to @translate command
+fix: Handle null textDocumentProxy gracefully on iOS extension launch
+docs: Document Giphy analytics pingback requirements in security.md
+test: Add unit tests for AospSuggestionAdapter geometry bounds
+```
+
+---
+
+## Guidelines for Native AOSP Components
+
+Portions of the suggestion infrastructure in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/` and `app/android/app/src/main/cpp/aosp_latinime/` are derived from the Android Open Source Project (AOSP) LatinIME implementation (Copyright (C) 2010–2014 The Android Open Source Project, Apache 2.0).
+
+When modifying or adding to these components, contributors must strictly adhere to the following rules:
+
+1. **Retain Copyright Headers:** Existing AOSP Apache 2.0 copyright and license headers in source files must remain intact. Never delete or alter upstream copyright statements.
+2. **Document Modifications:** If you modify an AOSP-derived file, add a prominent comment indicating that changes have been made to the original AOSP source code.
+3. **Preserve Attribution:** Verify that any structural or algorithmic additions comply with the terms of the Apache 2.0 license and are noted in the repository [NOTICE](NOTICE) file.
+4. **No Incompatible Source Merges:** Do not copy code from third-party repositories with restrictive or incompatible licenses (e.g. GPL-licensed keyboards) into the AOSP suggestion engine.
+
+---
+
+## Security & Secrets Policy
+
+> [!CAUTION]
+> **Zero Secrets Policy:** Never commit API keys, personal access tokens, passwords, keystore binaries (`*.jks`, `*.keystore`), signing property files, private keys (`*.pem`, `*.key`), or local environment variables (`.env`) to the repository.
+
+- Always verify `git status` and `git diff` before committing to ensure no credentials or local configuration files are tracked.
+- If you discover that a sensitive key has been committed, notify the project maintainers immediately at **`mgpavank@gmail.com`**.
+
+---
+
+## Contact & Questions
+
+If you have questions regarding architecture or contributions, open an issue using the relevant issue template or reach out to **`mgpavank@gmail.com`**.

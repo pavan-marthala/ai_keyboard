@@ -1,25 +1,31 @@
 ---
 name: Feature Request
-about: Suggest a new feature or capability
+about: Suggest a new feature, capability, or user-facing command
 title: '[Feature] '
 labels: 'enhancement'
 assignees: ''
 ---
 
 ## Problem Description
-<!-- Is your feature request related to a problem? Please describe what limitation you are experiencing. -->
+<!-- Describe the problem or workflow friction that motivates this feature request. -->
 
 ## Proposed Solution
-<!-- Describe the solution you'd like to see implemented. -->
+<!-- Describe the feature, capability, or behavior you would like to see implemented. -->
 
-## Platform
-- **Platform:** (Android / iOS / Both)
+## Target Platform
+- [ ] Android Keyboard
+- [ ] iOS Keyboard Extension
+- [ ] Flutter App Shell (Settings / Configuration)
+- [ ] Cross-Platform
 
-## AI Provider Relevance (if applicable)
-<!-- Does this feature apply to a specific AI provider? (Gemini, OpenAI, Groq, OpenRouter) -->
+## AI Provider Relevance
+<!-- If this feature relates to AI models or providers, specify which ones (Gemini, OpenAI, Groq, OpenRouter, or a new provider). -->
+
+## Command Syntax (if proposing an AI command)
+<!-- If proposing a new text transformation command, specify the @ trigger and expected behavior (e.g. @bulletize). -->
 
 ## Alternatives Considered
-<!-- A clear and concise description of any alternative solutions or features you've considered. -->
+<!-- Describe alternative solutions, workarounds, or features you have evaluated. -->
 
 ## Additional Context / Mockups
-<!-- Add any other context or screenshots/mockups about the feature request here. -->
+<!-- Attach visual mockups, diagrams, or external references if applicable. -->

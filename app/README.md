@@ -1,170 +1,289 @@
-# AI Keyboard - App Architecture & Development Guide
+# AI Keyboard — Application Architecture & Development Guide
 
-This document outlines the architecture, layer responsibilities, and development workflows for the AI Keyboard application.
+This document provides a technical overview of the `app/` codebase, detailing the multi-layer architecture, component responsibilities, data flows, and build procedures.
 
-## High-Level Architecture
+---
 
-The project is structured into three main layers, communicating across boundaries to provide a seamless user experience between the configuration app and the native custom keyboards.
+## High-Level System Architecture
+
+The application is architected across three primary runtime layers, bridging cross-platform UI with high-performance native keyboard extensions:
 
 ```mermaid
 graph TD
-    subgraph "Flutter App Shell"
-        A[Flutter UI: Settings, Playgrounds]
-        B[State: BLoC / Clean Architecture]
-        C[Storage: Secure Storage]
+    subgraph "Flutter App Shell (app/lib/)"
+        A[Flutter UI: Settings, Playground]
+        B[State: flutter_bloc / Freezed]
+        C[Storage: flutter_secure_storage]
     end
 
-    subgraph "Android Native Keyboard"
-        D[Kotlin InputMethodService]
-        E[Compose UI]
-        F[Native AI Providers]
-        G[AOSP Suggestion Engine]
+    subgraph "Android Native Keyboard (app/android/)"
+        D[KeyboardService: InputMethodService]
+        E[KeyboardView: Android View Hierarchy]
+        F[Native AI Providers: HttpURLConnection]
+        G[AospSuggestionAdapter: Suggest Engine]
+        H[NativeSecureStorage: KeyStore AES-256-GCM]
     end
 
-    subgraph "AOSP C/C++ Layer (Android)"
-        H[LatinIME Native Engine]
-        I[JNI Bridge]
+    subgraph "AOSP C/C++ Layer (app/android/app/src/main/cpp/)"
+        I[JNI Bridge: latinime_jni.cpp]
+        J[LatinIME Native Engine: liblatinime.so]
     end
 
-    subgraph "iOS Native Keyboard"
-        J[Swift Keyboard Extension]
-        K[UIKit Custom UI]
-        L[Native AI Providers]
+    subgraph "iOS Native Keyboard (app/ios/)"
+        K[KeyboardViewController: UIInputViewController]
+        L[KeyboardView: UIKit Components]
+        M[Native AI Providers: URLSession]
+        N[Shared Storage: Keychain & App Group]
     end
 
-    A <-->|Method Channels| D
-    A <-->|Method Channels| J
+    A <-->|Method Channels: credentials, keyboard| D
+    A <-->|Method Channel: credentials| K
 
-    C -.->|Android KeyStore| F
-    C -.->|App Group / Keychain| L
+    C -.->|Encrypted sync| H
+    C -.->|Encrypted sync| N
 
-    G <-->|JNI| H
-    H <--> I
+    G <-->|JNI| I
+    I <--> J
 ```
 
 ---
 
 ## 1. Flutter Layer (`app/lib/`)
 
-The Flutter layer acts as the configuration shell. It is responsible for the Settings UI, AI service configuration, provider management, and the keyboard testing playground.
+The Flutter application shell serves as the primary configuration and testing surface.
 
-- **State Management**: Uses the BLoC pattern (`flutter_bloc`).
-- **Dependency Injection**: Uses `get_it` and `injectable` (via code generation).
-- **Architecture**: Feature-based clean architecture:
-  - `features/ai_service/`: Abstract provider and repository patterns.
-    - `data/providers/`: Implementations for Gemini, OpenAI, Groq, OpenRouter.
-    - `domain/entities/`: Domain models like `AiModel`, `AiRequest`, `AiProviderConfig` (using Freezed).
-    - `domain/repositories/`: `AiRepository` interface.
-    - `domain/usecases/`: `TransformTextUsecase`.
-  - `features/settings/`: Manages provider configs and credentials (stored securely via `flutter_secure_storage`). Powered by `SettingsBloc`.
-  - `features/commands/`: Slash command parsing (`/fix`, `/translate`, etc.). Managed by `CommandBloc`.
-  - `features/playground/`: UI for testing the keyboard.
-  - `features/app_shell/`: App navigation handled by `go_router`.
-- **Core (`core/`)**: Dependency injection setup, error handling (`Result` type), themes, and utilities.
+### Architecture & Design Patterns
+- **Clean Architecture:** Domain entities and repositories are decoupled from data providers and presentation logic.
+- **State Management:** BLoC pattern using `flutter_bloc`.
+- **Dependency Injection:** `get_it` service locator registered via `injectable` code generation.
+- **Immutable Models:** Data models built with `freezed` and `json_annotation`.
+- **Routing:** Declarative routing configured via `go_router`.
+- **Error Handling:** Functional `Result<T, Failure>` pattern using explicit Success/Failure variants.
 
-## 2. Android Native Layer (`app/android/app/src/main/kotlin/`)
+### Feature Structure
+- `features/ai_service/`:
+  - `domain/entities/`: `AiModel`, `AiRequest`, `AiResponse`, `AiProviderConfig`.
+  - `domain/repositories/`: `AiRepository` interface.
+  - `domain/usecases/`: `TransformTextUsecase`.
+  - `data/providers/`: HTTP clients for Gemini, OpenAI, Groq, OpenRouter using `Dio`.
+  - `data/repositories/`: `AiRepositoryImpl`.
+- `features/settings/`:
+  - `domain/entities/`: `UserSettings`, `AiProviderType`, `AiProviderMetadata`.
+  - `domain/repositories/`: `SettingsRepository`, `CredentialsRepository`.
+  - `presentation/bloc/`: `SettingsBloc`, `SettingsEvent`, `SettingsState`.
+  - `presentation/pages/`: Provider selection, API key entry, model selection, custom URL configuration.
+- `features/commands/`:
+  - `domain/entities/`: `CommandEntity`.
+  - `domain/parser/`: `CommandParser` for trailing `@` commands.
+  - `domain/repositories/`: `CommandRegistry` with prompts and language mappings.
+  - `presentation/bloc/`: `CommandBloc`.
+- `features/playground/`:
+  - Interactive testing sandbox to verify keyboard appearance and text transformations.
+- `features/app_shell/`:
+  - Navigation shell and responsive UI layout.
+- `core/`:
+  - Dependency injection (`injection.dart`), theme definitions (`AppTheme`), typography, color palettes, and failure types.
 
-The Android keyboard is built natively to ensure high performance and seamless integration with the OS.
+---
 
-- **Core Service**:
-  - `keyboard/KeyboardService.kt` - The `InputMethodService` entry point.
-  - `keyboard/KeyboardController.kt` - Manages key event handling and mode switching.
-- **UI**:
-  - `ui/KeyboardView.kt` - Built entirely with Jetpack Compose (~87KB, full keyboard rendering).
-- **AI Integration (`ai/`)**:
-  - Native implementations for AI providers (Gemini, OpenAI, Groq, OpenRouter).
-  - Uses `HttpURLConnection` directly (no Retrofit/OkHttp to minimize dependencies).
-  - Includes `AiProviderFactory`, `AiProvider` interface, and `AiResult` sealed class.
-- **Text & Transformation**:
-  - `transform/AiTextTransformer` handles text processing.
-  - `text/TextEditor.kt` manages text manipulation via `InputConnection`.
-  - `command/` handles native command parsing and registry.
-- **AOSP Suggestion Engine (`suggestion/`)**:
-  - `AospSuggestionEngine.kt` initializes dictionaries.
-  - `aosp/` contains AOSP-derived classes (19 files with Apache 2.0 headers) for dictionary facilitation, word composition, and suggestions.
-- **Configuration & Storage**:
-  - `config/NativeSecureStorage.kt` uses Android KeyStore AES-256-GCM encryption.
-  - `config/AiConfiguration.kt` uses SharedPreferences for non-secret configs.
-- **Extras**: Modules for clipboard history management (`clipboard/`), Giphy integration (`gif/`), and voice input (`voice/`).
+## 2. Android Native Layer (`app/android/`)
+
+The Android keyboard is implemented natively in Kotlin and C++ to ensure low-latency keystroke handling, zero runtime overhead during standard typing, and seamless integration with the Android `InputMethodService` framework.
+
+### Key Components
+- **`KeyboardService` (`keyboard/KeyboardService.kt`):**
+  - Subclasses `android.inputmethodservice.InputMethodService`.
+  - Oversees lifecycle callbacks: `onCreate`, `onCreateInputView`, `onStartInput`, `onStartInputView`, `onFinishInputView`, `onFinishInput`, `onDestroy`.
+  - Holds reference to the active service instance and delegates logic to `KeyboardController`.
+- **`KeyboardController` (`keyboard/KeyboardController.kt`):**
+  - Central orchestrator for the keyboard session.
+  - Manages `TextEditor`, `AiTextTransformer`, `SuggestionEngine`, `VoiceInputController`, `ClipboardHistoryManager`, `GifProvider`, `RecentGifManager`, `GifInserter`, `KeyboardHeightRepository`, and `NumberRowRepository`.
+  - Maintains keyboard state: `KeyboardMode` (`MAIN`, `MORE`, `EMOJI`, `CLIPBOARD`, `GIF`, `STICKERS`, `RESIZE`), `ShiftState` (`LOWERCASE`, `SHIFT_ON`, `CAPS_LOCK`), and active transformation sessions.
+- **`KeyboardView` (`ui/KeyboardView.kt`):**
+  - Subclasses `android.widget.LinearLayout`.
+  - Built with native Android Views (dynamic key layouts, `TextView` key labels, `ImageView` key icons).
+  - Integrates `androidx.emoji2.emojipicker.EmojiPickerView` for emoji input.
+  - Integrates `RecyclerView` with `GridLayoutManager` for clipboard history and GIF search results.
+- **`TextEditor` (`text/TextEditor.kt`):**
+  - Wraps the active `InputConnection` to perform text extraction before/after cursor, text commits, backspace operations, and text replacements.
+- **`NativeCommandRegistry` & `CommandParser` (`command/`):**
+  - Recognizes trailing `@` commands (`@fix`, `@rewrite`, `@pro`, `@casual`, `@short`, `@expand`, `@translate:<lang>`).
+  - Supplies verified system prompts and status indicators.
+- **Native AI Pipeline (`ai/`):**
+  - Provider implementations: `GeminiProvider`, `OpenAiProvider`, `GroqProvider`, `OpenRouterProvider`.
+  - Executes direct HTTPS calls via `java.net.HttpURLConnection` inside coroutines (`Dispatchers.IO`).
+  - Completely independent of the Flutter runtime during active keyboard operation.
+- **Secure Storage (`config/NativeSecureStorage.kt`):**
+  - Hardware-backed Android KeyStore AES-256-GCM encryption for stored API keys.
+  - Key alias: `AiKeyboardKeyStoreKey` in `AndroidKeyStore`.
+  - Encrypted values stored in private preferences (`ai_keyboard_secure_prefs`).
+
+---
 
 ## 3. AOSP C/C++ Layer (`app/android/app/src/main/cpp/`)
 
-Provides the core logic for text prediction and dictionary management for Android.
+Provides native dictionary lookup, Patricia trie traversal, and word prediction.
 
-- **`aosp_latinime/`**: The core AOSP LatinIME native library.
-  - Handles Dictionary structures (v2, v4, backward/v402).
-  - Suggest engine components (DicNode, ProximityInfo, Weighting).
-  - Utility functions (char_utils, format_utils, probability_utils).
-- **`latinime/`**: JNI bridge layer.
-  - `latinime_jni.cpp` serves as JNI entry points.
-  - Interfaces for dictionary facades, tries, suggestion decoding, and buffers.
-- **Build System**: Managed via CMake (`CMakeLists.txt`).
+- **`aosp_latinime/src/`:**
+  - Direct import of AOSP LatinIME C++ source code (Apache 2.0).
+  - Trie structures (`v2`, `v4`), bigram models, character proximity tables, and scoring policies.
+- **`latinime/`:**
+  - JNI bridge layer (`latinime_jni.cpp`).
+  - Defines native entry points: `openNative`, `isValidWordNative`, `getSuggestionsNative`, `closeNative`.
+- **`CMakeLists.txt`:**
+  - Compiles `liblatinime.so` targeting C++17 with strict optimization flags.
+- **Dictionary Asset:**
+  - Bundled binary dictionary `main_en.dict` located in `app/android/app/src/main/assets/dictionaries/` (~1.07MB, header magic `0x9BC13AFE`).
+
+---
 
 ## 4. iOS Native Layer (`app/ios/`)
 
-The iOS keyboard is a standard Custom Keyboard Extension built with Swift and UIKit.
+The iOS implementation provides a native keyboard extension built in Swift using UIKit.
 
-- **Host App**: `Runner/AppDelegate.swift` handles the Flutter host and platform channels for credential syncing.
-- **Keyboard Extension (`KeyboardExtension/`)**:
-  - `KeyboardViewController.swift` (`UIInputViewController` subclass).
-  - `KeyboardView.swift`, `KeyboardKeyButton.swift`, `KeyboardController.swift`, `KeyboardTheme.swift` manage UI and interactions using UIKit.
-  - `CommandParser.swift` handles slash commands.
-  - `TextDocumentEditor.swift` manipulates the text proxy.
-  - `KeyboardConfigurationReader.swift` reads configuration from the App Group.
-  - `AI/` contains native AI provider implementations.
-- **Shared Code (`Shared/`)**:
-  - `KeychainCredentialStore.swift` wraps iOS Keychain operations.
-  - `SharedConfigurationStore.swift` uses UserDefaults via App Group.
-  - `SharedConstants.swift`.
-
----
-
-## Inter-Process & Platform Communication
-
-- **Flutter ↔ Android**: Uses standard Method Channels for keyboard status checks and settings synchronization.
-- **Flutter ↔ iOS**: Method Channels handle credential management (`saveApiKey`, `getApiKey`, `deleteApiKey`, `hasApiKey`).
-- **iOS App ↔ Extension**:
-  - **App Group**: Shared `UserDefaults` passes configuration between the main app and keyboard extension.
-  - **Keychain**: Shared access group ensures both the app and extension can securely read/write API credentials.
+- **`KeyboardViewController` (`KeyboardExtension/KeyboardViewController.swift`):**
+  - Subclasses `UIInputViewController`.
+- **`KeyboardView` (`KeyboardExtension/KeyboardView.swift`):**
+  - Built with UIKit components (`UIView`, `UIStackView`, `KeyboardKeyButton`, `UILabel`, `UIScrollView`).
+  - Implements QWERTY layout, symbols view, and status bar.
+- **`KeyboardController` (`KeyboardExtension/KeyboardController.swift`):**
+  - Manages typing state, shift/caps lock cycles, and `@` command dispatching.
+- **`TextDocumentEditor` (`KeyboardExtension/TextDocumentEditor.swift`):**
+  - Manipulates text via `UITextDocumentProxy`.
+- **Native AI Pipeline (`KeyboardExtension/AI/`):**
+  - Lightweight Swift implementations of Gemini, OpenAI, Groq, and OpenRouter using `URLSession`.
+- **Shared Code (`Shared/`):**
+  - `KeychainCredentialStore.swift`: Stores API keys in the iOS Keychain under service `com.pk.ai_keyboard.apiKey`.
+  - `SharedConfigurationStore.swift`: Synchronizes non-secret preferences via App Group `group.com.pk.ai_keyboard.shared`.
 
 ---
 
-## Core Data Flows
+## 5. Platform Communication Channels
 
-### AI Transformation Flow
+Inter-process communication between the Flutter app shell and the native host is handled via Flutter `MethodChannel`:
 
-1. User types text and invokes a command (e.g., `/fix`).
-2. Native keyboard parses the command and identifies the target provider and model.
-3. Native keyboard reads the required API key from local secure storage (Android KeyStore / iOS Keychain).
-4. Native AI provider fires a direct HTTP request to the provider's API.
-5. The received response text directly replaces the user's input in the current text field.
+### Android Method Channels
+1. **`com.pk.ai_keyboard/credentials` (`MainActivity.kt`):**
+   - `saveApiKey(provider, apiKey)`: Encrypts and persists key in Android KeyStore.
+   - `getApiKey(provider)`: Retrieves decrypted API key.
+   - `deleteApiKey(provider)`: Removes API key.
+   - `hasApiKey(provider)`: Checks key existence.
+   - `saveConfig(provider, modelId, baseUrl)`: Saves active provider settings.
+   - `saveDisabledCommands(disabledTriggers)`: Persists user-disabled command triggers.
+2. **`com.pk.ai_keyboard/keyboard` (`MainActivity.kt`):**
+   - `isAiKeyboardActive`: Verifies if AI Keyboard is currently the default system IME.
+   - `openKeyboardSettings`: Launches system input method settings intent.
+   - `getKeyboardHeight` / `setKeyboardHeight` / `resetKeyboardHeight`: Manages custom keyboard height.
+   - `getUseNumbers` / `setUseNumbers`: Controls number row visibility.
 
-### Dictionary / Suggestion Flow (Android Only)
-
-1. `KeyboardService` initializes the `AospSuggestionEngine` upon startup.
-2. The engine loads the `main_en.dict` binary dictionary via `DictionaryFactory`.
-3. On every keypress, `WordComposer` builds the current composition state.
-4. `Suggest.getSuggestions()` invokes the native LatinIME algorithm via JNI.
-5. Results are returned as a list of `SuggestionCandidate`s to `KeyboardView` for rendering.
+### iOS Method Channel
+1. **`com.pk.ai_keyboard/credentials` (`AppDelegate.swift`):**
+   - `saveApiKey`, `getApiKey`, `deleteApiKey`, `hasApiKey`, `saveConfig`, `saveDisabledCommands`.
+   - Reads/writes to iOS Keychain and App Group `UserDefaults`.
 
 ---
 
-## Development Guide
+## 6. End-to-End Execution Flows
 
-### Code Generation (Flutter)
+### AI Text Transformation Flow
+```text
+User types: "We should meet tomorrow @pro"
+                    │
+                    ▼
+       InputConnection / DocumentProxy
+                    │
+                    ▼
+             CommandParser
+   • Detects trailing '@pro' token
+   • Validates non-empty preceding text: "We should meet tomorrow"
+   • Fetches system prompt from CommandRegistry
+                    │
+                    ▼
+           AiTextTransformer
+   • Retrieves active provider and decrypted API key from SecureStorage
+   • Formats payload: { prompt, text, temperature: 0.0, max_tokens: 1024 }
+                    │
+                    ▼
+    Native HTTP Client (HttpURLConnection / URLSession)
+   • Sends HTTPS POST to selected provider endpoint
+                    │
+                    ▼
+           Provider Response
+   • Extracts transformed text
+                    │
+                    ▼
+              TextEditor
+   • Deletes input characters before cursor (full match length)
+   • Commits transformed text: "I recommend we schedule a meeting tomorrow."
+```
 
-This project heavily relies on code generation for Dependency Injection (injectable), Data classes (Freezed), and JSON serialization.
+### Word Suggestion Flow (Android)
+```text
+User taps letter key (e.g. 'h' -> 'e' -> 'l')
+                    │
+                    ▼
+              WordComposer
+   • Appends code point to current word composition
+                    │
+                    ▼
+          AospSuggestionAdapter
+   • Obtains current NgramContext from preceding text
+   • Obtains keyboard geometry from KeyboardGeometryBuilder
+                    │
+                    ▼
+                 Suggest
+                    │
+                    ▼
+        DictionaryFacilitatorImpl
+                    │
+                    ▼
+            BinaryDictionary
+   • Calls NativeBinaryDictionary.getSuggestionsNative() via JNI
+   • Native liblatinime traverses Patricia trie using ProximityInfo
+                    │
+                    ▼
+       Native Suggestion Candidates
+   • Returns ordered suggestions with confidence scores
+                    │
+                    ▼
+          KeyboardView (UI)
+   • Renders suggestions in the candidate suggestion bar
+```
 
-Whenever you change a data model or a DI configuration, you must run the build runner:
+---
 
+## 7. Developer Workflows
+
+### Setup
 ```bash
-cd app
+git clone https://github.com/pavan-marthala/ai_keyboard.git
+cd ai_keyboard/app
+flutter pub get
+```
+
+### Code Generation
+Whenever entities, Freezed models, or Injectable modules are updated:
+```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-This command will update the following generated files:
-- `*.freezed.dart`
-- `*.g.dart`
-- `injection.config.dart`
+### Testing
+```bash
+# Run Flutter tests
+flutter test
 
-> **Note**: Avoid modifying generated files manually. Always update the source Dart files and re-run the build runner.
+# Run Android native tests
+cd android && ./gradlew test
+```
+
+### Building
+```bash
+# Debug APK
+flutter build apk --debug
+
+# Release APK (requires signing config)
+flutter build apk --release
+
+# iOS (requires Xcode)
+flutter build ios
+```
