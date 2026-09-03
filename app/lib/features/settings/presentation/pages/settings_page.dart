@@ -1,4 +1,8 @@
 import 'package:ai_keyboard/core/errors/failures.dart';
+import 'package:ai_keyboard/core/theme/app_theme.dart';
+import 'package:ai_keyboard/core/utils/app_buitton.dart';
+import 'package:ai_keyboard/core/utils/app_text_field.dart';
+import 'package:ai_keyboard/core/utils/app_toast.dart';
 import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
@@ -38,17 +42,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final typo = context.appTypography;
     return Scaffold(
       appBar: AppBar(title: const Text('AI Keyboard Settings')),
       body: BlocConsumer<SettingsBloc, SettingsState>(
         listener: (context, state) {
           if (state.failure != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.failure!.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            showErrorToast(message: state.failure!.message);
           }
         },
         builder: (context, state) {
@@ -61,7 +62,9 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: const EdgeInsets.all(16.0),
             children: [
               Card(
-                color: hasKey ? Colors.green.shade50 : Colors.orange.shade50,
+                color: hasKey
+                    ? colors.success.withValues(alpha: 0.10)
+                    : colors.warning.withValues(alpha: 0.10),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
@@ -70,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         hasKey
                             ? Icons.check_circle
                             : Icons.warning_amber_rounded,
-                        color: hasKey ? Colors.green : Colors.orange.shade800,
+                        color: hasKey ? colors.success : colors.warning,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -79,9 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ? '${metadata.displayName} API Key configured.'
                               : '${metadata.displayName} API Key missing. Add key below.',
                           style: TextStyle(
-                            color: hasKey
-                                ? Colors.green.shade900
-                                : Colors.orange.shade900,
+                            color: hasKey ? colors.success : colors.warning,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -91,9 +92,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'AI Provider Selection',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: typo.titleMedium.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<AiProviderType>(
@@ -120,33 +121,30 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 8),
               Text(
                 metadata.description,
-                style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+                style: typo.bodyMedium.copyWith(color: colors.textSecondary),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'API Key',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: typo.titleMedium.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              TextField(
+              AppTextField(
                 controller: _apiKeyController,
-                obscureText: _obscureApiKey,
-                decoration: InputDecoration(
-                  labelText: '${metadata.displayName} API Key',
-                  hintText: hasKey
-                      ? '•••••••••••• (Key Configured)'
-                      : 'Enter API Key',
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureApiKey ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureApiKey = !_obscureApiKey;
-                      });
-                    },
+                isPassword: _obscureApiKey,
+                hintText: hasKey
+                    ? '•••••••••••• (Key Configured)'
+                    : '${metadata.displayName} API Key',
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureApiKey ? Icons.visibility_off : Icons.visibility,
+                    color: colors.textPrimary,
                   ),
+                  onPressed: () {
+                    setState(() {
+                      _obscureApiKey = !_obscureApiKey;
+                    });
+                  },
                 ),
               ),
               const SizedBox(height: 8),
@@ -155,7 +153,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   Text(
                     "Don't have an API key?",
-                    style: TextStyle(color: Colors.grey.shade700),
+                    style: typo.bodyMedium.copyWith(
+                      color: colors.textSecondary,
+                    ),
                   ),
                   TextButton.icon(
                     onPressed: () => _openApiKeyUrl(metadata.apiKeyUrl),
@@ -168,7 +168,13 @@ class _SettingsPageState extends State<SettingsPage> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: AppButton(
+                      text: 'Save API Key',
+                      icon: const Icon(Icons.save, size: 20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       onPressed: state.isLoading
                           ? null
                           : () {
@@ -181,22 +187,25 @@ class _SettingsPageState extends State<SettingsPage> {
                                   ),
                                 );
                                 _apiKeyController.clear();
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
+                                showSuccessToast(
+                                  message:
                                       '${metadata.displayName} key saved securely!',
-                                    ),
-                                  ),
                                 );
                               }
                             },
-                      icon: const Icon(Icons.save),
-                      label: const Text('Save API Key'),
+                      isLoading: state.isLoading,
                     ),
                   ),
                   if (hasKey) ...[
                     const SizedBox(width: 12),
-                    OutlinedButton.icon(
+                    AppButton(
+                      text: 'Delete Key',
+                      icon: const Icon(Icons.delete, size: 20),
+                      color: colors.error,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 22,
+                        vertical: 8,
+                      ),
                       onPressed: state.isLoading
                           ? null
                           : () {
@@ -206,11 +215,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                               );
                             },
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      label: const Text(
-                        'Delete Key',
-                        style: TextStyle(color: Colors.red),
-                      ),
+                      isLoading: state.isLoading,
                     ),
                   ],
                 ],
@@ -219,9 +224,11 @@ class _SettingsPageState extends State<SettingsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'Model Discovery',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: typo.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   if (hasKey)
                     TextButton.icon(

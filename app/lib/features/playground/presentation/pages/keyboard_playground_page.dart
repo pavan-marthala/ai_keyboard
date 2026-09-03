@@ -1,4 +1,7 @@
 import 'package:ai_keyboard/core/di/injection.dart';
+import 'package:ai_keyboard/core/theme/app_theme.dart';
+import 'package:ai_keyboard/core/utils/app_buitton.dart';
+import 'package:ai_keyboard/core/utils/app_text_field.dart';
 import 'package:ai_keyboard/features/playground/data/services/keyboard_status_service.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
@@ -64,6 +67,8 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final typo = context.appTypography;
     return Scaffold(
       appBar: AppBar(title: const Text('Keyboard Playground')),
       body: BlocBuilder<SettingsBloc, SettingsState>(
@@ -76,20 +81,17 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
           return ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              const Text(
-                'Test Your AI Keyboard',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              Text('Test Your AI Keyboard', style: typo.titleLarge),
               const SizedBox(height: 4),
               Text(
                 'Type text below and use @commands (like @fix) to transform text using your native keyboard.',
-                style: TextStyle(color: Colors.grey.shade700),
+                style: typo.bodyMedium,
               ),
               const SizedBox(height: 20),
               Card(
                 color: _isKeyboardActive
-                    ? Colors.green.shade50
-                    : Colors.orange.shade50,
+                    ? colors.success.withValues(alpha: 0.10)
+                    : colors.warning.withValues(alpha: 0.10),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -102,8 +104,8 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                                 ? Icons.check_circle
                                 : Icons.radio_button_unchecked,
                             color: _isKeyboardActive
-                                ? Colors.green
-                                : Colors.orange.shade800,
+                                ? colors.success
+                                : colors.warning,
                           ),
                           const SizedBox(width: 10),
                           Text(
@@ -114,8 +116,8 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                               color: _isKeyboardActive
-                                  ? Colors.green.shade900
-                                  : Colors.orange.shade900,
+                                  ? colors.success
+                                  : colors.warning,
                             ),
                           ),
                           const Spacer(),
@@ -131,22 +133,21 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                         const SizedBox(height: 12),
                         Text(
                           'Enable and select AI Keyboard in Android System Settings to test transformation.',
-                          style: TextStyle(
+                          style: typo.bodyMedium.copyWith(
                             fontSize: 13,
-                            color: Colors.orange.shade900,
+                            color: colors.warning,
                           ),
                         ),
                         const SizedBox(height: 12),
-                        ElevatedButton.icon(
+                        AppButton(
+                          text: "Select AI Keyboard",
+                          color: colors.warning,
                           onPressed: () async {
                             await _keyboardStatusService.openKeyboardSettings();
                           },
-                          icon: const Icon(Icons.settings),
-                          label: const Text('Select AI Keyboard'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange.shade800,
-                            foregroundColor: Colors.white,
-                          ),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          icon: const Icon(Icons.settings, size: 20),
                         ),
                       ],
                     ],
@@ -155,16 +156,16 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               ),
               const SizedBox(height: 16),
               Card(
+                color: colors.card,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'AI Configuration Summary',
-                        style: TextStyle(
+                        style: typo.titleMedium.copyWith(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -173,11 +174,17 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                         children: [
                           Text(
                             'Provider:',
-                            style: TextStyle(color: Colors.grey.shade700),
+                            style: typo.bodyMedium.copyWith(
+                              color: colors.textSecondary,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           Text(
                             metadata.displayName,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            style: typo.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -188,18 +195,18 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                         children: [
                           Text(
                             'Model:',
-                            style: TextStyle(
-                              color: Colors.grey.shade700,
+                            style: typo.bodyMedium.copyWith(
+                              color: colors.textSecondary,
                               overflow: TextOverflow.ellipsis,
                             ),
                             maxLines: 1,
                           ),
-                          Expanded(
+                          Flexible(
                             child: Text(
                               activeModel.isEmpty
                                   ? 'Not selected'
                                   : activeModel,
-                              style: const TextStyle(
+                              style: typo.bodyMedium.copyWith(
                                 fontWeight: FontWeight.w600,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -214,23 +221,39 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                         children: [
                           Text(
                             'API Key:',
-                            style: TextStyle(color: Colors.grey.shade700),
+                            style: typo.bodyMedium.copyWith(
+                              color: colors.textSecondary,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           Text(
                             hasKey ? 'Configured ✓' : 'Not Configured ⚠️',
-                            style: TextStyle(
+                            style: typo.bodyMedium.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: hasKey ? Colors.green : Colors.red,
+                              color: hasKey ? colors.success : colors.error,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                       if (!hasKey && widget.onNavigateToSettings != null) ...[
                         const SizedBox(height: 12),
-                        OutlinedButton.icon(
+                        AppButton(
+                          text: "Configure API Key",
+                          color: colors.card,
                           onPressed: widget.onNavigateToSettings,
-                          icon: const Icon(Icons.tune, size: 16),
-                          label: const Text('Configure AI Settings'),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          icon: Icon(
+                            Icons.tune,
+                            size: 20,
+                            color: colors.primary,
+                          ),
+                          side: BoxBorder.all(color: colors.primary, width: 2),
+                          textStyle: typo.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colors.primary,
+                          ),
                         ),
                       ],
                     ],
@@ -238,20 +261,15 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Try Your AI Keyboard',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: typo.titleMedium.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
-              TextField(
+              AppTextField(
                 controller: _textController,
-                minLines: 3,
-                maxLines: 6,
-                decoration: const InputDecoration(
-                  hintText:
-                      'Tap here to open AI Keyboard and type text with @fix...',
-                  border: OutlineInputBorder(),
-                ),
+                hintText:
+                    'Tap here to open AI Keyboard and type text with @fix...',
               ),
               const SizedBox(height: 12),
               Row(
@@ -265,9 +283,9 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                 ],
               ),
               const SizedBox(height: 20),
-              const Text(
+              Text(
                 'Try an Example',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: typo.titleMedium.copyWith(fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -326,21 +344,18 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: Colors.blue.withValues(alpha: 0.20),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: Colors.blue),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: Colors.blue.shade800),
+                    Icon(Icons.info_outline, color: Colors.blue),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Tip: Text transformation is executed by the Android native keyboard service, not inside this app.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue.shade900,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.blue),
                       ),
                     ),
                   ],

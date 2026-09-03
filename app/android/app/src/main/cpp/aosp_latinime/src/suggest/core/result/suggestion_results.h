@@ -53,6 +53,16 @@ class SuggestionResults {
         return mSuggestedWords.size();
     }
 
+    std::vector<SuggestedWord> getSuggestedWordsVector() const {
+        std::vector<SuggestedWord> res;
+        auto temp = mSuggestedWords;
+        while (!temp.empty()) {
+            res.push_back(temp.top());
+            temp.pop();
+        }
+        return res;
+    }
+
  private:
     DISALLOW_IMPLICIT_CONSTRUCTORS(SuggestionResults);
 

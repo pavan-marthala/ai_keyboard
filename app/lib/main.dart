@@ -1,4 +1,5 @@
 import 'package:ai_keyboard/core/di/injection.dart';
+import 'package:ai_keyboard/core/theme/app_theme.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_event.dart';
 import 'package:ai_keyboard/features/playground/presentation/pages/keyboard_playground_page.dart';
@@ -8,6 +9,9 @@ import 'package:ai_keyboard/features/settings/presentation/pages/settings_page.d
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
+  debugLabel: 'root',
+);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
@@ -33,11 +37,8 @@ class AiKeyboardApp extends StatelessWidget {
       child: MaterialApp(
         title: 'AI Keyboard Utility',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
-        themeMode: ThemeMode.system,
+        theme: AppTheme.dark,
+        darkTheme: AppTheme.dark,
         home: const MainHomeScreen(),
       ),
     );

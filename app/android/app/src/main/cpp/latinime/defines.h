@@ -14,24 +14,4 @@
  * limitations under the License.
  */
 
-#ifndef LATINIME_DEFINES_H
-#define LATINIME_DEFINES_H
-
-#include <stdint.h>
-#include <stddef.h>
-#include <android/log.h>
-
-#define LOG_TAG "LatinIME_Native"
-#define AK_LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
-#define AK_LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
-
-namespace latinime {
-
-static const int MAX_WORD_LENGTH = 48;
-static const int MAX_RESULTS = 10;
-static const int NOT_A_CODE_POINT = -1;
-
-} // namespace latinime
-
-#endif // LATINIME_DEFINES_H
-
+// Empty file to prevent shadowing aosp_latinime/src/defines.h

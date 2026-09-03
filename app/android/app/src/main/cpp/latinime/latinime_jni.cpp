@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
+#include "defines.h"
 #include <jni.h>
 #include <string>
 #include <vector>
 #include <memory>
-#include "defines.h"
-#include "dictionary_facade.h"
-#include "proximity_info.h"
+#include "dictionary/structure/dictionary_structure_with_buffer_policy_factory.h"
+#include "suggest/core/dictionary/dictionary.h"
+#include "suggest/core/session/dic_traverse_session.h"
+#include "suggest/core/layout/proximity_info.h"
+#include "suggest/core/result/suggestion_results.h"
+#include "suggest/core/result/suggested_word.h"
+#include "dictionary/property/ngram_context.h"
+#include "suggest/core/suggest_options.h"
+#include "utils/char_utils.h"
 
 extern "C" {
 
@@ -28,23 +35,36 @@ JNIEXPORT jlong JNICALL
 Java_com_pk_ai_1keyboard_suggestion_aosp_NativeBinaryDictionary_openNative(
     JNIEnv *env, jclass clazz, jstring path, jlong offset, jlong length) {
     const char *pathStr = path ? env->GetStringUTFChars(path, nullptr) : "";
-    AK_LOGI("[AOSP-REAL] JNI openNative called path: %s", pathStr);
-    auto *facade = new latinime::DictionaryFacade();
-    bool opened = facade->openDictionary(pathStr, offset, length);
+    AKLOGI("[AOSP-REAL] JNI openNative called path: %s", pathStr);
+    
+    auto policy = latinime::DictionaryStructureWithBufferPolicyFactory::newPolicyForExistingDictFile(
+        pathStr, static_cast<int>(offset), static_cast<int>(length), false);
+    
     if (path) env->ReleaseStringUTFChars(path, pathStr);
-    AK_LOGI("[AOSP-REAL] JNI openNative result: %d", opened ? 1 : 0);
-    return reinterpret_cast<jlong>(facade);
+
+    if (!policy) {
+        AKLOGE("[AOSP-REAL] JNI openNative failed to create policy for %s", pathStr);
+        return 0L;
+    }
+
+    auto *dictionary = new latinime::Dictionary(env, std::move(policy));
+    AKLOGI("[AOSP-REAL] JNI openNative created AOSP Dictionary successfully");
+    return reinterpret_cast<jlong>(dictionary);
 }
 
 JNIEXPORT jboolean JNICALL
 Java_com_pk_ai_1keyboard_suggestion_aosp_NativeBinaryDictionary_isValidWordNative(
     JNIEnv *env, jclass clazz, jlong dictPtr, jstring word) {
     if (!dictPtr || !word) return JNI_FALSE;
-    auto *facade = reinterpret_cast<latinime::DictionaryFacade *>(dictPtr);
+    auto *dictionary = reinterpret_cast<latinime::Dictionary *>(dictPtr);
     const char *wordStr = env->GetStringUTFChars(word, nullptr);
-    bool valid = facade->isValidWord(wordStr);
+    
+    std::vector<int> codePoints;
+    latinime::CharUtils::attachIntArray(wordStr, &codePoints);
     env->ReleaseStringUTFChars(word, wordStr);
-    return valid ? JNI_TRUE : JNI_FALSE;
+
+    int prob = dictionary->getProbability(latinime::CodePointArrayView(codePoints.data(), codePoints.size()));
+    return (prob != NOT_A_PROBABILITY) ? JNI_TRUE : JNI_FALSE;
 }
 
 JNIEXPORT jobjectArray JNICALL
@@ -53,15 +73,17 @@ Java_com_pk_ai_1keyboard_suggestion_aosp_NativeBinaryDictionary_getSuggestionsNa
     jintArray touchXArray, jintArray touchYArray) {
     if (!dictPtr || !input) return nullptr;
 
-    auto *facade = reinterpret_cast<latinime::DictionaryFacade *>(dictPtr);
+    auto *dictionary = reinterpret_cast<latinime::Dictionary *>(dictPtr);
     auto *proximity = reinterpret_cast<latinime::ProximityInfo *>(proximityPtr);
 
     const char *inputStr = env->GetStringUTFChars(input, nullptr);
     const char *prevStr = prevWord ? env->GetStringUTFChars(prevWord, nullptr) : "";
 
+    std::vector<int> inputCodePoints;
+    latinime::CharUtils::attachIntArray(inputStr, &inputCodePoints);
+
     std::vector<int> touchXs;
     std::vector<int> touchYs;
-
     if (touchXArray) {
         jint *xs = env->GetIntArrayElements(touchXArray, nullptr);
         jsize len = env->GetArrayLength(touchXArray);
@@ -75,20 +97,58 @@ Java_com_pk_ai_1keyboard_suggestion_aosp_NativeBinaryDictionary_getSuggestionsNa
         env->ReleaseIntArrayElements(touchYArray, ys, JNI_ABORT);
     }
 
-    AK_LOGI("[AOSP-REAL] JNI getSuggestionsNative executing native decoder");
+    std::vector<int> times(touchXs.size(), 0);
+    std::vector<int> pointerIds(touchXs.size(), 0);
 
-    auto candidates = facade->getSuggestions(inputStr, prevStr, touchXs, touchYs, proximity);
+    latinime::DicTraverseSession session(env, env->NewStringUTF("en"), 1024 * 1024);
+    std::vector<int> prevCodePoints;
+    if (prevStr && strlen(prevStr) > 0) {
+        latinime::CharUtils::attachIntArray(prevStr, &prevCodePoints);
+    }
+    const latinime::NgramContext ngramContext = prevCodePoints.empty()
+            ? latinime::NgramContext()
+            : latinime::NgramContext(
+                    prevCodePoints.data(), static_cast<int>(prevCodePoints.size()),
+                    false /* isBeginningOfSentence */);
+
+    latinime::SuggestOptions options(nullptr, 0);
+    latinime::SuggestionResults suggestionResults(MAX_RESULTS);
+
+    dictionary->getSuggestions(
+        proximity,
+        &session,
+        touchXs.data(),
+        touchYs.data(),
+        times.data(),
+        pointerIds.data(),
+        inputCodePoints.data(),
+        static_cast<int>(inputCodePoints.size()),
+        &ngramContext,
+        &options,
+        1.0f,
+        &suggestionResults
+    );
 
     env->ReleaseStringUTFChars(input, inputStr);
     if (prevWord) env->ReleaseStringUTFChars(prevWord, prevStr);
 
-    jclass stringClass = env->FindClass("java/lang/String");
-    jobjectArray resultArray = env->NewObjectArray(candidates.size() * 3, stringClass, nullptr);
+    std::vector<std::pair<std::string, int>> outputCandidates;
+    std::vector<latinime::SuggestedWord> words = suggestionResults.getSuggestedWordsVector();
+    for (const auto &sw : words) {
+        std::string wordUtf8;
+        latinime::CharUtils::attachString(
+                latinime::CodePointArrayView(sw.getCodePoint(), sw.getCodePointCount()),
+                &wordUtf8);
+        outputCandidates.push_back({wordUtf8, sw.getScore()});
+    }
 
-    for (size_t i = 0; i < candidates.size(); ++i) {
-        jstring w = env->NewStringUTF(candidates[i].word.c_str());
-        jstring s = env->NewStringUTF(std::to_string(candidates[i].score).c_str());
-        jstring k = env->NewStringUTF(candidates[i].isAutoCorrection ? "1" : (candidates[i].isTypedWord ? "0" : "2"));
+    jclass stringClass = env->FindClass("java/lang/String");
+    jobjectArray resultArray = env->NewObjectArray(outputCandidates.size() * 3, stringClass, nullptr);
+
+    for (size_t i = 0; i < outputCandidates.size(); ++i) {
+        jstring w = env->NewStringUTF(outputCandidates[i].first.c_str());
+        jstring s = env->NewStringUTF(std::to_string(outputCandidates[i].second).c_str());
+        jstring k = env->NewStringUTF("0");
 
         env->SetObjectArrayElement(resultArray, i * 3, w);
         env->SetObjectArrayElement(resultArray, i * 3 + 1, s);
@@ -99,7 +159,7 @@ Java_com_pk_ai_1keyboard_suggestion_aosp_NativeBinaryDictionary_getSuggestionsNa
         env->DeleteLocalRef(k);
     }
 
-    AK_LOGI("[AOSP-REAL] JNI getSuggestionsNative returning %zu candidates", candidates.size());
+    AKLOGI("[AOSP-REAL] JNI getSuggestionsNative returning %zu candidates from AOSP engine", outputCandidates.size());
     return resultArray;
 }
 
@@ -107,9 +167,9 @@ JNIEXPORT void JNICALL
 Java_com_pk_ai_1keyboard_suggestion_aosp_NativeBinaryDictionary_closeNative(
     JNIEnv *env, jclass clazz, jlong dictPtr) {
     if (dictPtr) {
-        auto *facade = reinterpret_cast<latinime::DictionaryFacade *>(dictPtr);
-        delete facade;
-        AK_LOGI("[AOSP-REAL] NativeBinaryDictionary closed successfully.");
+        auto *dictionary = reinterpret_cast<latinime::Dictionary *>(dictPtr);
+        delete dictionary;
+        AKLOGI("[AOSP-REAL] NativeBinaryDictionary AOSP Dictionary closed successfully.");
     }
 }
 
@@ -117,32 +177,27 @@ JNIEXPORT jlong JNICALL
 Java_com_pk_ai_1keyboard_suggestion_aosp_NativeProximityInfo_setProximityInfoNative(
     JNIEnv *env, jclass clazz, jint displayWidth, jint displayHeight, jint gridWidth, jint gridHeight,
     jint keyWidth, jint keyHeight, jintArray keyCodes, jintArray keyLefts, jintArray keyTops,
-    jintArray keyRights, jintArray keyBottoms) {
+    jintArray keyWidths, jintArray keyHeights) {
 
-    std::map<int, latinime::KeyRectNative> boundsMap;
+    jsize keyCount = keyCodes ? env->GetArrayLength(keyCodes) : 0;
+    
+    std::vector<int> proxChars(gridWidth * gridHeight * 16, 0);
+    jintArray jProxChars = env->NewIntArray(proxChars.size());
+    env->SetIntArrayRegion(jProxChars, 0, proxChars.size(), proxChars.data());
 
-    if (keyCodes && keyLefts && keyTops && keyRights && keyBottoms) {
-        jint *codes = env->GetIntArrayElements(keyCodes, nullptr);
-        jint *lefts = env->GetIntArrayElements(keyLefts, nullptr);
-        jint *tops = env->GetIntArrayElements(keyTops, nullptr);
-        jint *rights = env->GetIntArrayElements(keyRights, nullptr);
-        jint *bottoms = env->GetIntArrayElements(keyBottoms, nullptr);
-        jsize len = env->GetArrayLength(keyCodes);
+    std::vector<float> sweetSpots(keyCount * 3, 0.0f);
+    jfloatArray jSweetSpotsX = env->NewFloatArray(keyCount);
+    jfloatArray jSweetSpotsY = env->NewFloatArray(keyCount);
+    jfloatArray jSweetSpotsR = env->NewFloatArray(keyCount);
 
-        for (jsize i = 0; i < len; ++i) {
-            latinime::KeyRectNative rect{lefts[i], tops[i], rights[i], bottoms[i]};
-            boundsMap[codes[i]] = rect;
-        }
+    auto *proximity = new latinime::ProximityInfo(
+        env, displayWidth, displayHeight, gridWidth, gridHeight,
+        keyWidth, keyHeight, jProxChars, keyCount,
+        keyLefts, keyTops, keyWidths, keyHeights, keyCodes,
+        jSweetSpotsX, jSweetSpotsY, jSweetSpotsR
+    );
 
-        env->ReleaseIntArrayElements(keyCodes, codes, JNI_ABORT);
-        env->ReleaseIntArrayElements(keyLefts, lefts, JNI_ABORT);
-        env->ReleaseIntArrayElements(keyTops, tops, JNI_ABORT);
-        env->ReleaseIntArrayElements(keyRights, rights, JNI_ABORT);
-        env->ReleaseIntArrayElements(keyBottoms, bottoms, JNI_ABORT);
-    }
-
-    auto *proximity = new latinime::ProximityInfo(displayWidth, displayHeight, gridWidth, gridHeight, keyWidth, keyHeight, boundsMap);
-    AK_LOGI("[AOSP-REAL] ProximityInfo created natively keyCount=%zu", boundsMap.size());
+    AKLOGI("[AOSP-REAL] ProximityInfo created natively keyCount=%d", static_cast<int>(keyCount));
     return reinterpret_cast<jlong>(proximity);
 }
 
@@ -152,7 +207,7 @@ Java_com_pk_ai_1keyboard_suggestion_aosp_NativeProximityInfo_releaseProximityInf
     if (proximityPtr) {
         auto *proximity = reinterpret_cast<latinime::ProximityInfo *>(proximityPtr);
         delete proximity;
-        AK_LOGI("[AOSP-REAL] ProximityInfo released natively.");
+        AKLOGI("[AOSP-REAL] ProximityInfo released natively.");
     }
 }
 

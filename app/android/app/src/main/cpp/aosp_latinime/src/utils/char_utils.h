@@ -19,6 +19,7 @@
 
 #include <cctype>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "defines.h"
@@ -28,6 +29,24 @@ namespace latinime {
 class CharUtils {
  public:
     static const std::vector<int> EMPTY_STRING;
+
+    static void attachIntArray(const char *src, std::vector<int> *out) {
+        if (!src || !out) return;
+        while (*src) {
+            out->push_back(static_cast<unsigned char>(*src++));
+        }
+    }
+
+    template <typename CodePointView>
+    static void attachString(const CodePointView &codePoints, std::string *out) {
+        if (!out) return;
+        for (size_t i = 0; i < codePoints.size(); ++i) {
+            int cp = codePoints[i];
+            if (cp > 0 && cp < 128) {
+                out->push_back(static_cast<char>(cp));
+            }
+        }
+    }
 
     static AK_FORCE_INLINE bool isAsciiUpper(int c) {
         // Note: isupper(...) reports false positives for some Cyrillic characters, causing them to
