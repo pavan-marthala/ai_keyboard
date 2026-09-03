@@ -10,6 +10,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -21,6 +22,12 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
+import com.pk.ai_keyboard.ui.aosp.morekeys.AospKey
+import com.pk.ai_keyboard.ui.aosp.morekeys.KeyboardActionListener
+import com.pk.ai_keyboard.ui.aosp.morekeys.MoreKeySpec
+import com.pk.ai_keyboard.ui.aosp.morekeys.MoreKeysKeyboard
+import com.pk.ai_keyboard.ui.aosp.morekeys.MoreKeysKeyboardView
+import com.pk.ai_keyboard.ui.aosp.morekeys.MoreKeysPanel
 import android.view.animation.Animation
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
@@ -64,7 +71,40 @@ class KeyboardView @JvmOverloads constructor(
     private var isFixedKeyHeightMode = false
 
     private lateinit var toolbarContainer: LinearLayout
+    private lateinit var contentWrapper: FrameLayout
     private lateinit var mainPanelContainer: LinearLayout
+    private lateinit var moreKeysOverlayContainer: FrameLayout
+    private lateinit var moreKeysKeyboardView: MoreKeysKeyboardView
+
+    private val moreKeysController = object : MoreKeysPanel.Controller {
+        override fun onShowMoreKeysPanel(panel: MoreKeysPanel) {}
+        override fun onDismissMoreKeysPanel() {
+            if (::moreKeysOverlayContainer.isInitialized) {
+                moreKeysOverlayContainer.removeAllViews()
+            }
+        }
+        override fun onCancelMoreKeysPanel() {
+            if (::moreKeysOverlayContainer.isInitialized) {
+                moreKeysOverlayContainer.removeAllViews()
+            }
+        }
+    }
+
+    private val moreKeysActionListener = object : KeyboardActionListener {
+        override fun onPressKey(primaryCode: Int, repeatCount: Int, isSinglePointer: Boolean) {}
+        override fun onReleaseKey(primaryCode: Int, withSliding: Boolean) {}
+        override fun onCodeInput(primaryCode: Int, x: Int, y: Int, isKeyRepeat: Boolean) {
+            if (::controller.isInitialized && primaryCode != 0) {
+                val char = Character.toString(primaryCode)
+                controller.onKeyTyped(char)
+            }
+        }
+        override fun onTextInput(text: CharSequence?) {
+            if (::controller.isInitialized && !text.isNullOrEmpty()) {
+                controller.onKeyTyped(text.toString())
+            }
+        }
+    }
 
     // Normal Toolbar Views
     private lateinit var appIconView: ImageView
@@ -116,6 +156,8 @@ class KeyboardView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
+        clipChildren = false
+        clipToPadding = false
         setBackgroundColor(theme.backgroundColor)
         setupInsetsListener()
         buildUi()
@@ -183,6 +225,14 @@ class KeyboardView @JvmOverloads constructor(
         this.editorInfo = info
         updateEnterKeyLabel()
         refreshToolbar()
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        if (::moreKeysKeyboardView.isInitialized) {
+            moreKeysKeyboardView.dismissMoreKeysPanel()
+        }
+        uiScope.cancel()
     }
 
     private fun dpToPx(dp: Float): Int {
@@ -427,12 +477,29 @@ class KeyboardView @JvmOverloads constructor(
         }
         addView(divider)
 
+        contentWrapper = FrameLayout(context).apply {
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
+            clipChildren = false
+            clipToPadding = false
+        }
+
         mainPanelContainer = LinearLayout(context).apply {
             orientation = VERTICAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, getContentPanelHeightPx())
             setPadding(dpToPx(4f), dpToPx(6f), dpToPx(4f), dpToPx(6f))
         }
-        addView(mainPanelContainer)
+        contentWrapper.addView(mainPanelContainer)
+
+        moreKeysOverlayContainer = FrameLayout(context).apply {
+            layoutParams = FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+            clipChildren = false
+            clipToPadding = false
+        }
+        contentWrapper.addView(moreKeysOverlayContainer)
+
+        moreKeysKeyboardView = MoreKeysKeyboardView(context)
+
+        addView(contentWrapper)
 
         renderPanel()
     }
@@ -486,6 +553,9 @@ class KeyboardView @JvmOverloads constructor(
     }
 
     private fun renderPanel() {
+        if (::moreKeysKeyboardView.isInitialized) {
+            moreKeysKeyboardView.dismissMoreKeysPanel()
+        }
         mainPanelContainer.removeAllViews()
         letterKeyViews.clear()
 
@@ -1718,10 +1788,22 @@ class KeyboardView @JvmOverloads constructor(
 
         val row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
         val row1Hints = if (useNumbers) null else listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
+        val row1MoreKeys = if (useNumbers) null else listOf(
+            "1,¹,₁",
+            "!noPanelAutoMoreKey!,2",
+            "!noPanelAutoMoreKey!,3",
+            "!noPanelAutoMoreKey!,4",
+            "!noPanelAutoMoreKey!,5",
+            "!noPanelAutoMoreKey!,6",
+            "!noPanelAutoMoreKey!,7",
+            "!noPanelAutoMoreKey!,8",
+            "!noPanelAutoMoreKey!,9",
+            "!noPanelAutoMoreKey!,0"
+        )
         val row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
         val row3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
-        mainPanelContainer.addView(createKeyRow(row1, hints = row1Hints))
+        mainPanelContainer.addView(createKeyRow(row1, hints = row1Hints, moreKeysSpecs = row1MoreKeys))
         mainPanelContainer.addView(createKeyRow(row2, paddingHorizontalDp = 12f))
 
         val row3Layout = LinearLayout(context).apply {
@@ -1828,7 +1910,14 @@ class KeyboardView @JvmOverloads constructor(
         }
         bottomRow.addView(spaceKey)
 
-        val commaKey = createKeyView(",", isSpecial = true, weight = 1.0f) {
+        val commaMoreKeys = ". , ? , ! , : , ; , ' , \" , - , _ , ( , ) , [ , ] , { , } , / , \\\\ , @ , # , $ , % , & , * , + , = , < , > , ~ , ^ , | , € , £ , ¥ , ₹"
+        val commaKey = createKeyView(
+            label = ",",
+            hintNumber = null,
+            moreKeysSpec = commaMoreKeys,
+            isSpecial = true,
+            weight = 1.0f
+        ) {
             controller.onKeyTyped(",")
         }
         bottomRow.addView(commaKey)
@@ -1848,7 +1937,12 @@ class KeyboardView @JvmOverloads constructor(
         mainPanelContainer.addView(bottomRow)
     }
 
-    private fun createKeyRow(keys: List<String>, hints: List<String>? = null, paddingHorizontalDp: Float = 0f): LinearLayout {
+    private fun createKeyRow(
+        keys: List<String>,
+        hints: List<String>? = null,
+        moreKeysSpecs: List<String?>? = null,
+        paddingHorizontalDp: Float = 0f
+    ): LinearLayout {
         val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, 0, 1.0f)
@@ -1859,7 +1953,13 @@ class KeyboardView @JvmOverloads constructor(
         for (i in keys.indices) {
             val char = keys[i]
             val hint = hints?.getOrNull(i)
-            val key = createKeyView(char, hintNumber = hint, weight = 1.0f) {
+            val moreKeySpec = moreKeysSpecs?.getOrNull(i)
+            val key = createKeyView(
+                label = char,
+                hintNumber = hint,
+                moreKeysSpec = moreKeySpec,
+                weight = 1.0f
+            ) {
                 controller.onKeyTyped(char)
             }
             if (!isSymbolPanel && char.firstOrNull()?.isLetter() == true) {
@@ -1873,6 +1973,7 @@ class KeyboardView @JvmOverloads constructor(
     private fun createKeyView(
         label: String,
         hintNumber: String? = null,
+        moreKeysSpec: String? = null,
         isSpecial: Boolean = false,
         weight: Float = 1.0f,
         isSpace: Boolean = false,
@@ -1888,7 +1989,9 @@ class KeyboardView @JvmOverloads constructor(
         val shapeNormal = buildKeyShape(bgNormal, isAccent = false)
         val shapePressed = buildKeyShape(bgPressed, isAccent = false)
 
-        if (hintNumber != null) {
+        val effectiveSpec = moreKeysSpec ?: if (hintNumber != null) "!noPanelAutoMoreKey!,$hintNumber" else null
+
+        if (hintNumber != null || !effectiveSpec.isNullOrEmpty()) {
             val container = FrameLayout(context).apply {
                 background = shapeNormal
                 elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
@@ -1911,45 +2014,148 @@ class KeyboardView @JvmOverloads constructor(
             container.addView(mainTextView)
             container.setTag(R.id.tag_letter_text_view, mainTextView)
 
-            val hintTextView = TextView(context).apply {
-                text = hintNumber
-                includeFontPadding = false
-                setTextColor(theme.secondaryTextColor)
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 9.5f)
-                typeface = mediumTypeface
-                layoutParams = FrameLayout.LayoutParams(
-                    LayoutParams.WRAP_CONTENT,
-                    LayoutParams.WRAP_CONTENT,
-                    Gravity.TOP or Gravity.END
-                ).apply {
-                    setMargins(0, dpToPx(3f), dpToPx(5f), 0)
+            if (hintNumber != null) {
+                val hintTextView = TextView(context).apply {
+                    text = hintNumber
+                    includeFontPadding = false
+                    setTextColor(theme.secondaryTextColor)
+                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 9.5f)
+                    typeface = mediumTypeface
+                    layoutParams = FrameLayout.LayoutParams(
+                        LayoutParams.WRAP_CONTENT,
+                        LayoutParams.WRAP_CONTENT,
+                        Gravity.TOP or Gravity.END
+                    ).apply {
+                        setMargins(0, dpToPx(3f), dpToPx(5f), 0)
+                    }
                 }
+                container.addView(hintTextView)
             }
-            container.addView(hintTextView)
 
             var isLongPressed = false
+            var isShowingMoreKeys = false
+            var lastMotionX = 0f
+            var lastMotionY = 0f
+            var downRawX = 0f
+            var downRawY = 0f
+
+            val (parsedSpecs, hasNoPanelAuto) = MoreKeySpec.parseMoreKeys(effectiveSpec)
+
             val longPressRunnable = Runnable {
-                isLongPressed = true
-                container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                controller.onKeyTyped(hintNumber)
+                if (hasNoPanelAuto && parsedSpecs.size == 1) {
+                    isLongPressed = true
+                    container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    controller.onKeyTyped(parsedSpecs[0].label)
+                } else if (parsedSpecs.isNotEmpty()) {
+                    isShowingMoreKeys = true
+                    container.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+
+                    val keyLocation = IntArray(2)
+                    container.getLocationInWindow(keyLocation)
+                    val wrapperLocation = IntArray(2)
+                    contentWrapper.getLocationInWindow(wrapperLocation)
+                    val keyX = keyLocation[0] - wrapperLocation[0]
+                    val keyY = keyLocation[1] - wrapperLocation[1]
+
+                    val parentAospKey = AospKey(
+                        x = keyX,
+                        y = keyY,
+                        width = container.width,
+                        height = container.height
+                    )
+
+                    val moreKeysKeyboard = MoreKeysKeyboard.Builder(
+                        parentKey = parentAospKey,
+                        moreKeysSpecs = parsedSpecs,
+                        keyboardWidth = contentWrapper.width,
+                        defaultKeyWidth = dpToPx(42f).toInt(),
+                        defaultRowHeight = container.height,
+                        maxColumns = 8
+                    ).build()
+
+                    moreKeysKeyboardView.setKeyboard(moreKeysKeyboard)
+                    moreKeysKeyboardView.updateTheme(theme)
+                    moreKeysKeyboardView.showMoreKeysPanel(
+                        parentView = contentWrapper,
+                        controller = moreKeysController,
+                        pointX = keyX + container.width / 2,
+                        pointY = keyY,
+                        listener = moreKeysActionListener
+                    )
+                    moreKeysKeyboardView.showInParent(moreKeysOverlayContainer)
+
+                    val touchX = lastMotionX - wrapperLocation[0]
+                    val touchY = lastMotionY - wrapperLocation[1]
+                    moreKeysKeyboardView.onDownEvent(
+                        moreKeysKeyboardView.translateX(touchX.toInt()),
+                        moreKeysKeyboardView.translateY(touchY.toInt()),
+                        0,
+                        SystemClock.uptimeMillis()
+                    )
+                }
             }
 
             container.setOnTouchListener { v, event ->
-                when (event.action) {
+                when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
                         isLongPressed = false
+                        isShowingMoreKeys = false
+                        downRawX = event.rawX
+                        downRawY = event.rawY
+                        lastMotionX = event.rawX
+                        lastMotionY = event.rawY
                         v.background = shapePressed
                         v.elevation = dpToPx(0.5f).toFloat()
                         animatePress(v)
                         v.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        handler.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
+                        v.parent?.requestDisallowInterceptTouchEvent(true)
+                        if (parsedSpecs.isNotEmpty()) {
+                            handler.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
+                        }
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        lastMotionX = event.rawX
+                        lastMotionY = event.rawY
+                        if (isShowingMoreKeys) {
+                            val wrapperLocation = IntArray(2)
+                            contentWrapper.getLocationInWindow(wrapperLocation)
+                            val touchX = event.rawX - wrapperLocation[0]
+                            val touchY = event.rawY - wrapperLocation[1]
+                            moreKeysKeyboardView.onMoveEvent(
+                                moreKeysKeyboardView.translateX(touchX.toInt()),
+                                moreKeysKeyboardView.translateY(touchY.toInt()),
+                                0,
+                                event.eventTime
+                            )
+                        } else if (!isLongPressed) {
+                            val dx = event.rawX - downRawX
+                            val dy = event.rawY - downRawY
+                            if (Math.hypot(dx.toDouble(), dy.toDouble()) > dpToPx(12f)) {
+                                handler.removeCallbacks(longPressRunnable)
+                            }
+                        }
                     }
                     MotionEvent.ACTION_UP -> {
                         handler.removeCallbacks(longPressRunnable)
                         v.background = shapeNormal
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
                         animateRelease(v)
-                        if (!isLongPressed) {
+                        if (isShowingMoreKeys) {
+                            val wrapperLocation = IntArray(2)
+                            contentWrapper.getLocationInWindow(wrapperLocation)
+                            val touchX = event.rawX - wrapperLocation[0]
+                            val touchY = event.rawY - wrapperLocation[1]
+                            moreKeysKeyboardView.onUpEvent(
+                                moreKeysKeyboardView.translateX(touchX.toInt()),
+                                moreKeysKeyboardView.translateY(touchY.toInt()),
+                                0,
+                                event.eventTime
+                            )
+                            moreKeysKeyboardView.dismissMoreKeysPanel()
+                            isShowingMoreKeys = false
+                        } else if (isLongPressed) {
+                            // Single alternative auto-commit already handled
+                        } else {
                             onClick()
                         }
                     }
@@ -1958,6 +2164,10 @@ class KeyboardView @JvmOverloads constructor(
                         v.background = shapeNormal
                         v.elevation = dpToPx(KEY_ELEVATION_DP).toFloat()
                         animateRelease(v)
+                        if (isShowingMoreKeys) {
+                            moreKeysKeyboardView.dismissMoreKeysPanel()
+                            isShowingMoreKeys = false
+                        }
                     }
                 }
                 true
