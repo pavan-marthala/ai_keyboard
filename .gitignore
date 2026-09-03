@@ -1,3 +1,30 @@
-.idea
-.vscode
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Environment / Secrets
+.env
+.env.*
+
+# Signing / Certificates
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+
+# Firebase (project-specific)
+google-services.json
+GoogleService-Info.plist
+firebase_options.dart
+service-account*.json
+
+# Logs
+*.log

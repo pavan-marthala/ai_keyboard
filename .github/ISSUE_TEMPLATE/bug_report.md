@@ -1,38 +1,42 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
+name: Bug Report
+about: Report a bug or unexpected behavior
+title: '[Bug] '
+labels: 'bug'
 assignees: ''
-
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+> ⚠️ **Security Notice**: Please redact any API keys, tokens, passwords, or personal information from logs and screenshots before posting.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+## Description
+<!-- Provide a clear and concise description of the bug. -->
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+## Steps to Reproduce
+<!-- Describe the steps to reproduce the issue. -->
+1.
+2.
+3.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## Expected Behavior
+<!-- What did you expect to happen? -->
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+## Actual Behavior
+<!-- What actually happened? -->
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+## Device Information
+- **Device Model:**
+- **OS Version:** (Android/iOS version)
+- **App Version / Commit Hash:**
 
-**Additional context**
-Add any other context about the problem here.
+## AI Provider (if applicable)
+- **Provider:** (Gemini / OpenAI / Groq / OpenRouter / None)
+- **Model:**
+
+## Screenshots / Screen Recordings
+<!-- Add screenshots or screen recordings to help explain the problem. -->
+
+## Logs / Error Messages
+<!-- Paste any relevant logs or error messages here. -->
+
+## Additional Context
+<!-- Add any other context about the problem here. -->

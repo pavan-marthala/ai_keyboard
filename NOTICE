@@ -1,0 +1,13 @@
+AI Keyboard
+Copyright 2024 Pavan Marthala
+
+This product includes software developed at
+The Android Open Source Project (https://android.googlesource.com/platform/packages/inputmethods/LatinIME/).
+- C/C++ source files in app/android/app/src/main/cpp/aosp_latinime/
+- C/C++ bridge files in app/android/app/src/main/cpp/latinime/
+- Kotlin adapter files in app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/
+- Binary dictionary file main_en.dict
+Copyright (C) The Android Open Source Project
+Licensed under the Apache License, Version 2.0.
+
+This project also includes the Contributor Covenant Code of Conduct, whose attribution is noted in the CODE_OF_CONDUCT.md file.

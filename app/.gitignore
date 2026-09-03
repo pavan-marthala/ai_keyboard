@@ -44,5 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# DevTools (user-specific)
+devtools_options.yaml
+
 # Widget Preview related
 .widget_preview/

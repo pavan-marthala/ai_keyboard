@@ -1,20 +1,25 @@
 ---
-name: Feature request
-about: Suggest an idea for this project
-title: ''
-labels: ''
+name: Feature Request
+about: Suggest a new feature or capability
+title: '[Feature] '
+labels: 'enhancement'
 assignees: ''
-
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Problem Description
+<!-- Is your feature request related to a problem? Please describe what limitation you are experiencing. -->
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+## Proposed Solution
+<!-- Describe the solution you'd like to see implemented. -->
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Platform
+- **Platform:** (Android / iOS / Both)
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+## AI Provider Relevance (if applicable)
+<!-- Does this feature apply to a specific AI provider? (Gemini, OpenAI, Groq, OpenRouter) -->
+
+## Alternatives Considered
+<!-- A clear and concise description of any alternative solutions or features you've considered. -->
+
+## Additional Context / Mockups
+<!-- Add any other context or screenshots/mockups about the feature request here. -->
