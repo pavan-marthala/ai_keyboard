@@ -1,5 +1,7 @@
 import 'package:ai_keyboard/core/di/injection.dart';
 import 'package:ai_keyboard/core/theme/app_theme.dart';
+import 'package:ai_keyboard/core/utils/app_routes.dart';
+import 'package:ai_keyboard/features/app_shell/presentation/screens%20/app_shell_screen.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_bloc.dart';
 import 'package:ai_keyboard/features/commands/presentation/bloc/command_event.dart';
 import 'package:ai_keyboard/features/playground/presentation/pages/keyboard_playground_page.dart';
@@ -8,14 +10,74 @@ import 'package:ai_keyboard/features/settings/presentation/bloc/settings_event.d
 import 'package:ai_keyboard/features/settings/presentation/pages/settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
 );
+
+final GlobalKey<NavigatorState> _shellNavigatorKeyPlayGround =
+    GlobalKey<NavigatorState>(debugLabel: 'shell-playground');
+final GlobalKey<NavigatorState> _shellNavigatorKeySettings =
+    GlobalKey<NavigatorState>(debugLabel: 'shell-settings');
+
+final GoRouter _appRouter = GoRouter(
+  initialLocation: AppRoutes.playground,
+  navigatorKey: rootNavigatorKey,
+  debugLogDiagnostics: true,
+  routes: [
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          AppShellScreen(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorKeyPlayGround,
+          routes: [
+            GoRoute(
+              path: AppRoutes.playground,
+              name: AppRoutes.playground,
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: KeyboardPlaygroundPage()),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          navigatorKey: _shellNavigatorKeySettings,
+          routes: [
+            GoRoute(
+              path: AppRoutes.settings,
+              name: AppRoutes.settings,
+              pageBuilder: (context, state) =>
+                  const NoTransitionPage(child: SettingsPage()),
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
-  runApp(const AiKeyboardApp());
+  runApp(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) =>
+              getIt<SettingsBloc>()..add(const SettingsEvent.loadSettings()),
+          lazy: false,
+        ),
+        BlocProvider(
+          create: (_) =>
+              getIt<CommandBloc>()..add(const CommandEvent.loadCommands()),
+          lazy: false,
+        ),
+      ],
+
+      child: const AiKeyboardApp(),
+    ),
+  );
 }
 
 class AiKeyboardApp extends StatelessWidget {
@@ -23,74 +85,15 @@ class AiKeyboardApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (_) =>
-              getIt<SettingsBloc>()..add(const SettingsEvent.loadSettings()),
-        ),
-        BlocProvider(
-          create: (_) =>
-              getIt<CommandBloc>()..add(const CommandEvent.loadCommands()),
-        ),
-      ],
-      child: MaterialApp(
-        title: 'AI Keyboard Utility',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.dark,
-        darkTheme: AppTheme.dark,
-        home: const MainHomeScreen(),
-      ),
-    );
-  }
-}
-
-class MainHomeScreen extends StatefulWidget {
-  const MainHomeScreen({super.key});
-
-  @override
-  State<MainHomeScreen> createState() => _MainHomeScreenState();
-}
-
-class _MainHomeScreenState extends State<MainHomeScreen> {
-  int _currentIndex = 0;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          KeyboardPlaygroundPage(
-            onNavigateToSettings: () {
-              setState(() {
-                _currentIndex = 1;
-              });
-            },
-          ),
-          const SettingsPage(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.keyboard),
-            selectedIcon: Icon(Icons.keyboard),
-            label: 'Playground',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.tune_outlined),
-            selectedIcon: Icon(Icons.tune),
-            label: 'Settings',
-          ),
-        ],
-      ),
+    return MaterialApp.router(
+      routerConfig: _appRouter,
+      title: 'AI Keyboard Utility',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.dark,
+      darkTheme: AppTheme.dark,
+      builder: (context, child) {
+        return child ?? const Scaffold();
+      },
     );
   }
 }

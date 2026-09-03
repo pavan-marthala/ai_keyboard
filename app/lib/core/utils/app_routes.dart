@@ -1,4 +1,5 @@
 class AppRoutes {
   static const splash = '/';
-  static const home = '/home';
+  static const playground = '/playground';
+  static const settings = '/settings';
 }
