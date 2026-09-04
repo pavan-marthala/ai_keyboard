@@ -22,11 +22,6 @@ func debugLog(_ message: String) {}
 class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
     DesktopCommandPrototype.shared.start()
-    let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
-    let bundlePath = Bundle.main.bundlePath
-    let processName = ProcessInfo.processInfo.processName
-    let pid = ProcessInfo.processInfo.processIdentifier
-    debugLog("[NATIVE IDENTITY] bundleId=\(bundleId), bundlePath=\(bundlePath), processName=\(processName), pid=\(pid)")
 
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
