@@ -411,18 +411,20 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
 
         NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = \(command) [execId: \(execution.id.uuidString.prefix(8))]")
 
-        if command == "@fix" {
-            // Asynchronous Real AI execution
-            let task = Task {
-                await self.executeRealAiFix(execution: execution)
-            }
-            activeTasks[execution.id] = task
-        } else {
-            // Asynchronous Mock execution
-            let task = Task {
-                await self.executeMockCommand(execution: execution)
-            }
-            activeTasks[execution.id] = task
+        // All commands (@fix, @rewrite, @short, @expand) execute real AI asynchronously
+        let task = Task {
+            await self.executeRealAiCommand(execution: execution)
+        }
+        activeTasks[execution.id] = task
+    }
+
+    private func actionLabelForCommand(_ command: String) -> String {
+        switch command.lowercased() {
+        case "@fix": return "Fixing..."
+        case "@rewrite": return "Rewriting..."
+        case "@short": return "Shortening..."
+        case "@expand": return "Expanding..."
+        default: return "Transforming..."
         }
     }
 
@@ -435,8 +437,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
                 self.progressIndicator?.startAnimation(nil)
                 if running.count == 1 {
                     let cmd = running[0]
-                    let action = (cmd == "@fix") ? "Fixing..." : "\(cmd.dropFirst().capitalized)..."
-                    self.statusLabel?.stringValue = "⏳ \(action)"
+                    self.statusLabel?.stringValue = "⏳ \(self.actionLabelForCommand(cmd))"
                     self.statusLabel?.textColor = .labelColor
                 } else {
                     self.statusLabel?.stringValue = "⏳ Processing \(running.joined(separator: ", "))..."
@@ -459,9 +460,9 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         }
     }
 
-    // MARK: - Real AI Execution (@fix)
+    // MARK: - Real AI Execution (@fix, @rewrite, @short, @expand)
 
-    private func executeRealAiFix(execution: DesktopCommandExecutionContext) async {
+    private func executeRealAiCommand(execution: DesktopCommandExecutionContext) async {
         do {
             let transformedText = try await DesktopAiTransformer.shared.transform(
                 command: execution.command,
@@ -501,110 +502,11 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
                 self.cleanupExecution(execution.id)
 
                 // CRITICAL REQUIREMENT:
-                // NEVER fall back to mock transformation for @fix.
+                // NEVER fall back to mock transformation for ANY command.
                 // Do NOT modify user's text.
                 // Display error and keep prompt open.
                 self.showError(error.localizedDescription, for: execution)
             }
-        }
-    }
-
-    // MARK: - Mock Command Execution (@rewrite, @short, @expand)
-
-    private func executeMockCommand(execution: DesktopCommandExecutionContext) async {
-        let transformedText = transformMock(command: execution.command, selectedText: execution.selectedText)
-
-        await MainActor.run {
-            guard !execution.isCancelled else {
-                NSLog("[DesktopShortcutPrototype] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
-                self.cleanupExecution(execution.id)
-                return
-            }
-
-            NSLog("[DesktopShortcutPrototype] MOCK TRANSFORMED [\(execution.command)] = '\(transformedText)'")
-            let success = self.executeReplacement(transformedText: transformedText, execution: execution)
-
-            self.cleanupExecution(execution.id)
-
-            if success {
-                if self.activeExecutions.isEmpty {
-                    self.closePrompt()
-                } else {
-                    self.updateUIForActiveExecutions()
-                }
-            } else {
-                self.showError("Replacement failed in target application.", for: execution)
-            }
-        }
-    }
-
-    // MARK: - Deterministic Mock Transformation
-
-    private func transformMock(command: String, selectedText: String) -> String {
-        let trimmed = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalized = trimmed.lowercased()
-
-        switch command {
-        case "@rewrite":
-            let mockDatabase: [String: String] = [
-                "hello world": "Please rewrite this: hello world",
-                "i has a apple": "Please rewrite this: i has a apple"
-            ]
-
-            if let mapped = mockDatabase[normalized] {
-                return mapped
-            }
-
-            return "Please rewrite this: \(trimmed)"
-
-        case "@short":
-            let mockDatabase: [String: String] = [
-                "this is a very long example sentence.": "Long example sentence.",
-                "this is a very long example sentence": "Long example sentence.",
-                "hello world": "Hello.",
-                "i has a apple": "An apple."
-            ]
-
-            if let mapped = mockDatabase[normalized] {
-                return mapped
-            }
-
-            let words = trimmed.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
-            if words.count > 3 {
-                let shortened = words.suffix(3).joined(separator: " ")
-                let capitalized = shortened.prefix(1).uppercased() + shortened.dropFirst()
-                return capitalized.hasSuffix(".") ? capitalized : capitalized + "."
-            } else if words.count > 1 {
-                let shortened = words.last!
-                let capitalized = shortened.prefix(1).uppercased() + shortened.dropFirst()
-                return capitalized.hasSuffix(".") ? capitalized : capitalized + "."
-            } else {
-                return trimmed
-            }
-
-        case "@expand":
-            let mockDatabase: [String: String] = [
-                "hello world": "Hello world. This is an expanded example sentence.",
-                "i has a apple": "I have an apple. This is an expanded example sentence."
-            ]
-
-            if let mapped = mockDatabase[normalized] {
-                return mapped
-            }
-
-            var base = trimmed
-            if let first = base.first {
-                base = first.uppercased() + base.dropFirst()
-            }
-
-            if !base.hasSuffix(".") && !base.hasSuffix("!") && !base.hasSuffix("?") {
-                base += "."
-            }
-
-            return "\(base) This is an expanded example sentence."
-
-        default:
-            return trimmed
         }
     }
 

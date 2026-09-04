@@ -71,13 +71,13 @@ class DesktopAiTransformer {
         case "@fix":
             return "Correct the user's text."
         case "@rewrite":
-            return "Rewrite the user's text while preserving its original meaning."
+            return "Rewrite the following text while preserving its meaning."
         case "@short":
-            return "Make the user's text shorter and more concise while preserving its meaning."
+            return "Make the following text concise while preserving its meaning."
         case "@expand":
-            return "Expand the user's text to make it clearer and more complete."
+            return "Expand the following text with useful detail while preserving its original meaning."
         default:
-            return "Transform the user's text."
+            return "Transform the following text while preserving its meaning."
         }
     }
 }

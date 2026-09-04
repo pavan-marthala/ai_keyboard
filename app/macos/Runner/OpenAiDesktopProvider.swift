@@ -52,9 +52,9 @@ class OpenAiDesktopProvider: DesktopAiProvider {
 
         let systemInstruction = """
 You are a text transformation engine inside a keyboard.
-Return only the corrected text.
+Return only the transformed text.
 Do not add explanations, notes, quotes, or markdown.
-Preserve the user's intended meaning and tone.
+Preserve the user's intended meaning.
 """
 
         let userContent = prompt.isEmpty ? text : "\(prompt)\n\nText:\n\(text)"
