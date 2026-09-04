@@ -5,13 +5,11 @@ import '../../../domain/entities/desktop_capability.dart';
 
 class DesktopCapabilityCard extends StatelessWidget {
   final DesktopCapability capability;
-  final VoidCallback onRequest;
   final VoidCallback onOpenSettings;
 
   const DesktopCapabilityCard({
     super.key,
     required this.capability,
-    required this.onRequest,
     required this.onOpenSettings,
   });
 
@@ -21,26 +19,32 @@ class DesktopCapabilityCard extends StatelessWidget {
     final typo = context.appTypography;
 
     final isEnabled = capability.status == DesktopCapabilityStatus.enabled;
-    final isNotConfigured =
-        capability.status == DesktopCapabilityStatus.notConfigured;
+    final isRequired = capability.status == DesktopCapabilityStatus.required;
+    final isUnknown = capability.status == DesktopCapabilityStatus.unknown;
 
     final Color statusColor = isEnabled
         ? colors.success
-        : isNotConfigured
-        ? colors.textSecondary
-        : colors.warning;
+        : isUnknown
+        ? colors.primary300
+        : isRequired
+        ? colors.warning
+        : colors.textSecondary;
 
     final String statusLabel = isEnabled
         ? 'Enabled'
-        : isNotConfigured
-        ? 'Not configured yet'
-        : 'Required';
+        : isUnknown
+        ? 'Verify in Settings'
+        : isRequired
+        ? 'Required'
+        : 'Not configured yet';
 
     final IconData statusIcon = isEnabled
         ? Icons.check_circle_rounded
-        : isNotConfigured
-        ? Icons.info_outline_rounded
-        : Icons.warning_amber_rounded;
+        : isUnknown
+        ? Icons.help_outline_rounded
+        : isRequired
+        ? Icons.warning_amber_rounded
+        : Icons.info_outline_rounded;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -89,6 +93,17 @@ class DesktopCapabilityCard extends StatelessWidget {
                         height: 1.4,
                       ),
                     ),
+                    if (isUnknown) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Status cannot be verified automatically. Verify or enable this permission in System Settings.',
+                        style: typo.bodyMedium.copyWith(
+                          color: colors.primary300,
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -114,7 +129,7 @@ class DesktopCapabilityCard extends StatelessWidget {
               ),
             ],
           ),
-          if (!isEnabled && !isNotConfigured) ...[
+          if (isRequired || isUnknown) ...[
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -123,7 +138,7 @@ class DesktopCapabilityCard extends StatelessWidget {
                   onPressed: onOpenSettings,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colors.textPrimary,
-                    side: BorderSide(color: colors.border),
+                    side: BorderSide(color: colors.borderLight),
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 10,
@@ -134,26 +149,7 @@ class DesktopCapabilityCard extends StatelessWidget {
                   ),
                   child: const Text(
                     'Open Settings',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: onRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: const Text(
-                    'Enable Access',
-                    style: TextStyle(fontSize: 12),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

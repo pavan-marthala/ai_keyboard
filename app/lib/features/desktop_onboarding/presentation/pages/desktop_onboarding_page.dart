@@ -251,12 +251,8 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
                 )
               else
                 ...state.capabilities.map((capability) {
-                  print('Rendering capability card for: ${capability.type}');
                   return DesktopCapabilityCard(
                     capability: capability,
-                    onRequest: () => bloc.add(
-                      DesktopOnboardingEvent.requestCapability(capability.type),
-                    ),
                     onOpenSettings: () => bloc.add(
                       DesktopOnboardingEvent.openSettings(capability.type),
                     ),

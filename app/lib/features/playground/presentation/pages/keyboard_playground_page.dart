@@ -2,7 +2,10 @@ import 'package:ai_keyboard/core/di/injection.dart';
 import 'package:ai_keyboard/core/theme/app_theme.dart';
 import 'package:ai_keyboard/core/utils/app_buitton.dart';
 import 'package:ai_keyboard/core/utils/app_text_field.dart';
+import 'package:ai_keyboard/core/utils/check_platforms.dart';
 import 'package:ai_keyboard/core/utils/sized_context.dart';
+import 'package:ai_keyboard/features/desktop_onboarding/domain/entities/desktop_capability.dart';
+import 'package:ai_keyboard/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
 import 'package:ai_keyboard/features/playground/data/services/keyboard_status_service.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
@@ -22,9 +25,11 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
     with WidgetsBindingObserver {
   final _textController = TextEditingController();
   final _keyboardStatusService = getIt<KeyboardStatusService>();
+  final _desktopCapabilityRepository = getIt<DesktopCapabilityRepository>();
 
   bool _isKeyboardActive = false;
   bool _isCheckingStatus = true;
+  List<DesktopCapability> _desktopCapabilities = [];
 
   @override
   void initState() {
@@ -49,12 +54,28 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
 
   Future<void> _checkKeyboardStatus() async {
     setState(() => _isCheckingStatus = true);
-    final active = await _keyboardStatusService.isAiKeyboardActive();
-    if (mounted) {
-      setState(() {
-        _isKeyboardActive = active;
-        _isCheckingStatus = false;
-      });
+    if (PlatformChecker.isDesktop()) {
+      final capabilities = await _desktopCapabilityRepository.getCapabilities();
+      if (mounted) {
+        final allEnabled =
+            capabilities.isNotEmpty &&
+            capabilities
+                .where((c) => c.isRequired)
+                .every((c) => c.status == DesktopCapabilityStatus.enabled);
+        setState(() {
+          _desktopCapabilities = capabilities;
+          _isKeyboardActive = allEnabled;
+          _isCheckingStatus = false;
+        });
+      }
+    } else {
+      final active = await _keyboardStatusService.isAiKeyboardActive();
+      if (mounted) {
+        setState(() {
+          _isKeyboardActive = active;
+          _isCheckingStatus = false;
+        });
+      }
     }
   }
 
@@ -94,75 +115,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                   style: typo.bodyMedium,
                 ),
                 const SizedBox(height: 20),
-                Card(
-                  color: _isKeyboardActive
-                      ? colors.success.withValues(alpha: 0.10)
-                      : colors.warning.withValues(alpha: 0.10),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              _isKeyboardActive
-                                  ? Icons.check_circle
-                                  : Icons.radio_button_unchecked,
-                              color: _isKeyboardActive
-                                  ? colors.success
-                                  : colors.warning,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              _isKeyboardActive
-                                  ? 'AI Keyboard Active'
-                                  : 'AI Keyboard Not Active',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                                color: _isKeyboardActive
-                                    ? colors.success
-                                    : colors.warning,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (_isCheckingStatus)
-                              const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (!_isKeyboardActive) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            'Enable and select AI Keyboard in Android System Settings to test transformation.',
-                            style: typo.bodyMedium.copyWith(
-                              fontSize: 13,
-                              color: colors.warning,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          AppButton(
-                            text: "Select AI Keyboard",
-                            color: colors.warning,
-                            onPressed: () async {
-                              await _keyboardStatusService
-                                  .openKeyboardSettings();
-                            },
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            icon: const Icon(Icons.settings, size: 20),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
+                _buildStatusCard(context),
                 const SizedBox(height: 16),
                 Card(
                   color: colors.card,
@@ -388,6 +341,238 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusCard(BuildContext context) {
+    final colors = context.appColors;
+    final typo = context.appTypography;
+
+    if (PlatformChecker.isDesktop()) {
+      final missingCapabilities = _desktopCapabilities
+          .where((c) => c.status != DesktopCapabilityStatus.enabled)
+          .toList();
+
+      return Card(
+        color: _isKeyboardActive
+            ? colors.success.withValues(alpha: 0.10)
+            : colors.warning.withValues(alpha: 0.10),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    _isKeyboardActive
+                        ? Icons.check_circle
+                        : Icons.warning_amber_rounded,
+                    color: _isKeyboardActive ? colors.success : colors.warning,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    _isKeyboardActive
+                        ? 'AI Keyboard Active'
+                        : 'AI Keyboard Not Active',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: _isKeyboardActive
+                          ? colors.success
+                          : colors.warning,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_isCheckingStatus)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _isKeyboardActive
+                    ? 'AI Keyboard has the necessary system permissions to detect commands and transform text.'
+                    : 'AI Keyboard requires system permissions to detect commands and interact with active text fields.',
+                style: typo.bodyMedium.copyWith(
+                  fontSize: 13,
+                  color: _isKeyboardActive
+                      ? colors.textSecondary
+                      : colors.warning,
+                ),
+              ),
+              if (!_isKeyboardActive && missingCapabilities.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ...missingCapabilities.map((capability) {
+                  final isUnknown =
+                      capability.status == DesktopCapabilityStatus.unknown;
+                  return Container(
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colors.card,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  Text(
+                                    capability.title,
+                                    style: typo.titleMedium.copyWith(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: colors.textPrimary,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          (isUnknown
+                                                  ? colors.primary300
+                                                  : colors.warning)
+                                              .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      isUnknown
+                                          ? 'Verify in Settings'
+                                          : 'Required',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: isUnknown
+                                            ? colors.primary300
+                                            : colors.warning,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                isUnknown
+                                    ? 'Status cannot be verified automatically. Verify or enable this permission in System Settings.'
+                                    : capability.description,
+                                style: typo.bodyMedium.copyWith(
+                                  fontSize: 12,
+                                  color: colors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        OutlinedButton(
+                          onPressed: () => _desktopCapabilityRepository
+                              .openSystemSettings(capability.type),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: colors.textPrimary,
+                            side: BorderSide(color: colors.borderLight),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Open Settings',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Mobile (Android / iOS)
+    return Card(
+      color: _isKeyboardActive
+          ? colors.success.withValues(alpha: 0.10)
+          : colors.warning.withValues(alpha: 0.10),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  _isKeyboardActive
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
+                  color: _isKeyboardActive ? colors.success : colors.warning,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  _isKeyboardActive
+                      ? 'AI Keyboard Active'
+                      : 'AI Keyboard Not Active',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: _isKeyboardActive ? colors.success : colors.warning,
+                  ),
+                ),
+                const Spacer(),
+                if (_isCheckingStatus)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            if (!_isKeyboardActive) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Enable and select AI Keyboard in Android System Settings to test transformation.',
+                style: typo.bodyMedium.copyWith(
+                  fontSize: 13,
+                  color: colors.warning,
+                ),
+              ),
+              const SizedBox(height: 12),
+              AppButton(
+                text: "Select AI Keyboard",
+                color: colors.warning,
+                onPressed: () async {
+                  await _keyboardStatusService.openKeyboardSettings();
+                },
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                icon: const Icon(Icons.settings, size: 20),
+              ),
+            ],
+          ],
         ),
       ),
     );

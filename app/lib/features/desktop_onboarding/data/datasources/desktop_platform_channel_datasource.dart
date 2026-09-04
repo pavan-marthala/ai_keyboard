@@ -3,6 +3,8 @@ import 'dart:io' show Platform;
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 
+import '../../domain/entities/desktop_capability.dart';
+
 @lazySingleton
 class DesktopPlatformChannelDataSource {
   static const MethodChannel _channel = MethodChannel(
@@ -40,16 +42,29 @@ class DesktopPlatformChannelDataSource {
     } catch (_) {}
   }
 
-  Future<bool> isInputMonitoringGranted() async {
-    if (!Platform.isMacOS) return false;
+  Future<DesktopCapabilityStatus> getInputMonitoringStatus() async {
+    if (!Platform.isMacOS) return DesktopCapabilityStatus.notConfigured;
     try {
-      final bool? granted = await _channel.invokeMethod<bool>(
-        'isInputMonitoringGranted',
+      final String? status = await _channel.invokeMethod<String>(
+        'getInputMonitoringStatus',
       );
-      return granted ?? false;
+      switch (status) {
+        case 'granted':
+          return DesktopCapabilityStatus.enabled;
+        case 'denied':
+          return DesktopCapabilityStatus.required;
+        case 'unknown':
+        default:
+          return DesktopCapabilityStatus.unknown;
+      }
     } catch (_) {
-      return false;
+      return DesktopCapabilityStatus.unknown;
     }
+  }
+
+  Future<bool> isInputMonitoringGranted() async {
+    final status = await getInputMonitoringStatus();
+    return status == DesktopCapabilityStatus.enabled;
   }
 
   Future<void> openInputMonitoringSettings() async {

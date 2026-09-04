@@ -43,7 +43,15 @@ class PlatformChecker {
   }
 
   static bool isDesktop() {
-    if (kIsWeb || Platform.isAndroid || Platform.isIOS) {
+    if (kIsWeb) {
+      return false;
+    }
+    if (debugDefaultTargetPlatformOverride != null) {
+      return debugDefaultTargetPlatformOverride == TargetPlatform.macOS ||
+          debugDefaultTargetPlatformOverride == TargetPlatform.windows ||
+          debugDefaultTargetPlatformOverride == TargetPlatform.linux;
+    }
+    if (Platform.isAndroid || Platform.isIOS) {
       return false;
     }
     return true;

@@ -262,3 +262,77 @@ Implemented in `MainActivity.kt` (Android only).
 | `resetKeyboardHeight` | None | Resets keyboard height to default (260 dp). |
 | `getUseNumbers` | None | Returns whether number row is enabled. |
 | `setUseNumbers` | `useNumbers: Boolean` | Persists number row state and notifies active `KeyboardService`. |
+
+---
+
+## 7. Desktop Capabilities & Permission Infrastructure (macOS & Windows)
+
+### Architecture Overview
+
+Desktop permission management is centralized across onboarding and the playground:
+
+```text
+Presentation Layer
+   ├─► DesktopOnboardingPage
+   └─► KeyboardPlaygroundPage (Desktop recovery card)
+            │
+            ▼
+   DesktopOnboardingBloc / DesktopCapabilityRepository
+            │
+            ▼
+   DesktopCapabilityRepositoryImpl
+            │
+            ▼
+   DesktopPlatformChannelDataSource
+            │  (MethodChannel: com.pk.ai_keyboard/desktop)
+            ▼
+   Native Desktop Runner (macOS AppDelegate.swift / Windows)
+```
+
+### Channel: `com.pk.ai_keyboard/desktop`
+
+| Method | Arguments | Returns | Description |
+| :--- | :--- | :--- | :--- |
+| `isAccessibilityGranted` | None | `bool` | Evaluates Accessibility permission via `AXIsProcessTrusted()`. |
+| `openAccessibilitySettings` | None | `bool` | Deep-links to `Privacy_Accessibility` in macOS System Settings. |
+| `getInputMonitoringStatus` | None | `String` | Returns `"granted"`, `"denied"`, or `"unknown"` via `IOHIDCheckAccess(1)`. |
+| `isInputMonitoringGranted` | None | `bool` | Legacy convenience check returning `status == "granted"`. |
+| `openInputMonitoringSettings` | None | `bool` | Deep-links to `Privacy_ListenEvent` in macOS System Settings. |
+
+### Capability Evaluation & Decoupling
+
+1. **Accessibility Detection:**
+   - Evaluated strictly using `AXIsProcessTrusted()`.
+   - Settings destination: `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`.
+
+2. **Input Monitoring Detection:**
+   - Evaluated using `IOHIDCheckAccess(kIOHIDRequestTypeListenEvent)` (`kIOHIDRequestTypeListenEvent = 1`) declared in `IOKit/hidsystem/IOHIDLib.h`.
+   - Returns:
+     - `0` (`kIOHIDAccessTypeGranted`): Maps to `DesktopCapabilityStatus.enabled`.
+     - `1` (`kIOHIDAccessTypeDenied`): Maps to `DesktopCapabilityStatus.required`.
+     - `2` (`kIOHIDAccessTypeUnknown`): Maps to `DesktopCapabilityStatus.unknown`.
+   - Fully decoupled: Never infers or reuses Accessibility status (`AXIsProcessTrusted`).
+   - Settings destination: `x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent`.
+   - Limitations: If running in an environment or macOS version where non-intrusive TCC event listening access cannot be reliably checked, it truthfully reports `unknown` and guides the user to verify in System Settings.
+
+3. **Status Semantics:**
+   - `enabled`: System permission is confirmed active.
+   - `required`: Capability is required and known to be disabled/denied.
+   - `unknown`: Platform cannot reliably determine status; user is informed to verify in Settings.
+   - `notConfigured`: Future placeholder (e.g. Windows integration).
+
+4. **Action Simplification:**
+   - Redundant "Enable Access" buttons are removed in favor of a single, truthful "Open Settings" action that directs the user to the exact macOS System Settings pane.
+
+5. **Lifecycle Synchronization:**
+   - Window focus and app resume transitions (`AppLifecycleState.resumed`) trigger capability re-checks on both `DesktopOnboardingPage` and `KeyboardPlaygroundPage`, updating UI immediately when the user returns from System Settings.
+
+6. **State Decoupling:**
+   - `isOnboardingCompleted`: Represents solely whether the user has finished the onboarding tutorial flow.
+   - `DesktopCapabilityStatus`: Represents the live OS permission state.
+   - Previously completed onboarding never hides revoked permissions on the playground.
+
+7. **Playground Recovery:**
+   - `KeyboardPlaygroundPage` reuses `DesktopCapabilityRepository` on desktop to inspect missing permissions and render dedicated recovery items with "Open Settings" buttons.
+   - Android/mobile IME settings logic remains completely isolated and unchanged.
+

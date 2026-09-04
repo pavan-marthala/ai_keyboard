@@ -19,25 +19,26 @@ class DesktopCapabilityRepositoryImpl implements DesktopCapabilityRepository {
   Future<List<DesktopCapability>> getCapabilities() async {
     if (PlatformChecker.isMacOS()) {
       final isAccessibility = await _dataSource.isAccessibilityGranted();
-      final isInputMonitoring = await _dataSource.isInputMonitoringGranted();
+      final inputMonitoringStatus = await _dataSource
+          .getInputMonitoringStatus();
+
+      final accessibilityStatus = isAccessibility
+          ? DesktopCapabilityStatus.enabled
+          : DesktopCapabilityStatus.required;
 
       return [
         DesktopCapability(
           type: DesktopCapabilityType.accessibility,
           title: 'Accessibility',
           description: 'Allows AI Keyboard to interact with active application text fields and insert transformed text.',
-          status: isAccessibility
-              ? DesktopCapabilityStatus.enabled
-              : DesktopCapabilityStatus.required,
+          status: accessibilityStatus,
           isRequired: true,
         ),
         DesktopCapability(
           type: DesktopCapabilityType.inputMonitoring,
           title: 'Keyboard Input Monitoring',
           description: 'Allows AI Keyboard to detect trailing commands (such as @fix) directly as you type.',
-          status: isInputMonitoring
-              ? DesktopCapabilityStatus.enabled
-              : DesktopCapabilityStatus.required,
+          status: inputMonitoringStatus,
           isRequired: true,
         ),
       ];
