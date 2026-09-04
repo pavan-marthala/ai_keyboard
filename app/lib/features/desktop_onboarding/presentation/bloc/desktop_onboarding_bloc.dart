@@ -30,7 +30,7 @@ class DesktopOnboardingBloc
     try {
       final capabilities = await _repository.getCapabilities();
       final allGranted =
-          capabilities.isEmpty ||
+          capabilities.isNotEmpty &&
           capabilities
               .where((c) => c.isRequired)
               .every((c) => c.status == DesktopCapabilityStatus.enabled);
@@ -58,7 +58,7 @@ class DesktopOnboardingBloc
       // Re-check capability status after request
       final capabilities = await _repository.getCapabilities();
       final allGranted =
-          capabilities.isEmpty ||
+          capabilities.isNotEmpty &&
           capabilities
               .where((c) => c.isRequired)
               .every((c) => c.status == DesktopCapabilityStatus.enabled);

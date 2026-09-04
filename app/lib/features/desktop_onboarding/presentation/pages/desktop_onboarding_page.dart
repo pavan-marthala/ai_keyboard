@@ -78,10 +78,12 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
   }
 
   void _finishOnboarding() {
-    context.read<DesktopOnboardingBloc>().add(
-      const DesktopOnboardingEvent.completeOnboarding(),
-    );
-    context.go(AppRoutes.playground);
+    final bloc = context.read<DesktopOnboardingBloc>();
+    if (bloc.state.isCompleted) {
+      context.go(AppRoutes.playground);
+    } else {
+      bloc.add(const DesktopOnboardingEvent.completeOnboarding());
+    }
   }
 
   @override
@@ -90,31 +92,38 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
 
     return Scaffold(
       backgroundColor: colors.background,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
-            child: Column(
-              children: [
-                const SizedBox(height: 24),
-                OnboardingPageIndicator(
-                  currentPage: _currentPage,
-                  pageCount: 2,
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: PageView(
-                    controller: _pageController,
-                    onPageChanged: (index) {
-                      setState(() => _currentPage = index);
-                    },
-                    children: [
-                      _buildIntroductionPage(context),
-                      _buildEnableAccessPage(context),
-                    ],
+      body: BlocListener<DesktopOnboardingBloc, DesktopOnboardingState>(
+        listenWhen: (previous, current) =>
+            !previous.isCompleted && current.isCompleted,
+        listener: (context, state) {
+          context.go(AppRoutes.playground);
+        },
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: Column(
+                children: [
+                  const SizedBox(height: 24),
+                  OnboardingPageIndicator(
+                    currentPage: _currentPage,
+                    pageCount: 2,
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      onPageChanged: (index) {
+                        setState(() => _currentPage = index);
+                      },
+                      children: [
+                        _buildIntroductionPage(context),
+                        _buildEnableAccessPage(context),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

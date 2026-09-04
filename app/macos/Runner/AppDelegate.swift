@@ -10,14 +10,23 @@ func IOHIDCheckAccess(_ type: UInt32) -> UInt32
 @_silgen_name("IOHIDRequestAccess")
 func IOHIDRequestAccess(_ type: UInt32) -> Bool
 
+#if DEBUG
+func debugLog(_ message: String) {
+  print(message)
+}
+#else
+func debugLog(_ message: String) {}
+#endif
+
 @main
 class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
+    DesktopCommandPrototype.shared.start()
     let bundleId = Bundle.main.bundleIdentifier ?? "unknown"
     let bundlePath = Bundle.main.bundlePath
     let processName = ProcessInfo.processInfo.processName
     let pid = ProcessInfo.processInfo.processIdentifier
-    print("[NATIVE IDENTITY] bundleId=\(bundleId), bundlePath=\(bundlePath), processName=\(processName), pid=\(pid)")
+    debugLog("[NATIVE IDENTITY] bundleId=\(bundleId), bundlePath=\(bundlePath), processName=\(processName), pid=\(pid)")
 
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
@@ -29,16 +38,15 @@ class AppDelegate: FlutterAppDelegate {
         switch call.method {
         case "isAccessibilityGranted":
           let trusted = AXIsProcessTrusted()
-          print("[NATIVE] Accessibility (AXIsProcessTrusted) = \(trusted)")
-          print("[METHOD CHANNEL] accessibility = \(trusted)")
+          debugLog("[NATIVE] Accessibility (AXIsProcessTrusted) = \(trusted)")
           result(trusted)
         case "requestAccessibility":
           let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
           let trusted = AXIsProcessTrustedWithOptions(options)
-          print("[NATIVE] requestAccessibility (AXIsProcessTrustedWithOptions) = \(trusted)")
+          debugLog("[NATIVE] requestAccessibility (AXIsProcessTrustedWithOptions) = \(trusted)")
           result(trusted)
         case "openAccessibilitySettings":
-          print("[NATIVE] Prompting Accessibility & Opening Settings")
+          debugLog("[NATIVE] Prompting Accessibility & Opening Settings")
           let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
           _ = AXIsProcessTrustedWithOptions(options)
           if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"),
@@ -60,20 +68,19 @@ class AppDelegate: FlutterAppDelegate {
           default:
             statusString = "unknown"
           }
-          print("[NATIVE] Input Monitoring (IOHIDCheckAccess) = \(status) -> \(statusString)")
-          print("[METHOD CHANNEL] inputMonitoring = \(statusString)")
+          debugLog("[NATIVE] Input Monitoring (IOHIDCheckAccess) = \(status) -> \(statusString)")
           result(statusString)
         case "isInputMonitoringGranted":
           let status = IOHIDCheckAccess(1)
           let granted = (status == 0)
-          print("[NATIVE] isInputMonitoringGranted = \(granted)")
+          debugLog("[NATIVE] isInputMonitoringGranted = \(granted)")
           result(granted)
         case "requestInputMonitoring":
           let granted = IOHIDRequestAccess(1)
-          print("[NATIVE] requestInputMonitoring (IOHIDRequestAccess) = \(granted)")
+          debugLog("[NATIVE] requestInputMonitoring (IOHIDRequestAccess) = \(granted)")
           result(granted)
         case "openInputMonitoringSettings":
-          print("[NATIVE] Requesting Input Monitoring Access & Opening Settings")
+          debugLog("[NATIVE] Requesting Input Monitoring Access & Opening Settings")
           _ = IOHIDRequestAccess(1)
           if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"),
              NSWorkspace.shared.open(url) {

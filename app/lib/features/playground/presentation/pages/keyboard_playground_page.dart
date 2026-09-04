@@ -6,6 +6,7 @@ import 'package:ai_keyboard/core/utils/check_platforms.dart';
 import 'package:ai_keyboard/core/utils/sized_context.dart';
 import 'package:ai_keyboard/features/desktop_onboarding/domain/entities/desktop_capability.dart';
 import 'package:ai_keyboard/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
+import 'package:ai_keyboard/features/desktop_onboarding/presentation/pages/widgets/desktop_capability_card.dart';
 import 'package:ai_keyboard/features/playground/data/services/keyboard_status_service.dart';
 import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:ai_keyboard/features/settings/presentation/bloc/settings_bloc.dart';
@@ -409,101 +410,10 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               if (!_isKeyboardActive && missingCapabilities.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 ...missingCapabilities.map((capability) {
-                  final isUnknown =
-                      capability.status == DesktopCapabilityStatus.unknown;
-                  return Container(
-                    margin: const EdgeInsets.only(top: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: colors.card,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: colors.border),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Wrap(
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                spacing: 8,
-                                runSpacing: 4,
-                                children: [
-                                  Text(
-                                    capability.title,
-                                    style: typo.titleMedium.copyWith(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: colors.textPrimary,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          (isUnknown
-                                                  ? colors.primary300
-                                                  : colors.warning)
-                                              .withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      isUnknown
-                                          ? 'Verify in Settings'
-                                          : 'Required',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isUnknown
-                                            ? colors.primary300
-                                            : colors.warning,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                isUnknown
-                                    ? 'Status cannot be verified automatically. Verify or enable this permission in System Settings.'
-                                    : capability.description,
-                                style: typo.bodyMedium.copyWith(
-                                  fontSize: 12,
-                                  color: colors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        OutlinedButton(
-                          onPressed: () => _desktopCapabilityRepository
-                              .openSystemSettings(capability.type),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: colors.textPrimary,
-                            side: BorderSide(color: colors.borderLight),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text(
-                            'Open Settings',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  return DesktopCapabilityCard(
+                    capability: capability,
+                    onOpenSettings: () => _desktopCapabilityRepository
+                        .openSystemSettings(capability.type),
                   );
                 }),
               ],

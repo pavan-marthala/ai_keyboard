@@ -120,6 +120,81 @@ void main() {
       );
     });
 
+    test('checkCapabilities reports isAllRequiredGranted false when capabilities are empty', () async {
+      repository.capabilities = [];
+
+      bloc.add(const DesktopOnboardingEvent.checkCapabilities());
+
+      await expectLater(
+        bloc.stream,
+        emitsInOrder([
+          isA<DesktopOnboardingState>().having(
+            (s) => s.isLoading,
+            'isLoading',
+            isTrue,
+          ),
+          isA<DesktopOnboardingState>()
+              .having((s) => s.isLoading, 'isLoading', isFalse)
+              .having((s) => s.capabilities, 'capabilities', isEmpty)
+              .having(
+                (s) => s.isAllRequiredGranted,
+                'isAllRequiredGranted',
+                isFalse,
+              ),
+        ]),
+      );
+    });
+
+    test(
+      'checkCapabilities preserves independent decoupled capability states',
+      () async {
+        repository.capabilities = [
+          const DesktopCapability(
+            type: DesktopCapabilityType.accessibility,
+            title: 'Accessibility',
+            description: 'Accessibility description',
+            status: DesktopCapabilityStatus.enabled,
+          ),
+          const DesktopCapability(
+            type: DesktopCapabilityType.inputMonitoring,
+            title: 'Input Monitoring',
+            description: 'Input Monitoring description',
+            status: DesktopCapabilityStatus.required,
+          ),
+        ];
+
+        bloc.add(const DesktopOnboardingEvent.checkCapabilities());
+
+        await expectLater(
+          bloc.stream,
+          emitsInOrder([
+            isA<DesktopOnboardingState>().having(
+              (s) => s.isLoading,
+              'isLoading',
+              isTrue,
+            ),
+            isA<DesktopOnboardingState>()
+                .having((s) => s.isLoading, 'isLoading', isFalse)
+                .having(
+                  (s) => s.capabilities[0].status,
+                  'accessibility',
+                  DesktopCapabilityStatus.enabled,
+                )
+                .having(
+                  (s) => s.capabilities[1].status,
+                  'inputMonitoring',
+                  DesktopCapabilityStatus.required,
+                )
+                .having(
+                  (s) => s.isAllRequiredGranted,
+                  'isAllRequiredGranted',
+                  isFalse,
+                ),
+          ]),
+        );
+      },
+    );
+
     test('requestCapability delegates to repository', () async {
       bloc.add(
         const DesktopOnboardingEvent.requestCapability(
