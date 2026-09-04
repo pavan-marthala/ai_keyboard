@@ -35,6 +35,25 @@ import Carbon
 /// active is standard OS text-editing behavior — it deletes the selection
 /// and inserts the new run through the app's real NSTextInputClient /
 /// responder-chain path, the same one a live keystroke uses.
+///
+/// FIX NOTES (13.2.8):
+///
+/// Step 5 from the task spec — "make sure the target application actually
+/// owns keyboard focus" — was only partially enforced. The post-selection
+/// verification guard previously accepted ANY non-empty selected text
+/// (`|| !selectedTextAfterSelection.isEmpty`), which meant a stale AX
+/// element or a focus race could still fall through to typing over the
+/// wrong text. That escape hatch is removed.
+///
+/// Added:
+///   - An explicit frontmost/activation check + short settle delay before
+///     typing, since AX operations can succeed even when the target app
+///     isn't actually key/frontmost.
+///   - A second, STRICT re-read of kAXSelectedTextAttribute after any
+///     activation (activation can itself perturb selection), compared via
+///     exact trimmed equality against the expected "<clean text> @fix"
+///     string. If it doesn't match, the replacement is aborted rather than
+///     risking a silent wrong-range type-over.
 final class DesktopCommandPrototype {
 
     static let shared = DesktopCommandPrototype()
@@ -690,6 +709,12 @@ private func replaceViaAccessibility(
     let appName = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "Unknown (\(pid))"
 
     NSLog(
+        "[DesktopCommandPrototype] TARGET PID = \(pid)"
+    )
+    NSLog(
+        "[DesktopCommandPrototype] TARGET APP = '\(appName)'"
+    )
+    NSLog(
         "[DesktopCommandPrototype] Focused AX element obtained: app='\(appName)', pid=\(pid)"
     )
 
@@ -705,6 +730,7 @@ private func replaceViaAccessibility(
     let (selectedTextSettable, selectedTextSettableErr) = isAttributeSettable(element, attribute: kAXSelectedTextAttribute)
     let (selectedRangeSettable, selectedRangeSettableErr) = isAttributeSettable(element, attribute: kAXSelectedTextRangeAttribute)
 
+    NSLog("[DesktopCommandPrototype] TARGET AX ELEMENT = role='\(role)' subrole='\(subrole)' title='\(title)'")
     NSLog("[DesktopCommandPrototype] Focused AX Element Details:")
     NSLog("[DesktopCommandPrototype]   Role: '\(role)'")
     NSLog("[DesktopCommandPrototype]   Subrole: '\(subrole)'")
@@ -961,6 +987,10 @@ private func replaceViaAccessibility(
     let replacementEnd = cursorUTF16Offset
 
     NSLog(
+        "[DesktopCommandPrototype] INTENDED RANGE = (start=\(replacementStart), end=\(replacementEnd))"
+    )
+
+    NSLog(
         "[DesktopCommandPrototype] replacement start = \(replacementStart)"
     )
 
@@ -1002,6 +1032,7 @@ private func replaceViaAccessibility(
     let docPrefix = String(documentText[..<startIdx])
     let docSuffix = String(documentText[endIdx...])
     let expectedDocumentText = docPrefix + transformedText + docSuffix
+    let expectedSelectedText = cleanText + " " + rawTrigger
 
     // ---------------------------------------------------------
     // 10. Create AX range
@@ -1040,6 +1071,11 @@ private func replaceViaAccessibility(
     // or kAXSelectedTextAttribute directly. This step is kept exactly as
     // it was — it already worked correctly per the previous run's logs.
     // ---------------------------------------------------------
+
+    let selectedTextBefore = copyStringAttribute(element, attribute: kAXSelectedTextAttribute) ?? ""
+    NSLog(
+        "[DesktopCommandPrototype] SELECTED TEXT BEFORE = '\(selectedTextBefore)'"
+    )
 
     let selectError =
         AXUIElementSetAttributeValue(
@@ -1081,13 +1117,114 @@ private func replaceViaAccessibility(
         "[DesktopCommandPrototype] Selected text AFTER selection: '\(selectedTextAfterSelection)'"
     )
 
-    guard selectedTextAfterSelection == (cleanText + " " + rawTrigger)
-        || selectedTextAfterSelection.trimmingCharacters(in: .whitespacesAndNewlines)
-            == (cleanText + " " + rawTrigger).trimmingCharacters(in: .whitespacesAndNewlines)
-        || !selectedTextAfterSelection.isEmpty
+    // NOTE (13.2.8): the previous version of this guard accepted ANY
+    // non-empty selection, which defeats the point of verifying it. That
+    // clause is removed — a soft/trimmed match against the expected
+    // "<clean text> @fix" string is required here. The STRICT final check
+    // happens again in step 11b below, after focus/activation is settled,
+    // right before typing.
+    guard selectedTextAfterSelection.trimmingCharacters(in: .whitespacesAndNewlines)
+            == expectedSelectedText.trimmingCharacters(in: .whitespacesAndNewlines)
     else {
         NSLog(
-            "[DesktopCommandPrototype] Selection did not land on the expected trailing range; aborting rather than typing over the wrong text"
+            "[DesktopCommandPrototype] Selection did not land on the expected trailing range ('\(expectedSelectedText)'); aborting rather than typing over the wrong text"
+        )
+        return false
+    }
+
+    // ---------------------------------------------------------
+    // 11b. Ensure the target application actually owns keyboard focus
+    // before typing.
+    //
+    // AX calls can report success and even echo the right selected text
+    // back, without the target app being frontmost/key. If it isn't,
+    // synthetic keystrokes can land in the wrong window (or nowhere
+    // useful) instead of replacing the selection we just made. Activation
+    // can also itself perturb the selection, so re-verify AFTER settling.
+    // ---------------------------------------------------------
+
+    let runningApp = NSRunningApplication(processIdentifier: pid)
+    let wasAlreadyFrontmost = runningApp?.isActive ?? false
+
+    NSLog(
+        "[DesktopCommandPrototype] TARGET FRONTMOST (before) = \(wasAlreadyFrontmost)"
+    )
+
+    if !wasAlreadyFrontmost {
+        NSLog(
+            "[DesktopCommandPrototype] Target app not frontmost — activating pid=\(pid)"
+        )
+
+        _ = runningApp?.activate(options: [.activateIgnoringOtherApps])
+
+        // Give the window server / AppKit a brief moment to complete
+        // activation before we trust any subsequent AX reads.
+        usleep(100_000)
+    }
+
+    let frontmostNow = NSRunningApplication(processIdentifier: pid)?.isActive ?? false
+    NSLog(
+        "[DesktopCommandPrototype] TARGET FRONTMOST (after) = \(frontmostNow)"
+    )
+
+    guard frontmostNow else {
+        NSLog(
+            "[DesktopCommandPrototype] Could not bring target app to the foreground; aborting rather than typing into the wrong app"
+        )
+        return false
+    }
+
+    // Re-validate the AX element is still alive (its position/size can
+    // be queried on a still-valid element; failure here means the view
+    // was torn down or replaced during activation).
+    var checkPosition: CFTypeRef?
+    let elementStillValid =
+        AXUIElementCopyAttributeValue(
+            element,
+            kAXPositionAttribute as CFString,
+            &checkPosition
+        ) == .success
+
+    NSLog(
+        "[DesktopCommandPrototype] TARGET AX ELEMENT still valid after activation = \(elementStillValid)"
+    )
+
+    guard elementStillValid else {
+        NSLog(
+            "[DesktopCommandPrototype] Target AX element became invalid after activation; aborting"
+        )
+        return false
+    }
+
+    // Re-read the selected range AND selected text after activation —
+    // activation itself can reset or move the selection in some apps.
+    var rangeAfterActivationRef: CFTypeRef?
+    if AXUIElementCopyAttributeValue(
+        element,
+        kAXSelectedTextRangeAttribute as CFString,
+        &rangeAfterActivationRef
+    ) == .success, let rangeAfterActivationRef {
+        var rangeAfterActivation = CFRange(location: -1, length: -1)
+        AXValueGetValue(rangeAfterActivationRef as! AXValue, .cfRange, &rangeAfterActivation)
+        NSLog(
+            "[DesktopCommandPrototype] Selected range after activation: location=\(rangeAfterActivation.location) length=\(rangeAfterActivation.length)"
+        )
+    }
+
+    let selectedTextFinal = copyStringAttribute(element, attribute: kAXSelectedTextAttribute) ?? ""
+    NSLog(
+        "[DesktopCommandPrototype] SELECTED TEXT AFTER (final, pre-type) = '\(selectedTextFinal)'"
+    )
+
+    // STRICT final gate: only proceed if the selection still exactly
+    // matches "<clean text> @fix" (modulo surrounding whitespace) right
+    // before we send synthetic keystrokes. If activation or anything else
+    // knocked the selection loose, we bail instead of typing blind.
+    guard selectedTextFinal.trimmingCharacters(in: .whitespacesAndNewlines)
+            == expectedSelectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+    else {
+        NSLog(
+            "[DesktopCommandPrototype] Selection changed after activation (expected '\(expectedSelectedText)', got '\(selectedTextFinal)'); aborting rather than typing over the wrong text"
         )
         return false
     }
@@ -1096,14 +1233,16 @@ private func replaceViaAccessibility(
     // 12. REPLACEMENT — synthetic keyboard input, NOT an AX setter.
     //
     // The trailing "<clean text> @fix" range is now selected in the real
-    // target app. Typing over an active selection is standard OS text
-    // editing behavior: it deletes the selection and inserts the new
-    // text through the app's real NSTextInputClient / responder-chain
+    // target app, which we've confirmed is frontmost and whose selection
+    // we've just re-verified. Typing over an active selection is standard
+    // OS text editing behavior: it deletes the selection and inserts the
+    // new text through the app's real NSTextInputClient / responder-chain
     // path — the same path a live keystroke takes. This is the fix for
     // the "AX says success, screen doesn't change" failure mode.
     // ---------------------------------------------------------
 
     NSLog("[DesktopCommandPrototype] REPLACEMENT STARTED")
+    NSLog("[DesktopCommandPrototype] SENDING REPLACEMENT = \(transformedText)")
 
     let valueBefore = copyStringAttribute(element, attribute: kAXValueAttribute) ?? ""
     NSLog("[DesktopCommandPrototype] AX value BEFORE = '\(valueBefore)'")
