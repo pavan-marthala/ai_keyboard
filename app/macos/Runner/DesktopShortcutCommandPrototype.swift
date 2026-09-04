@@ -2,7 +2,39 @@ import Cocoa
 import ApplicationServices
 import Carbon
 
-/// macOS Shortcut + Selected Text @Command Prototype (Phase 13.2.7).
+/// Independent execution context for an asynchronous command execution.
+/// Guarantees that each command retains its immutable target, element,
+/// range, and cancellation status across async boundaries.
+final class DesktopCommandExecutionContext {
+    let id: UUID
+    let command: String
+    let targetApp: NSRunningApplication
+    let targetPid: pid_t
+    let targetElement: AXUIElement
+    let selectedText: String
+    let selectedRange: CFRange
+    var isCancelled: Bool = false
+
+    init(
+        id: UUID = UUID(),
+        command: String,
+        targetApp: NSRunningApplication,
+        targetPid: pid_t,
+        targetElement: AXUIElement,
+        selectedText: String,
+        selectedRange: CFRange
+    ) {
+        self.id = id
+        self.command = command
+        self.targetApp = targetApp
+        self.targetPid = targetPid
+        self.targetElement = targetElement
+        self.selectedText = selectedText
+        self.selectedRange = selectedRange
+    }
+}
+
+/// macOS Shortcut + Selected Text @Command Prototype (Phase 2A).
 ///
 /// Workflow:
 /// 1. User selects text in any supported macOS text application.
@@ -10,31 +42,14 @@ import Carbon
 /// 3. Prototype captures focused element and selected text via AX.
 /// 4. Native AppKit command prompt window appears.
 /// 5. User selects a command (@fix, @rewrite, @short, @expand).
-/// 6. Selected text is transformed via deterministic mock logic.
-/// 7. Selected text in target application is replaced via synthetic
+/// 6. Prompt remains OPEN during processing and displays loading state.
+/// 7. @fix executes real AI transformation (NO mock fallback on failure).
+///    Other commands execute deterministic mock transformations.
+/// 8. User can trigger another command concurrently without corruption.
+/// 9. Selected text in target application is replaced via synthetic
 ///    keystroke injection (NOT via AX attribute mutation) and verified.
-///
-/// IMPORTANT — WHY THIS FILE CHANGED FROM 13.2.6:
-///
-/// The previous implementation mutated the target document by calling
-/// AXUIElementSetAttributeValue on kAXSelectedTextAttribute / kAXValueAttribute,
-/// then trusted a matching AXUIElementCopyAttributeValue readback as proof of
-/// success. That is unsafe: many Cocoa apps' generic NSAccessibility bridge
-/// (TextEdit's NSTextView-backed element included) can accept an attribute
-/// "set" call and even echo the new value back on read, without ever routing
-/// the mutation through the real NSTextInputClient / responder-chain path
-/// AppKit uses to invalidate layout and redraw. That decouples "AX readback
-/// success" from "the screen actually changed" — which is exactly the bug
-/// this prototype was hitting.
-///
-/// The fix: since the target text is already selected when we act, we type
-/// the replacement as synthetic keystrokes (CGEvent + keyboardSetUnicodeString)
-/// posted to the target process. This exercises the exact same code path a
-/// live human keystroke takes (delete selection, insert new run), which is
-/// reliable across apps because it doesn't depend on an app's AX bridge being
-/// fully/correctly wired for programmatic mutation — only on it handling
-/// normal typed input, which every text app must do correctly by definition.
-final class DesktopShortcutCommandPrototype {
+/// 10. Prompt closes when all active executions finish successfully.
+final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
 
     static let shared = DesktopShortcutCommandPrototype()
 
@@ -47,15 +62,21 @@ final class DesktopShortcutCommandPrototype {
     private var lastTriggerTime: TimeInterval = 0
     private var isReplacing = false
 
-    // Context captured at shortcut trigger
+    // Context captured at shortcut trigger (used to spawn new executions)
     private var targetElement: AXUIElement?
     private var targetApp: NSRunningApplication?
     private var targetPid: pid_t = 0
     private var originalSelectedText = ""
     private var originalSelectedRange = CFRange(location: -1, length: 0)
 
+    // Active executions & background tasks
+    private var activeExecutions: [UUID: DesktopCommandExecutionContext] = [:]
+    private var activeTasks: [UUID: Task<Void, Never>] = [:]
+
     // UI
     private var promptPanel: NSPanel?
+    private var statusLabel: NSTextField?
+    private var progressIndicator: NSProgressIndicator?
 
     // MARK: - Lifecycle
 
@@ -152,12 +173,14 @@ final class DesktopShortcutCommandPrototype {
         let isCommand = flags.contains(.maskCommand)
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
-        // Control + Option + Space (keyCode 49)
         if isControl && isOption && !isCommand && keyCode == 49 {
-            DispatchQueue.main.async { [weak self] in
-                self?.triggerShortcut()
+            let now = Date().timeIntervalSince1970
+            if now - lastTriggerTime > 0.35 {
+                lastTriggerTime = now
+                DispatchQueue.main.async { [weak self] in
+                    self?.triggerShortcut()
+                }
             }
-            // Suppress the space event so it is not typed into the active control
             return nil
         }
 
@@ -167,18 +190,8 @@ final class DesktopShortcutCommandPrototype {
     // MARK: - Shortcut Triggered
 
     private func triggerShortcut() {
-        let now = Date().timeIntervalSince1970
-        guard now - lastTriggerTime > 0.35 else { return }
-        lastTriggerTime = now
+        NSLog("[DesktopShortcutPrototype] GLOBAL SHORTCUT DETECTED: Control + Option + Space")
 
-        guard !isReplacing else { return }
-
-        NSLog("[DesktopShortcutPrototype] GLOBAL SHORTCUT DETECTED")
-
-        // 1. Determine frontmost application & focused AX element.
-        // This MUST happen before we ever touch our own UI, so we capture
-        // the real original target rather than something derived after our
-        // panel steals focus.
         let systemWide = AXUIElementCreateSystemWide()
         var focusedRef: CFTypeRef?
         let focusedErr = AXUIElementCopyAttributeValue(
@@ -202,7 +215,6 @@ final class DesktopShortcutCommandPrototype {
         NSLog("[DesktopShortcutPrototype] TARGET PID = \(pid)")
         NSLog("[DesktopShortcutPrototype] TARGET APP = \(appName)")
 
-        // 2. Read selected text
         var selectedTextRef: CFTypeRef?
         let textErr = AXUIElementCopyAttributeValue(
             element,
@@ -220,7 +232,6 @@ final class DesktopShortcutCommandPrototype {
 
         NSLog("[DesktopShortcutPrototype] SELECTED TEXT = '\(selectedText)'")
 
-        // 3. Read selected range
         var rangeRef: CFTypeRef?
         var range = CFRange(location: -1, length: 0)
         if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
@@ -228,15 +239,12 @@ final class DesktopShortcutCommandPrototype {
             AXValueGetValue(rangeRef as! AXValue, .cfRange, &range)
         }
 
-        // Preserve context — this is the ORIGINAL target, captured before
-        // our own prompt window ever appears.
         self.targetElement = element
         self.targetApp = app
         self.targetPid = pid
         self.originalSelectedText = selectedText
         self.originalSelectedRange = range
 
-        // 4. Open command prompt
         showCommandPrompt(selectedText: selectedText)
     }
 
@@ -245,8 +253,8 @@ final class DesktopShortcutCommandPrototype {
     private func showCommandPrompt(selectedText: String) {
         closePrompt()
 
-        let panelWidth: CGFloat = 280
-        let panelHeight: CGFloat = 260
+        let panelWidth: CGFloat = 320
+        let panelHeight: CGFloat = 330
 
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
@@ -258,23 +266,44 @@ final class DesktopShortcutCommandPrototype {
         panel.title = "Select command"
         panel.level = .floating
         panel.isReleasedWhenClosed = false
+        panel.delegate = self
         panel.center()
 
         let contentView = NSView(frame: panel.contentView?.bounds ?? NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
 
         let titleLabel = NSTextField(labelWithString: "What do you want to do?")
         titleLabel.font = NSFont.boldSystemFont(ofSize: 13)
-        titleLabel.frame = NSRect(x: 20, y: panelHeight - 40, width: panelWidth - 40, height: 20)
+        titleLabel.frame = NSRect(x: 20, y: panelHeight - 35, width: panelWidth - 40, height: 20)
         contentView.addSubview(titleLabel)
 
         let displayPreview = selectedText.replacingOccurrences(of: "\n", with: " ")
-        let truncated = displayPreview.count > 30 ? String(displayPreview.prefix(27)) + "..." : displayPreview
+        let truncated = displayPreview.count > 32 ? String(displayPreview.prefix(29)) + "..." : displayPreview
         let previewLabel = NSTextField(labelWithString: "\"\(truncated)\"")
         previewLabel.font = NSFont.systemFont(ofSize: 11)
         previewLabel.textColor = .secondaryLabelColor
-        previewLabel.frame = NSRect(x: 20, y: panelHeight - 60, width: panelWidth - 40, height: 16)
+        previewLabel.frame = NSRect(x: 20, y: panelHeight - 55, width: panelWidth - 40, height: 16)
         contentView.addSubview(previewLabel)
 
+        // Loading indicator
+        let spinner = NSProgressIndicator(frame: NSRect(x: 20, y: panelHeight - 88, width: 16, height: 16))
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.isDisplayedWhenStopped = false
+        spinner.isHidden = true
+        contentView.addSubview(spinner)
+        self.progressIndicator = spinner
+
+        // Status / Loading / Error label
+        let status = NSTextField(labelWithString: "")
+        status.font = NSFont.systemFont(ofSize: 11)
+        status.textColor = .secondaryLabelColor
+        status.frame = NSRect(x: 42, y: panelHeight - 96, width: panelWidth - 62, height: 32)
+        status.maximumNumberOfLines = 2
+        status.lineBreakMode = .byWordWrapping
+        contentView.addSubview(status)
+        self.statusLabel = status
+
+        // Command action buttons
         let commands = [
             "@fix",
             "@rewrite",
@@ -282,7 +311,7 @@ final class DesktopShortcutCommandPrototype {
             "@expand"
         ]
 
-        var buttonY = panelHeight - 100
+        var buttonY = panelHeight - 136
         for cmd in commands {
             let btn = NSButton(frame: NSRect(x: 20, y: buttonY, width: panelWidth - 40, height: 28))
             btn.title = cmd
@@ -296,10 +325,10 @@ final class DesktopShortcutCommandPrototype {
             btn.action = #selector(handleCommandButtonClicked(_:))
 
             contentView.addSubview(btn)
-            buttonY -= 32
+            buttonY -= 34
         }
 
-        let cancelBtn = NSButton(frame: NSRect(x: 20, y: 12, width: panelWidth - 40, height: 24))
+        let cancelBtn = NSButton(frame: NSRect(x: 20, y: 16, width: panelWidth - 40, height: 26))
         cancelBtn.title = "Cancel"
         cancelBtn.bezelStyle = .rounded
         cancelBtn.keyEquivalent = "\u{1b}"
@@ -317,10 +346,14 @@ final class DesktopShortcutCommandPrototype {
     }
 
     private func closePrompt() {
+        cancelAllActiveExecutions()
         if let panel = promptPanel {
+            panel.delegate = nil
             panel.orderOut(nil)
             promptPanel = nil
         }
+        statusLabel = nil
+        progressIndicator = nil
     }
 
     @objc private func handleCancel() {
@@ -328,57 +361,190 @@ final class DesktopShortcutCommandPrototype {
         closePrompt()
     }
 
+    func windowWillClose(_ notification: Notification) {
+        NSLog("[DesktopShortcutPrototype] Command prompt window closed")
+        cancelAllActiveExecutions()
+        promptPanel = nil
+        statusLabel = nil
+        progressIndicator = nil
+    }
+
+    private func cancelAllActiveExecutions() {
+        for (id, execution) in activeExecutions {
+            execution.isCancelled = true
+            activeTasks[id]?.cancel()
+        }
+        activeExecutions.removeAll()
+        activeTasks.removeAll()
+    }
+
+    private func cleanupExecution(_ id: UUID) {
+        activeExecutions.removeValue(forKey: id)
+        activeTasks.removeValue(forKey: id)
+    }
+
+    // MARK: - Command Dispatching & Async Execution
+
     @objc private func handleCommandButtonClicked(_ sender: NSButton) {
         let command = sender.title
         executeCommand(command)
     }
 
     private func executeCommand(_ command: String) {
-        closePrompt()
+        guard let element = targetElement, let app = targetApp else {
+            NSLog("[DesktopShortcutPrototype] Cannot execute command: Target AX element or app is nil")
+            return
+        }
 
-        NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = \(command)")
+        // Create independent, immutable execution context
+        let execution = DesktopCommandExecutionContext(
+            command: command,
+            targetApp: app,
+            targetPid: targetPid,
+            targetElement: element,
+            selectedText: originalSelectedText,
+            selectedRange: originalSelectedRange
+        )
 
-        let originalText = originalSelectedText
-        let transformedText = transformMock(command: command, selectedText: originalText)
+        activeExecutions[execution.id] = execution
+        updateUIForActiveExecutions()
 
-        NSLog("[DesktopShortcutPrototype] TRANSFORMED = '\(transformedText)'")
+        NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = \(command) [execId: \(execution.id.uuidString.prefix(8))]")
 
-        executeReplacement(transformedText: transformedText)
+        if command == "@fix" {
+            // Asynchronous Real AI execution
+            let task = Task {
+                await self.executeRealAiFix(execution: execution)
+            }
+            activeTasks[execution.id] = task
+        } else {
+            // Asynchronous Mock execution
+            let task = Task {
+                await self.executeMockCommand(execution: execution)
+            }
+            activeTasks[execution.id] = task
+        }
     }
 
-    // MARK: - Deterministic Transformation
+    private func updateUIForActiveExecutions() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            let running = self.activeExecutions.values.filter { !$0.isCancelled }.map { $0.command }
+            if !running.isEmpty {
+                self.progressIndicator?.isHidden = false
+                self.progressIndicator?.startAnimation(nil)
+                if running.count == 1 {
+                    let cmd = running[0]
+                    let action = (cmd == "@fix") ? "Fixing..." : "\(cmd.dropFirst().capitalized)..."
+                    self.statusLabel?.stringValue = "⏳ \(action)"
+                    self.statusLabel?.textColor = .labelColor
+                } else {
+                    self.statusLabel?.stringValue = "⏳ Processing \(running.joined(separator: ", "))..."
+                    self.statusLabel?.textColor = .labelColor
+                }
+            } else {
+                self.progressIndicator?.stopAnimation(nil)
+                self.progressIndicator?.isHidden = true
+            }
+        }
+    }
+
+    private func showError(_ message: String, for execution: DesktopCommandExecutionContext) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.progressIndicator?.stopAnimation(nil)
+            self.progressIndicator?.isHidden = true
+            self.statusLabel?.stringValue = "⚠️ \(execution.command) failed: \(message)"
+            self.statusLabel?.textColor = .systemRed
+        }
+    }
+
+    // MARK: - Real AI Execution (@fix)
+
+    private func executeRealAiFix(execution: DesktopCommandExecutionContext) async {
+        do {
+            let transformedText = try await DesktopAiTransformer.shared.transform(
+                command: execution.command,
+                text: execution.selectedText
+            )
+
+            await MainActor.run {
+                guard !execution.isCancelled else {
+                    NSLog("[DesktopShortcutPrototype] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
+                    self.cleanupExecution(execution.id)
+                    return
+                }
+
+                NSLog("[DesktopShortcutPrototype] REAL AI TRANSFORMED [\(execution.command)] = '\(transformedText)'")
+                let success = self.executeReplacement(transformedText: transformedText, execution: execution)
+
+                self.cleanupExecution(execution.id)
+
+                if success {
+                    if self.activeExecutions.isEmpty {
+                        self.closePrompt()
+                    } else {
+                        self.updateUIForActiveExecutions()
+                    }
+                } else {
+                    self.showError("Replacement failed in target application.", for: execution)
+                }
+            }
+        } catch {
+            await MainActor.run {
+                guard !execution.isCancelled else {
+                    self.cleanupExecution(execution.id)
+                    return
+                }
+
+                NSLog("[DesktopShortcutPrototype] REAL AI FAILURE for \(execution.command): \(error.localizedDescription)")
+                self.cleanupExecution(execution.id)
+
+                // CRITICAL REQUIREMENT:
+                // NEVER fall back to mock transformation for @fix.
+                // Do NOT modify user's text.
+                // Display error and keep prompt open.
+                self.showError(error.localizedDescription, for: execution)
+            }
+        }
+    }
+
+    // MARK: - Mock Command Execution (@rewrite, @short, @expand)
+
+    private func executeMockCommand(execution: DesktopCommandExecutionContext) async {
+        let transformedText = transformMock(command: execution.command, selectedText: execution.selectedText)
+
+        await MainActor.run {
+            guard !execution.isCancelled else {
+                NSLog("[DesktopShortcutPrototype] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
+                self.cleanupExecution(execution.id)
+                return
+            }
+
+            NSLog("[DesktopShortcutPrototype] MOCK TRANSFORMED [\(execution.command)] = '\(transformedText)'")
+            let success = self.executeReplacement(transformedText: transformedText, execution: execution)
+
+            self.cleanupExecution(execution.id)
+
+            if success {
+                if self.activeExecutions.isEmpty {
+                    self.closePrompt()
+                } else {
+                    self.updateUIForActiveExecutions()
+                }
+            } else {
+                self.showError("Replacement failed in target application.", for: execution)
+            }
+        }
+    }
+
+    // MARK: - Deterministic Mock Transformation
 
     private func transformMock(command: String, selectedText: String) -> String {
         let trimmed = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
         let normalized = trimmed.lowercased()
 
         switch command {
-        case "@fix":
-            let mockDatabase: [String: String] = [
-                "hello world": "Hello world.",
-                "i has a apple": "I have an apple.",
-                "this sentence needs fixing": "This sentence has been fixed.",
-                "café is nice": "Café is nice.",
-                "hello 😀 world": "Hello 😀 world."
-            ]
-
-            if let mapped = mockDatabase[normalized] {
-                return mapped
-            }
-
-            var result = trimmed
-            guard !result.isEmpty else { return result }
-
-            if let first = result.first {
-                result = first.uppercased() + result.dropFirst()
-            }
-
-            if !result.hasSuffix(".") && !result.hasSuffix("!") && !result.hasSuffix("?") {
-                result += "."
-            }
-
-            return result
-
         case "@rewrite":
             let mockDatabase: [String: String] = [
                 "hello world": "Please rewrite this: hello world",
@@ -444,73 +610,59 @@ final class DesktopShortcutCommandPrototype {
 
     // MARK: - Replacement & Verification
 
-    private func executeReplacement(transformedText: String) {
+    @discardableResult
+    private func executeReplacement(
+        transformedText: String,
+        execution: DesktopCommandExecutionContext
+    ) -> Bool {
         isReplacing = true
         defer { isReplacing = false }
 
-        guard let element = targetElement, let app = targetApp else {
-            NSLog("[DesktopShortcutPrototype] Target AX element or app is nil")
-            NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
-            return
-        }
+        let element = execution.targetElement
+        let app = execution.targetApp
+        let pid = execution.targetPid
 
         // 1. Reactivate the ORIGINAL target application and WAIT until it is
-        // actually frontmost. Activation is asynchronous — a fixed sleep is
-        // a guess, not a guarantee.
+        // actually frontmost.
         guard reactivateAndWaitForFrontmost(app: app, timeout: 1.0) else {
             NSLog("[DesktopShortcutPrototype] Target app '\(app.localizedName ?? "?")' did not become frontmost in time")
             NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
-            return
+            return false
         }
         NSLog("[DesktopShortcutPrototype] TARGET APP ACTIVATED")
 
         // 2. Re-validate that the ORIGINAL selection is still intact on the
-        // ORIGINAL captured element (never re-query "current focused element"
-        // here — that could now be our own closed panel or something else).
-        guard revalidateSelection(element: element) != nil else {
-            NSLog("[DesktopShortcutPrototype] Selection lost or altered after reactivation. Expected '\(originalSelectedText)'")
+        // ORIGINAL captured element.
+        guard revalidateSelection(
+            element: element,
+            expectedText: execution.selectedText,
+            expectedRange: execution.selectedRange
+        ) != nil else {
+            NSLog("[DesktopShortcutPrototype] Selection lost or altered after reactivation. Expected '\(execution.selectedText)'")
             NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
-            return
+            return false
         }
         NSLog("[DesktopShortcutPrototype] SELECTION REVALIDATED")
 
         NSLog("[DesktopShortcutPrototype] REPLACEMENT STARTED")
 
-        // Diagnostic snapshot only — NOT used as proof of anything below.
         var docBeforeRef: CFTypeRef?
         let docBefore = (AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &docBeforeRef) == .success ? docBeforeRef as? String : nil) ?? ""
         NSLog("[DesktopShortcutPrototype] DOC BEFORE (AX) = '\(docBefore)'")
 
         // 3. PRIMARY replacement mechanism: synthetic keystroke injection.
-        //
-        // The target text is currently selected in the target app. Typing
-        // over an active selection is standard OS text-editing behavior —
-        // it deletes the selection and inserts the new run through the
-        // app's real NSTextInputClient / responder-chain path. Unlike
-        // AXUIElementSetAttributeValue, this path is guaranteed to exist
-        // and behave correctly in any properly functioning text app,
-        // because it's the same path real typing uses.
-        //
-        // We deliberately do NOT fall back to AXUIElementSetAttributeValue
-        // for the mutation itself, since that is the mechanism that produced
-        // "AX says success, screen doesn't change" in the first place.
         NSLog("[DesktopShortcutPrototype] SENDING REPLACEMENT = '\(transformedText)'")
-        let apiCallSucceeded = typeReplacement(transformedText, targetPid: targetPid)
+        let apiCallSucceeded = typeReplacement(transformedText, targetPid: pid)
 
         guard apiCallSucceeded else {
             NSLog("[DesktopShortcutPrototype] API CALL SUCCESS = false (failed to post synthetic keyboard events)")
             NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
-            return
+            return false
         }
         NSLog("[DesktopShortcutPrototype] API CALL SUCCESS = true (synthetic keystrokes posted)")
 
-        // Give AppKit a brief moment to process input + redraw before we
-        // read anything back.
         usleep(100_000) // 100ms
 
-        // 4. AX readback — logged purely as a secondary diagnostic signal.
-        // We do NOT treat this alone as proof of a visible change; it is
-        // exactly the signal that was misleading in the previous approach.
         var docAfterRef: CFTypeRef?
         let docAfter = (AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &docAfterRef) == .success ? docAfterRef as? String : nil) ?? ""
         NSLog("[DesktopShortcutPrototype] DOC AFTER (AX readback) = '\(docAfter)'")
@@ -519,20 +671,12 @@ final class DesktopShortcutCommandPrototype {
         let axReadbackChanged = (docAfter != docBefore) && docAfter.contains(normalizedTransformed)
 
         NSLog("[DesktopShortcutPrototype] AX READBACK SUCCESS = \(axReadbackChanged)")
-
-        // Because the mutation was driven through the real keyboard input
-        // pipeline (the same one AppKit uses for user-typed characters),
-        // a successful post is our strongest available signal of an actual
-        // on-screen change without doing pixel-level screen inspection.
-        // The AX readback above is reported alongside it purely for
-        // debugging, and the two are logged as DISTINCT signals on purpose.
         NSLog("[DesktopShortcutPrototype] REPLACEMENT COMPLETED")
+        return true
     }
 
     // MARK: - Activation
 
-    /// Reactivates `app` and polls until it is genuinely frontmost, instead
-    /// of trusting a fixed sleep after calling `activate`.
     private func reactivateAndWaitForFrontmost(app: NSRunningApplication, timeout: TimeInterval) -> Bool {
         if NSWorkspace.shared.frontmostApplication?.processIdentifier != app.processIdentifier {
             app.activate(options: .activateIgnoringOtherApps)
@@ -543,9 +687,6 @@ final class DesktopShortcutCommandPrototype {
             if NSWorkspace.shared.frontmostApplication?.processIdentifier == app.processIdentifier {
                 return true
             }
-            // Pump the run loop briefly so activation notifications can be
-            // processed; this is a synchronous prototype flow triggered
-            // from a button action on the main thread.
             RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.01))
         }
 
@@ -554,18 +695,17 @@ final class DesktopShortcutCommandPrototype {
 
     // MARK: - Selection Revalidation
 
-    /// Confirms the ORIGINAL captured element still reports the ORIGINAL
-    /// selected text after reactivation, attempting one restore-by-range if
-    /// the selection was lost (e.g. some apps clear/collapse selection when
-    /// the window resigns key). Returns the confirmed range, or nil if the
-    /// original selection cannot be reconfirmed.
-    private func revalidateSelection(element: AXUIElement) -> CFRange? {
+    private func revalidateSelection(
+        element: AXUIElement,
+        expectedText: String,
+        expectedRange: CFRange
+    ) -> CFRange? {
         var currentSelectedText = readSelectedText(element: element)
 
-        if currentSelectedText != originalSelectedText,
-           originalSelectedRange.location >= 0,
-           originalSelectedRange.length > 0 {
-            var restoreRange = originalSelectedRange
+        if currentSelectedText != expectedText,
+           expectedRange.location >= 0,
+           expectedRange.length > 0 {
+            var restoreRange = expectedRange
             if let axRange = AXValueCreate(.cfRange, &restoreRange) {
                 _ = AXUIElementSetAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, axRange)
                 usleep(20_000)
@@ -573,10 +713,10 @@ final class DesktopShortcutCommandPrototype {
             }
         }
 
-        guard currentSelectedText == originalSelectedText else { return nil }
+        guard currentSelectedText == expectedText else { return nil }
 
         var rangeRef: CFTypeRef?
-        var range = originalSelectedRange
+        var range = expectedRange
         if AXUIElementCopyAttributeValue(element, kAXSelectedTextRangeAttribute as CFString, &rangeRef) == .success,
            let rangeRef {
             AXValueGetValue(rangeRef as! AXValue, .cfRange, &range)
@@ -595,11 +735,6 @@ final class DesktopShortcutCommandPrototype {
 
     // MARK: - Synthetic Keystroke Injection
 
-    /// Types `text` into whatever currently has keyboard focus in process
-    /// `targetPid` by posting CGEvents carrying an explicit Unicode string.
-    /// This is not limited to characters reachable from the physical
-    /// keyboard layout, and it drives the target app's real text-input
-    /// pipeline rather than any accessibility mutation API.
     private func typeReplacement(_ text: String, targetPid: pid_t) -> Bool {
         guard let source = CGEventSource(stateID: .hidSystemState) else {
             return false
@@ -610,9 +745,6 @@ final class DesktopShortcutCommandPrototype {
             return true
         }
 
-        // CGEventKeyboardSetUnicodeString has historically had a small
-        // internal buffer per event; chunk defensively so longer
-        // replacement strings aren't silently truncated.
         let chunkSize = 20
         var index = 0
 
@@ -625,8 +757,6 @@ final class DesktopShortcutCommandPrototype {
                 return false
             }
 
-            // Clear modifier flags so leftover Control/Option from the
-            // shortcut keypress can't get merged into the synthetic event.
             keyDown.flags = []
             keyUp.flags = []
 

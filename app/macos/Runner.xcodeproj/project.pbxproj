@@ -30,6 +30,10 @@
 		33CC11332044C79F0003C045 /* DesktopShortcutCommandPrototype.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11322044C79F0003C045 /* DesktopShortcutCommandPrototype.swift */; };
 		33CC11352044C79F0003C045 /* KeychainCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */; };
 		33CC11372044C79F0003C045 /* DesktopConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11362044C79F0003C045 /* DesktopConfigurationStore.swift */; };
+		33CC11392044C79F0003C045 /* DesktopAiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11382044C79F0003C045 /* DesktopAiProvider.swift */; };
+		33CC113B2044C79F0003C045 /* OpenAiDesktopProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113A2044C79F0003C045 /* OpenAiDesktopProvider.swift */; };
+		33CC113D2044C79F0003C045 /* DesktopAiProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113C2044C79F0003C045 /* DesktopAiProviderFactory.swift */; };
+		33CC113F2044C79F0003C045 /* DesktopAiTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113E2044C79F0003C045 /* DesktopAiTransformer.swift */; };
 		35CE073D304B10F500D074C6 /* ai_keyboard.icon in Resources */ = {isa = PBXBuildFile; fileRef = 35CE073C304B10F500D074C6 /* ai_keyboard.icon */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 /* End PBXBuildFile section */
@@ -78,6 +82,10 @@
 		33CC11322044C79F0003C045 /* DesktopShortcutCommandPrototype.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopShortcutCommandPrototype.swift; sourceTree = "<group>"; };
 		33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainCredentialStore.swift; sourceTree = "<group>"; };
 		33CC11362044C79F0003C045 /* DesktopConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopConfigurationStore.swift; sourceTree = "<group>"; };
+		33CC11382044C79F0003C045 /* DesktopAiProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAiProvider.swift; sourceTree = "<group>"; };
+		33CC113A2044C79F0003C045 /* OpenAiDesktopProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAiDesktopProvider.swift; sourceTree = "<group>"; };
+		33CC113C2044C79F0003C045 /* DesktopAiProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAiProviderFactory.swift; sourceTree = "<group>"; };
+		33CC113E2044C79F0003C045 /* DesktopAiTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAiTransformer.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -179,6 +187,10 @@
 				33CC11322044C79F0003C045 /* DesktopShortcutCommandPrototype.swift */,
 				33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */,
 				33CC11362044C79F0003C045 /* DesktopConfigurationStore.swift */,
+				33CC11382044C79F0003C045 /* DesktopAiProvider.swift */,
+				33CC113A2044C79F0003C045 /* OpenAiDesktopProvider.swift */,
+				33CC113C2044C79F0003C045 /* DesktopAiProviderFactory.swift */,
+				33CC113E2044C79F0003C045 /* DesktopAiTransformer.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -372,6 +384,10 @@
 				33CC11332044C79F0003C045 /* DesktopShortcutCommandPrototype.swift in Sources */,
 				33CC11352044C79F0003C045 /* KeychainCredentialStore.swift in Sources */,
 				33CC11372044C79F0003C045 /* DesktopConfigurationStore.swift in Sources */,
+				33CC11392044C79F0003C045 /* DesktopAiProvider.swift in Sources */,
+				33CC113B2044C79F0003C045 /* OpenAiDesktopProvider.swift in Sources */,
+				33CC113D2044C79F0003C045 /* DesktopAiProviderFactory.swift in Sources */,
+				33CC113F2044C79F0003C045 /* DesktopAiTransformer.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
