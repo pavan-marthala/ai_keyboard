@@ -15,12 +15,30 @@ void main() {
     await getIt.reset();
   });
 
-  testWidgets('App renders Keyboard Playground and NavigationBar smoke test',
-      (WidgetTester tester) async {
+  testWidgets('App renders Desktop Onboarding on first launch on desktop', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const AiKeyboardApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Keyboard Playground'), findsWidgets);
+    expect(find.text('AI Keyboard'), findsWidgets);
+    expect(find.text('AI assistance wherever you type'), findsOneWidget);
+    expect(find.text('Continue'), findsOneWidget);
+  });
+
+  testWidgets('App renders Playground when onboarding is completed', (
+    WidgetTester tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'desktop_onboarding_completed': true,
+    });
+    await getIt.reset();
+    await configureDependencies();
+
+    await tester.pumpWidget(const AiKeyboardApp());
+    await tester.pumpAndSettle();
+
     expect(find.text('Playground'), findsWidgets);
     expect(find.text('Settings'), findsWidgets);
   });
