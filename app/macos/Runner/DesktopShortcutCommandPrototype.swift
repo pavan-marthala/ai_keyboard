@@ -9,7 +9,7 @@ import Carbon
 /// 2. User presses global shortcut: Control + Option + Space.
 /// 3. Prototype captures focused element and selected text via AX.
 /// 4. Native AppKit command prompt window appears.
-/// 5. User selects `@fix`.
+/// 5. User selects a command (@fix, @rewrite, @short, @expand).
 /// 6. Selected text is transformed via deterministic mock logic.
 /// 7. Selected text in target application is replaced via synthetic
 ///    keystroke injection (NOT via AX attribute mutation) and verified.

@@ -336,3 +336,48 @@ Presentation Layer
    - `KeyboardPlaygroundPage` reuses `DesktopCapabilityRepository` on desktop to inspect missing permissions and render dedicated recovery items with "Open Settings" buttons.
    - Android/mobile IME settings logic remains completely isolated and unchanged.
 
+---
+
+## 8. Desktop Shortcut Command Architecture (macOS)
+
+### Supported Active Workflow: Desktop Shortcut Command Feature
+
+The active and supported desktop command interaction method is the **Desktop Shortcut Command Feature**:
+
+```text
+User selects text in external application
+         │
+         ▼
+Presses global shortcut: Control + Option + Space
+         │
+         ▼
+Native AppKit Command Popup opens (focused AX element & selection captured)
+         │
+         ▼
+User selects @command (@fix, @rewrite, @short, @expand)
+         │
+         ▼
+Selected text is transformed (deterministic mock / AI)
+         │
+         ▼
+Original target application reactivated & selection revalidated
+         │
+         ▼
+Text replaced via synthetic CGEvent keystroke injection (deletes selection & types replacement)
+```
+
+#### Supported Commands
+- `@fix`: Corrects spelling, grammar, and punctuation.
+- `@rewrite`: Reformulates text to improve clarity and tone.
+- `@short`: Summarizes or condenses selected text.
+- `@expand`: Elaborates or expands selected text into full context.
+
+#### Underlying Native Capabilities Required
+1. **Input Monitoring (`IOHIDCheckAccess`)**:
+   - Detects the global shortcut `Control + Option + Space` across third-party applications via session event tap (`CGEvent.tapCreate`) and global event monitor (`NSEvent.addGlobalMonitorForEvents`).
+2. **Accessibility (`AXIsProcessTrusted`)**:
+   - Acquires the focused UI element (`kAXFocusedUIElementAttribute`) and original selected text/range (`kAXSelectedTextAttribute`, `kAXSelectedTextRangeAttribute`).
+   - Revalidates the active selection and restores focus prior to synthetic keystroke dispatch.
+
+#### Shelved / Experimental Status
+- **Old Inline/Trailing Command Detection (`hello world @fix`)**: Continuous keyboard event monitoring that buffered all user keystrokes looking for trailing `@fix` triggers has been **permanently shelved as an experimental prototype**. It is not part of the active or supported desktop workflow.
