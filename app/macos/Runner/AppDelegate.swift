@@ -91,6 +91,80 @@ class AppDelegate: FlutterAppDelegate {
           result(FlutterMethodNotImplemented)
         }
       }
+
+      let credentialsChannel = FlutterMethodChannel(
+        name: "com.pk.ai_keyboard/credentials",
+        binaryMessenger: messenger
+      )
+      credentialsChannel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        switch call.method {
+        case "saveApiKey":
+          guard let args = call.arguments as? [String: Any],
+                let provider = args["provider"] as? String,
+                let apiKey = args["apiKey"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing provider or apiKey", details: nil))
+            return
+          }
+          let success = KeychainCredentialStore.shared.saveApiKey(provider: provider, apiKey: apiKey)
+          NSLog("[CredentialsChannel] saveApiKey provider=\(provider) success=\(success)")
+          result(success)
+
+        case "getApiKey":
+          guard let args = call.arguments as? [String: Any],
+                let provider = args["provider"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing provider", details: nil))
+            return
+          }
+          let key = KeychainCredentialStore.shared.readApiKey(provider: provider)
+          NSLog("[CredentialsChannel] getApiKey provider=\(provider) found=\(key != nil)")
+          result(key)
+
+        case "deleteApiKey":
+          guard let args = call.arguments as? [String: Any],
+                let provider = args["provider"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing provider", details: nil))
+            return
+          }
+          let success = KeychainCredentialStore.shared.deleteApiKey(provider: provider)
+          NSLog("[CredentialsChannel] deleteApiKey provider=\(provider) success=\(success)")
+          result(success)
+
+        case "hasApiKey":
+          guard let args = call.arguments as? [String: Any],
+                let provider = args["provider"] as? String else {
+            result(false)
+            return
+          }
+          let hasKey = KeychainCredentialStore.shared.hasApiKey(provider: provider)
+          NSLog("[CredentialsChannel] hasApiKey provider=\(provider) hasKey=\(hasKey)")
+          result(hasKey)
+
+        case "saveConfig":
+          guard let args = call.arguments as? [String: Any],
+                let provider = args["provider"] as? String,
+                let modelId = args["modelId"] as? String else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing provider or modelId", details: nil))
+            return
+          }
+          let baseUrl = args["baseUrl"] as? String
+          DesktopConfigurationStore.shared.saveConfig(provider: provider, modelId: modelId, baseUrl: baseUrl)
+          NSLog("[CredentialsChannel] saveConfig provider=\(provider) modelId=\(modelId) customBaseUrl=\(baseUrl ?? "nil")")
+          result(true)
+
+        case "saveDisabledCommands":
+          guard let args = call.arguments as? [String: Any],
+                let list = args["disabledTriggers"] as? [String] else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing disabledTriggers", details: nil))
+            return
+          }
+          DesktopConfigurationStore.shared.saveDisabledCommands(Set(list))
+          NSLog("[CredentialsChannel] saveDisabledCommands count=\(list.count)")
+          result(true)
+
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
     }
     super.applicationDidFinishLaunching(notification)
   }
