@@ -21,8 +21,15 @@ func debugLog(_ message: String) {}
 @main
 class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
-    DesktopCommandPrototype.shared.start()
 
+    NSLog("[AppDelegate] applicationDidFinishLaunching CALLED")
+
+    NSLog("[AppDelegate] About to start DesktopCommandPrototype")
+
+    DesktopCommandPrototype.shared.start()
+    DesktopShortcutCommandPrototype.shared.start()
+
+    NSLog("[AppDelegate] DesktopCommandPrototype.start() returned")
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
       let channel = FlutterMethodChannel(
