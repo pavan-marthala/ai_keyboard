@@ -199,7 +199,8 @@ final class DesktopShortcutCommandPrototype {
         let app = NSRunningApplication(processIdentifier: pid)
         let appName = app?.localizedName ?? "Unknown (\(pid))"
 
-        NSLog("[DesktopShortcutPrototype] Frontmost application = \(appName) (pid \(pid))")
+        NSLog("[DesktopShortcutPrototype] TARGET PID = \(pid)")
+        NSLog("[DesktopShortcutPrototype] TARGET APP = \(appName)")
 
         // 2. Read selected text
         var selectedTextRef: CFTypeRef?
@@ -217,7 +218,7 @@ final class DesktopShortcutCommandPrototype {
             return
         }
 
-        NSLog("[DesktopShortcutPrototype] Selected text = '\(selectedText)'")
+        NSLog("[DesktopShortcutPrototype] SELECTED TEXT = '\(selectedText)'")
 
         // 3. Read selected range
         var rangeRef: CFTypeRef?
@@ -275,28 +276,24 @@ final class DesktopShortcutCommandPrototype {
         contentView.addSubview(previewLabel)
 
         let commands = [
-            ("@fix", true),
-            ("@rewrite", false),
-            ("@short", false),
-            ("@expand", false)
+            "@fix",
+            "@rewrite",
+            "@short",
+            "@expand"
         ]
 
         var buttonY = panelHeight - 100
-        for (cmd, isImplemented) in commands {
+        for cmd in commands {
             let btn = NSButton(frame: NSRect(x: 20, y: buttonY, width: panelWidth - 40, height: 28))
             btn.title = cmd
             btn.bezelStyle = .rounded
             btn.font = NSFont.systemFont(ofSize: 12)
-            if isImplemented {
+            if cmd == "@fix" {
                 btn.keyEquivalent = "\r"
             }
 
             btn.target = self
-            if isImplemented {
-                btn.action = #selector(handleFixSelected)
-            } else {
-                btn.action = #selector(handleUnimplementedCommand(_:))
-            }
+            btn.action = #selector(handleCommandButtonClicked(_:))
 
             contentView.addSubview(btn)
             buttonY -= 32
@@ -331,20 +328,18 @@ final class DesktopShortcutCommandPrototype {
         closePrompt()
     }
 
-    @objc private func handleUnimplementedCommand(_ sender: NSButton) {
-        let cmd = sender.title
-        NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = \(cmd)")
-        NSLog("[DesktopShortcutPrototype] Command not implemented in prototype.")
-        closePrompt()
+    @objc private func handleCommandButtonClicked(_ sender: NSButton) {
+        let command = sender.title
+        executeCommand(command)
     }
 
-    @objc private func handleFixSelected() {
+    private func executeCommand(_ command: String) {
         closePrompt()
 
-        NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = @fix")
+        NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = \(command)")
 
         let originalText = originalSelectedText
-        let transformedText = transformMock(selectedText: originalText)
+        let transformedText = transformMock(command: command, selectedText: originalText)
 
         NSLog("[DesktopShortcutPrototype] TRANSFORMED = '\(transformedText)'")
 
@@ -353,35 +348,98 @@ final class DesktopShortcutCommandPrototype {
 
     // MARK: - Deterministic Transformation
 
-    private func transformMock(selectedText: String) -> String {
-        let normalized = selectedText
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
+    private func transformMock(command: String, selectedText: String) -> String {
+        let trimmed = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalized = trimmed.lowercased()
 
-        let mockDatabase: [String: String] = [
-            "hello world": "Hello world.",
-            "i has a apple": "I have an apple.",
-            "this sentence needs fixing": "This sentence has been fixed.",
-            "café is nice": "Café is nice.",
-            "hello 😀 world": "Hello 😀 world."
-        ]
+        switch command {
+        case "@fix":
+            let mockDatabase: [String: String] = [
+                "hello world": "Hello world.",
+                "i has a apple": "I have an apple.",
+                "this sentence needs fixing": "This sentence has been fixed.",
+                "café is nice": "Café is nice.",
+                "hello 😀 world": "Hello 😀 world."
+            ]
 
-        if let mapped = mockDatabase[normalized] {
-            return mapped
+            if let mapped = mockDatabase[normalized] {
+                return mapped
+            }
+
+            var result = trimmed
+            guard !result.isEmpty else { return result }
+
+            if let first = result.first {
+                result = first.uppercased() + result.dropFirst()
+            }
+
+            if !result.hasSuffix(".") && !result.hasSuffix("!") && !result.hasSuffix("?") {
+                result += "."
+            }
+
+            return result
+
+        case "@rewrite":
+            let mockDatabase: [String: String] = [
+                "hello world": "Please rewrite this: hello world",
+                "i has a apple": "Please rewrite this: i has a apple"
+            ]
+
+            if let mapped = mockDatabase[normalized] {
+                return mapped
+            }
+
+            return "Please rewrite this: \(trimmed)"
+
+        case "@short":
+            let mockDatabase: [String: String] = [
+                "this is a very long example sentence.": "Long example sentence.",
+                "this is a very long example sentence": "Long example sentence.",
+                "hello world": "Hello.",
+                "i has a apple": "An apple."
+            ]
+
+            if let mapped = mockDatabase[normalized] {
+                return mapped
+            }
+
+            let words = trimmed.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+            if words.count > 3 {
+                let shortened = words.suffix(3).joined(separator: " ")
+                let capitalized = shortened.prefix(1).uppercased() + shortened.dropFirst()
+                return capitalized.hasSuffix(".") ? capitalized : capitalized + "."
+            } else if words.count > 1 {
+                let shortened = words.last!
+                let capitalized = shortened.prefix(1).uppercased() + shortened.dropFirst()
+                return capitalized.hasSuffix(".") ? capitalized : capitalized + "."
+            } else {
+                return trimmed
+            }
+
+        case "@expand":
+            let mockDatabase: [String: String] = [
+                "hello world": "Hello world. This is an expanded example sentence.",
+                "i has a apple": "I have an apple. This is an expanded example sentence."
+            ]
+
+            if let mapped = mockDatabase[normalized] {
+                return mapped
+            }
+
+            var base = trimmed
+            if let first = base.first {
+                base = first.uppercased() + base.dropFirst()
+            }
+
+            if !base.hasSuffix(".") && !base.hasSuffix("!") && !base.hasSuffix("?") {
+                base += "."
+            }
+
+            return "\(base) This is an expanded example sentence."
+
+        default:
+            return trimmed
         }
-
-        var result = selectedText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !result.isEmpty else { return result }
-
-        if let first = result.first {
-            result = first.uppercased() + result.dropFirst()
-        }
-
-        if !result.hasSuffix(".") && !result.hasSuffix("!") && !result.hasSuffix("?") {
-            result += "."
-        }
-
-        return result
     }
 
     // MARK: - Replacement & Verification
@@ -389,8 +447,6 @@ final class DesktopShortcutCommandPrototype {
     private func executeReplacement(transformedText: String) {
         isReplacing = true
         defer { isReplacing = false }
-
-        NSLog("[DesktopShortcutPrototype] REPLACEMENT STARTED")
 
         guard let element = targetElement, let app = targetApp else {
             NSLog("[DesktopShortcutPrototype] Target AX element or app is nil")
@@ -406,6 +462,7 @@ final class DesktopShortcutCommandPrototype {
             NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
             return
         }
+        NSLog("[DesktopShortcutPrototype] TARGET APP ACTIVATED")
 
         // 2. Re-validate that the ORIGINAL selection is still intact on the
         // ORIGINAL captured element (never re-query "current focused element"
@@ -415,6 +472,9 @@ final class DesktopShortcutCommandPrototype {
             NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
             return
         }
+        NSLog("[DesktopShortcutPrototype] SELECTION REVALIDATED")
+
+        NSLog("[DesktopShortcutPrototype] REPLACEMENT STARTED")
 
         // Diagnostic snapshot only — NOT used as proof of anything below.
         var docBeforeRef: CFTypeRef?
@@ -434,6 +494,7 @@ final class DesktopShortcutCommandPrototype {
         // We deliberately do NOT fall back to AXUIElementSetAttributeValue
         // for the mutation itself, since that is the mechanism that produced
         // "AX says success, screen doesn't change" in the first place.
+        NSLog("[DesktopShortcutPrototype] SENDING REPLACEMENT = '\(transformedText)'")
         let apiCallSucceeded = typeReplacement(transformedText, targetPid: targetPid)
 
         guard apiCallSucceeded else {
@@ -465,7 +526,7 @@ final class DesktopShortcutCommandPrototype {
         // on-screen change without doing pixel-level screen inspection.
         // The AX readback above is reported alongside it purely for
         // debugging, and the two are logged as DISTINCT signals on purpose.
-        NSLog("[DesktopShortcutPrototype] REPLACEMENT COMPLETED (via synthetic keystroke input; verify visually)")
+        NSLog("[DesktopShortcutPrototype] REPLACEMENT COMPLETED")
     }
 
     // MARK: - Activation
