@@ -1,4 +1,4 @@
-import 'package:ai_keyboard/core/utils/check_platforms.dart';
+import 'package:atfix/core/utils/check_platforms.dart';
 import 'package:injectable/injectable.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

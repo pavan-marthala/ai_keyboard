@@ -1,7 +1,7 @@
-import 'package:ai_keyboard/core/errors/failures.dart';
-import 'package:ai_keyboard/core/errors/result.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
-import 'package:ai_keyboard/features/settings/domain/repositories/credentials_repository.dart';
+import 'package:atfix/core/errors/failures.dart';
+import 'package:atfix/core/errors/result.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/features/settings/domain/repositories/credentials_repository.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:injectable/injectable.dart';

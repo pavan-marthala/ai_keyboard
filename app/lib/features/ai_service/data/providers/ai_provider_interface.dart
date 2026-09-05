@@ -1,9 +1,9 @@
-import 'package:ai_keyboard/core/errors/failures.dart';
-import 'package:ai_keyboard/core/errors/result.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_request.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_response.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/core/errors/failures.dart';
+import 'package:atfix/core/errors/result.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_model.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_request.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_response.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
 
 abstract class AiProvider {
   AiProviderType get type;

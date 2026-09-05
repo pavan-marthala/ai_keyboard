@@ -1,7 +1,7 @@
-import 'package:ai_keyboard/features/ai_service/data/providers/gemini_provider.dart';
-import 'package:ai_keyboard/features/ai_service/data/providers/groq_provider.dart';
-import 'package:ai_keyboard/features/ai_service/data/providers/openai_provider.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/features/ai_service/data/providers/gemini_provider.dart';
+import 'package:atfix/features/ai_service/data/providers/groq_provider.dart';
+import 'package:atfix/features/ai_service/data/providers/openai_provider.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 

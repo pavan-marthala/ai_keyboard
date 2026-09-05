@@ -1,4 +1,4 @@
-import 'package:ai_keyboard/features/commands/domain/entities/command_entity.dart';
+import 'package:atfix/features/commands/domain/entities/command_entity.dart';
 import 'package:injectable/injectable.dart';
 
 abstract interface class CommandRegistry {

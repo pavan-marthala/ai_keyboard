@@ -1,9 +1,9 @@
-import 'package:ai_keyboard/core/di/injection.dart';
-import 'package:ai_keyboard/core/theme/app_theme.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/domain/entities/desktop_capability.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/presentation/bloc/desktop_onboarding_bloc.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/presentation/pages/desktop_onboarding_page.dart';
+import 'package:atfix/core/di/injection.dart';
+import 'package:atfix/core/theme/app_theme.dart';
+import 'package:atfix/features/desktop_onboarding/domain/entities/desktop_capability.dart';
+import 'package:atfix/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
+import 'package:atfix/features/desktop_onboarding/presentation/bloc/desktop_onboarding_bloc.dart';
+import 'package:atfix/features/desktop_onboarding/presentation/pages/desktop_onboarding_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

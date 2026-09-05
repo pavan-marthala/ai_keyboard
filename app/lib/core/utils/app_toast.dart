@@ -1,7 +1,7 @@
-import 'package:ai_keyboard/core/theme/app_colors.dart';
-import 'package:ai_keyboard/core/theme/app_theme.dart';
-import 'package:ai_keyboard/core/utils/sized_context.dart';
-import 'package:ai_keyboard/main.dart';
+import 'package:atfix/core/theme/app_colors.dart';
+import 'package:atfix/core/theme/app_theme.dart';
+import 'package:atfix/core/utils/sized_context.dart';
+import 'package:atfix/main.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:flutter/material.dart';

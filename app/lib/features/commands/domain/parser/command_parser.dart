@@ -1,5 +1,5 @@
-import 'package:ai_keyboard/features/commands/domain/entities/command_entity.dart';
-import 'package:ai_keyboard/features/commands/domain/repositories/command_registry.dart';
+import 'package:atfix/features/commands/domain/entities/command_entity.dart';
+import 'package:atfix/features/commands/domain/repositories/command_registry.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'command_parser.freezed.dart';

@@ -1,4 +1,4 @@
-import 'package:ai_keyboard/features/playground/data/services/keyboard_status_service.dart';
+import 'package:atfix/features/playground/data/services/keyboard_status_service.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 

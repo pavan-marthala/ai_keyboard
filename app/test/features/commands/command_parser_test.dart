@@ -1,5 +1,5 @@
-import 'package:ai_keyboard/features/commands/domain/parser/command_parser.dart';
-import 'package:ai_keyboard/features/commands/domain/repositories/command_registry.dart';
+import 'package:atfix/features/commands/domain/parser/command_parser.dart';
+import 'package:atfix/features/commands/domain/repositories/command_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,5 +1,5 @@
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_model.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

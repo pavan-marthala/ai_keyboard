@@ -1,4 +1,4 @@
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'user_settings.freezed.dart';

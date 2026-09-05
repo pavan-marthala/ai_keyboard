@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ai_keyboard/features/commands/domain/entities/command_entity.dart';
+import 'package:atfix/features/commands/domain/entities/command_entity.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';

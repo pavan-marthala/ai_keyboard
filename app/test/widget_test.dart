@@ -1,5 +1,5 @@
-import 'package:ai_keyboard/core/di/injection.dart';
-import 'package:ai_keyboard/main.dart';
+import 'package:atfix/core/di/injection.dart';
+import 'package:atfix/main.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

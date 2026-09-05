@@ -1,13 +1,13 @@
-import 'package:ai_keyboard/core/errors/failures.dart';
-import 'package:ai_keyboard/core/errors/result.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_model.dart';
-import 'package:ai_keyboard/features/ai_service/domain/repositories/ai_repository.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/user_settings.dart';
-import 'package:ai_keyboard/features/settings/domain/repositories/credentials_repository.dart';
-import 'package:ai_keyboard/features/settings/domain/repositories/settings_repository.dart';
-import 'package:ai_keyboard/features/settings/presentation/bloc/settings_event.dart';
-import 'package:ai_keyboard/features/settings/presentation/bloc/settings_state.dart';
+import 'package:atfix/core/errors/failures.dart';
+import 'package:atfix/core/errors/result.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_model.dart';
+import 'package:atfix/features/ai_service/domain/repositories/ai_repository.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/features/settings/domain/entities/user_settings.dart';
+import 'package:atfix/features/settings/domain/repositories/credentials_repository.dart';
+import 'package:atfix/features/settings/domain/repositories/settings_repository.dart';
+import 'package:atfix/features/settings/presentation/bloc/settings_event.dart';
+import 'package:atfix/features/settings/presentation/bloc/settings_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 

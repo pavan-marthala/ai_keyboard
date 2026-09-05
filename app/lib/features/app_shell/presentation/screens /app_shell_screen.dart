@@ -1,5 +1,5 @@
-import 'package:ai_keyboard/core/theme/app_theme.dart';
-import 'package:ai_keyboard/features/app_shell/presentation/screens%20/app_navigation_bar.dart';
+import 'package:atfix/core/theme/app_theme.dart';
+import 'package:atfix/features/app_shell/presentation/screens%20/app_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

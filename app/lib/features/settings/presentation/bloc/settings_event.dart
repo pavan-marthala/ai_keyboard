@@ -1,5 +1,5 @@
-import 'package:ai_keyboard/features/settings/domain/entities/ai_provider_type.dart';
-import 'package:ai_keyboard/features/settings/domain/entities/user_settings.dart';
+import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
+import 'package:atfix/features/settings/domain/entities/user_settings.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'settings_event.freezed.dart';
@@ -13,9 +13,8 @@ class SettingsEvent with _$SettingsEvent {
     required AiProviderType provider,
     required String apiKey,
   }) = _SaveApiKey;
-  const factory SettingsEvent.deleteApiKey({
-    required AiProviderType provider,
-  }) = _DeleteApiKey;
+  const factory SettingsEvent.deleteApiKey({required AiProviderType provider}) =
+      _DeleteApiKey;
 
   const factory SettingsEvent.selectProvider(AiProviderType provider) =
       _SelectProvider;

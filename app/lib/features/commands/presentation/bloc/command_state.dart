@@ -1,4 +1,4 @@
-import 'package:ai_keyboard/features/commands/domain/entities/command_entity.dart';
+import 'package:atfix/features/commands/domain/entities/command_entity.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'command_state.freezed.dart';

@@ -1,4 +1,4 @@
-import 'package:ai_keyboard/core/theme/app_theme.dart';
+import 'package:atfix/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
 class OnboardingPageIndicator extends StatelessWidget {

@@ -1,6 +1,6 @@
-import 'package:ai_keyboard/features/desktop_onboarding/data/datasources/desktop_platform_channel_datasource.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/data/repositories/desktop_capability_repository_impl.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/domain/entities/desktop_capability.dart';
+import 'package:atfix/features/desktop_onboarding/data/datasources/desktop_platform_channel_datasource.dart';
+import 'package:atfix/features/desktop_onboarding/data/repositories/desktop_capability_repository_impl.dart';
+import 'package:atfix/features/desktop_onboarding/domain/entities/desktop_capability.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';

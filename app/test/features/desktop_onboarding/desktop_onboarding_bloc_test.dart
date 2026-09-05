@@ -1,8 +1,8 @@
-import 'package:ai_keyboard/features/desktop_onboarding/domain/entities/desktop_capability.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/presentation/bloc/desktop_onboarding_bloc.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/presentation/bloc/desktop_onboarding_event.dart';
-import 'package:ai_keyboard/features/desktop_onboarding/presentation/bloc/desktop_onboarding_state.dart';
+import 'package:atfix/features/desktop_onboarding/domain/entities/desktop_capability.dart';
+import 'package:atfix/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
+import 'package:atfix/features/desktop_onboarding/presentation/bloc/desktop_onboarding_bloc.dart';
+import 'package:atfix/features/desktop_onboarding/presentation/bloc/desktop_onboarding_event.dart';
+import 'package:atfix/features/desktop_onboarding/presentation/bloc/desktop_onboarding_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeDesktopCapabilityRepository implements DesktopCapabilityRepository {

@@ -1,11 +1,11 @@
-import 'package:ai_keyboard/core/errors/failures.dart';
-import 'package:ai_keyboard/core/errors/result.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_provider_config.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_request.dart';
-import 'package:ai_keyboard/features/ai_service/domain/entities/ai_response.dart';
-import 'package:ai_keyboard/features/ai_service/domain/repositories/ai_repository.dart';
-import 'package:ai_keyboard/features/settings/domain/repositories/credentials_repository.dart';
-import 'package:ai_keyboard/features/settings/domain/repositories/settings_repository.dart';
+import 'package:atfix/core/errors/failures.dart';
+import 'package:atfix/core/errors/result.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_provider_config.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_request.dart';
+import 'package:atfix/features/ai_service/domain/entities/ai_response.dart';
+import 'package:atfix/features/ai_service/domain/repositories/ai_repository.dart';
+import 'package:atfix/features/settings/domain/repositories/credentials_repository.dart';
+import 'package:atfix/features/settings/domain/repositories/settings_repository.dart';
 import 'package:injectable/injectable.dart';
 
 @injectable
@@ -28,8 +28,9 @@ class TransformTextUseCase {
 
     return settingsResult.when(
       success: (settings) async {
-        final keyResult =
-            await _credentialsRepository.getApiKey(settings.activeProvider);
+        final keyResult = await _credentialsRepository.getApiKey(
+          settings.activeProvider,
+        );
         return keyResult.when(
           success: (apiKey) async {
             if (apiKey == null || apiKey.isEmpty) {
