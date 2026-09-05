@@ -34,6 +34,159 @@ final class DesktopCommandExecutionContext {
     }
 }
 
+/// A borderless NSPanel that behaves visually like a "floating card" (rounded
+/// corners, translucent dark material) but is still allowed to become key so
+/// its buttons and Escape/Return key equivalents actually work.
+final class RoundedFloatingPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
+/// A flat, borderless, PILL-shaped ("chip") command button with an explicit
+/// normal/hover background pair, replacing the default AppKit bezel look.
+/// Used to render commands as a horizontal row of chips rather than a
+/// vertical stack of full-width buttons.
+final class PromptCommandButton: NSButton {
+
+    var normalBackgroundColor: NSColor = .clear {
+        didSet { updateBackground() }
+    }
+    var hoverBackgroundColor: NSColor = .clear
+    var titleTextColor: NSColor = .white {
+        didSet { applyTitleColor() }
+    }
+    /// When true (default), corner radius tracks height/2 for a true pill
+    /// shape. Set false for non-chip uses (e.g. a small square/circular
+    /// icon button) where the caller sets cornerRadius explicitly.
+    var isPill: Bool = true {
+        didSet { needsLayout = true }
+    }
+
+    private var trackingArea: NSTrackingArea?
+    private var isHovering = false {
+        didSet { updateBackground() }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        commonSetup()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonSetup()
+    }
+
+    private func commonSetup() {
+        isBordered = false
+        bezelStyle = .regularSquare
+        wantsLayer = true
+        layer?.masksToBounds = true
+        alignment = .center
+        font = NSFont.systemFont(ofSize: 12.5, weight: .semibold)
+        updateBackground()
+        applyTitleColor()
+    }
+
+    override func layout() {
+        super.layout()
+        if isPill {
+            layer?.cornerRadius = bounds.height / 2
+        }
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = trackingArea {
+            removeTrackingArea(existing)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        isHovering = true
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        isHovering = false
+    }
+
+    private func updateBackground() {
+        layer?.backgroundColor = (isHovering ? hoverBackgroundColor : normalBackgroundColor).cgColor
+    }
+
+    private func applyTitleColor() {
+        let attributed = NSMutableAttributedString(string: title)
+        attributed.addAttributes([
+            .foregroundColor: titleTextColor,
+            .font: font ?? NSFont.systemFont(ofSize: 12.5, weight: .semibold)
+        ], range: NSRange(location: 0, length: attributed.length))
+        attributedTitle = attributed
+    }
+
+    override var title: String {
+        didSet { applyTitleColor() }
+    }
+
+    /// Natural width for this chip's current title + font, plus symmetric
+    /// horizontal padding — used to size each chip to its content instead
+    /// of stretching all chips to a fixed width.
+    func fittingChipWidth(horizontalPadding: CGFloat, minimumWidth: CGFloat) -> CGFloat {
+        let textWidth = (title as NSString).size(withAttributes: [
+            .font: font ?? NSFont.systemFont(ofSize: 12.5, weight: .semibold)
+        ]).width
+        return max(minimumWidth, ceil(textWidth) + horizontalPadding * 2)
+    }
+}
+
+/// Colors mirrored 1:1 from the Flutter app's `AppColors.dark` (Electric
+/// Violet) theme extension, so the native macOS popup matches the app's
+/// palette exactly rather than using an independent ad-hoc dark theme.
+/// Hex values below are copied directly from AppColors.dark in
+/// lib/.../app_colors.dart — keep these two in sync if that palette changes.
+private enum AppPalette {
+    static func hex(_ value: UInt32, alpha: CGFloat = 1.0) -> NSColor {
+        NSColor(
+            calibratedRed: CGFloat((value >> 16) & 0xFF) / 255.0,
+            green: CGFloat((value >> 8) & 0xFF) / 255.0,
+            blue: CGFloat(value & 0xFF) / 255.0,
+            alpha: alpha
+        )
+    }
+
+    // Primary — Electric Violet ramp
+    static let primary = hex(0x8B5CF6)        // primary500 / accent
+    static let primary300 = hex(0xC4B5FD)     // accentLight / focus ring
+    static let primary400 = hex(0xA78BFA)
+    static let primary600 = hex(0x7C3AED)     // accentHover / dim
+
+    // Neutrals / surfaces
+    static let background = hex(0x0A0A0D)     // --bg
+    static let surfaceLight = hex(0x131318)   // --surface-1 (== `card`)
+    static let surfaceDark = hex(0x1B1B22)    // --surface-2
+    static let surfaceActive = hex(0x24242D)  // gray4 / --surface-active
+
+    // Text
+    static let textPrimary = hex(0xF5F5F7)    // --ink
+    static let textSecondary = hex(0x98989F)  // --ink-soft
+    static let textTertiary = hex(0x5C5C66)   // --ink-faint
+    
+    static let error = hex(0xF0576B)
+
+    // Borders
+    static let border = NSColor.white.withAlphaComponent(CGFloat(0x12) / 255.0)       // --hairline rgba(255,255,255,.07)
+    static let borderLight = NSColor.white.withAlphaComponent(CGFloat(0x1F) / 255.0)  // rgba(255,255,255,.12)
+}
+
+
+
 /// macOS Shortcut + Selected Text @Command Manager.
 ///
 /// Workflow:
@@ -81,6 +234,32 @@ final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
     private var promptPanel: NSPanel?
     private var statusLabel: NSTextField?
     private var progressIndicator: NSProgressIndicator?
+    
+    // Layout constants — shared between showCommandPrompt and the resize helper
+    private let promptHorizontalPadding: CGFloat = 20
+    private let promptVerticalPadding: CGFloat = 18
+    private let promptChipHeight: CGFloat = 32
+    private let promptChipSpacing: CGFloat = 8
+    private let promptChipHorizontalPadding: CGFloat = 16
+    private let promptCornerRadius: CGFloat = 18
+    private let promptCloseButtonSize: CGFloat = 22
+    private let promptMinPanelWidth: CGFloat = 360
+    private let promptHeaderHeight: CGFloat = 22
+    private let promptPreviewHeight: CGFloat = 18
+    private let promptStatusAreaHeight: CGFloat = 22
+    private let promptGapAfterHeader: CGFloat = 4
+    private let promptGapPreviewToChipsCompact: CGFloat = 14   // used when status is hidden
+    private let promptGapAfterPreviewExpanded: CGFloat = 10    // used when status is shown
+    private let promptGapAfterStatusExpanded: CGFloat = 8
+
+    // Views/state needed to resize the panel after it's already on screen
+    private var promptCardView: NSView?
+    private var promptTitleLabel: NSTextField?
+    private var promptCloseButton: PromptCommandButton?
+    private var promptPreviewLabel: NSTextField?
+    private var compactPanelHeight: CGFloat = 0
+    private var expandedPanelHeight: CGFloat = 0
+    private var isStatusRowExpanded: Bool = false
 
     // MARK: - Lifecycle
 
@@ -212,6 +391,7 @@ final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
         let appElement = AXUIElementCreateApplication(appPid)
 
         var lastError: AXError = .cannotComplete
+        var didRequestEnhancedUI = false
         for attempt in 1...attempts {
             var focusedRef: CFTypeRef?
             let err = AXUIElementCopyAttributeValue(
@@ -224,6 +404,23 @@ final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
             }
             lastError = err
             NSLog("[DesktopCommandShortcutManager] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
+            
+            // Chromium/Electron apps (VS Code, Chrome, WhatsApp Desktop,
+            // Slack, ...) do not build a full accessibility tree until
+            // something actually requests one - kAXErrorCannotComplete
+            // here often means "no tree exists yet", not "access denied".
+            // AXEnhancedUserInterface is the standard (if undocumented)
+            // signal used by macOS automation tools to force Chromium to
+            // activate its accessibility bridge, same as VoiceOver would.
+            // Tree construction isn't instant, so give it real time once.
+            if !didRequestEnhancedUI, (err == .cannotComplete || err == .noValue) {
+                NSLog("[DesktopShortcutPrototype] Requesting AXEnhancedUserInterface for pid=\(appPid) (Chromium/Electron tree activation)")
+                _ = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+                didRequestEnhancedUI = true
+                usleep(300_000) // first-time tree construction can take a few hundred ms
+                continue
+            }
+            
             if attempt < attempts {
                 usleep(delayMicroseconds)
             }
@@ -287,97 +484,235 @@ final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
 
     private func showCommandPrompt(selectedText: String) {
         closePrompt()
+        let commands = ["@fix", "@rewrite", "@short", "@expand"]
 
-        let panelWidth: CGFloat = 320
-        let panelHeight: CGFloat = 330
+        let horizontalPadding = promptHorizontalPadding
+        let verticalPadding = promptVerticalPadding
+        let chipHeight = promptChipHeight
+        let chipSpacing = promptChipSpacing
+        let chipHorizontalPadding = promptChipHorizontalPadding
+        let cornerRadius = promptCornerRadius
+        let closeButtonSize = promptCloseButtonSize
+        let minPanelWidth = promptMinPanelWidth
+        let headerHeight = promptHeaderHeight
+        let previewHeight = promptPreviewHeight
+        let statusAreaHeight = promptStatusAreaHeight
+        let gapAfterHeader = promptGapAfterHeader
 
-        let panel = NSPanel(
+        let chipButtons: [PromptCommandButton] = commands.map { cmd in
+            let btn = PromptCommandButton(frame: .zero)
+            btn.title = cmd
+            btn.target = self
+            btn.action = #selector(handleCommandButtonClicked(_:))
+            btn.keyEquivalent = "\r"
+            btn.titleTextColor = AppPalette.textPrimary
+            btn.normalBackgroundColor = AppPalette.primary
+            btn.hoverBackgroundColor = AppPalette.primary600
+            return btn
+        }
+        let chipWidths = chipButtons.map {
+            $0.fittingChipWidth(horizontalPadding: chipHorizontalPadding, minimumWidth: 64)
+        }
+        let chipsRowWidth = chipWidths.reduce(0, +) + chipSpacing * CGFloat(max(0, chipButtons.count - 1))
+
+        let titleText = "What do you want to do?"
+        let titleWidth = (titleText as NSString).size(withAttributes: [
+            .font: NSFont.systemFont(ofSize: 13.5, weight: .semibold)
+        ]).width
+
+        let contentWidth = max(chipsRowWidth, titleWidth, 260)
+        let panelWidth = max(minPanelWidth, contentWidth + horizontalPadding * 2 + closeButtonSize + 8)
+
+        // Two possible heights: compact (no status row) and expanded (status shown).
+        // Chip row sits at a FIXED distance from the BOTTOM in both cases, so it
+        // never needs repositioning — only the panel/card height changes, and the
+        // top-anchored views (title/close/preview/status) get moved to match.
+        self.compactPanelHeight = verticalPadding + headerHeight + gapAfterHeader + previewHeight
+            + promptGapPreviewToChipsCompact + chipHeight + verticalPadding
+        self.expandedPanelHeight = verticalPadding + headerHeight + gapAfterHeader + previewHeight
+            + promptGapAfterPreviewExpanded + statusAreaHeight + promptGapAfterStatusExpanded
+            + chipHeight + verticalPadding
+        self.isStatusRowExpanded = false
+
+        let panelHeight = compactPanelHeight
+
+        let panel = RoundedFloatingPanel(
             contentRect: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight),
-            styleMask: [.titled, .closable, .utilityWindow],
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
 
-        panel.title = "Select command"
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         panel.level = .floating
         panel.isReleasedWhenClosed = false
         panel.delegate = self
-        panel.center()
+        panel.isMovableByWindowBackground = true
+        panel.appearance = NSAppearance(named: .darkAqua) // ensure dynamic system colors resolve to dark variants
 
-        let contentView = NSView(frame: panel.contentView?.bounds ?? NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
+        let card = NSView(frame: NSRect(x: 0, y: 0, width: panelWidth, height: panelHeight))
+        card.wantsLayer = true
+        card.layer?.cornerRadius = cornerRadius
+        card.layer?.masksToBounds = true
+        card.layer?.backgroundColor = AppPalette.surfaceLight.cgColor
+        card.layer?.borderWidth = 1
+        card.layer?.borderColor = AppPalette.border.cgColor
+        card.shadow = NSShadow()
+        self.promptCardView = card
 
-        let titleLabel = NSTextField(labelWithString: "What do you want to do?")
-        titleLabel.font = NSFont.boldSystemFont(ofSize: 13)
-        titleLabel.frame = NSRect(x: 20, y: panelHeight - 35, width: panelWidth - 40, height: 20)
-        contentView.addSubview(titleLabel)
+        // Title
+        let titleLabel = NSTextField(labelWithString: titleText)
+        titleLabel.font = NSFont.systemFont(ofSize: 13.5, weight: .semibold)
+        titleLabel.textColor = AppPalette.textPrimary
+        titleLabel.frame = NSRect(x: horizontalPadding, y: 0, width: panelWidth - horizontalPadding - closeButtonSize - 16, height: headerHeight)
+        card.addSubview(titleLabel)
+        self.promptTitleLabel = titleLabel
 
+        // Close ("×") button
+        let closeBtn = PromptCommandButton(frame: NSRect(x: panelWidth - horizontalPadding - closeButtonSize + 6, y: 0, width: closeButtonSize, height: closeButtonSize))
+        closeBtn.title = "×"
+        closeBtn.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        closeBtn.titleTextColor = AppPalette.textSecondary
+        closeBtn.normalBackgroundColor = .clear
+        closeBtn.hoverBackgroundColor = AppPalette.surfaceActive
+        closeBtn.keyEquivalent = "\u{1b}"
+        closeBtn.target = self
+        closeBtn.action = #selector(handleCancel)
+        card.addSubview(closeBtn)
+        self.promptCloseButton = closeBtn
+
+        // Selected-text preview
         let displayPreview = selectedText.replacingOccurrences(of: "\n", with: " ")
-        let truncated = displayPreview.count > 32 ? String(displayPreview.prefix(29)) + "..." : displayPreview
+        let maxPreviewChars = 44
+        let truncated = displayPreview.count > maxPreviewChars
+            ? String(displayPreview.prefix(maxPreviewChars - 3)) + "..."
+            : displayPreview
         let previewLabel = NSTextField(labelWithString: "\"\(truncated)\"")
-        previewLabel.font = NSFont.systemFont(ofSize: 11)
-        previewLabel.textColor = .secondaryLabelColor
-        previewLabel.frame = NSRect(x: 20, y: panelHeight - 55, width: panelWidth - 40, height: 16)
-        contentView.addSubview(previewLabel)
+        previewLabel.font = NSFont.systemFont(ofSize: 11.5)
+        previewLabel.textColor = AppPalette.textSecondary
+        previewLabel.frame = NSRect(x: horizontalPadding, y: 0, width: panelWidth - horizontalPadding * 2, height: previewHeight)
+        card.addSubview(previewLabel)
+        self.promptPreviewLabel = previewLabel
 
-        // Loading indicator
-        let spinner = NSProgressIndicator(frame: NSRect(x: 20, y: panelHeight - 88, width: 16, height: 16))
+        // Loading indicator + status row — hidden by default, no space reserved
+        let spinner = NSProgressIndicator(frame: NSRect(x: horizontalPadding, y: 0, width: 14, height: 14))
         spinner.style = .spinning
         spinner.controlSize = .small
         spinner.isDisplayedWhenStopped = false
         spinner.isHidden = true
-        contentView.addSubview(spinner)
+        card.addSubview(spinner)
         self.progressIndicator = spinner
 
-        // Status / Loading / Error label
         let status = NSTextField(labelWithString: "")
-        status.font = NSFont.systemFont(ofSize: 11)
-        status.textColor = .secondaryLabelColor
-        status.frame = NSRect(x: 42, y: panelHeight - 96, width: panelWidth - 62, height: 32)
-        status.maximumNumberOfLines = 2
-        status.lineBreakMode = .byWordWrapping
-        contentView.addSubview(status)
+        status.font = NSFont.systemFont(ofSize: 11.5)
+        status.textColor = AppPalette.textPrimary
+        status.frame = NSRect(x: horizontalPadding + 20, y: 0, width: panelWidth - horizontalPadding * 2 - 20, height: statusAreaHeight)
+        status.maximumNumberOfLines = 1
+        status.lineBreakMode = .byTruncatingTail
+        status.isHidden = true
+        card.addSubview(status)
         self.statusLabel = status
 
-        // Command action buttons
-        let commands = [
-            "@fix",
-            "@rewrite",
-            "@short",
-            "@expand"
-        ]
+        // Position all top-anchored views correctly for the compact height.
+        repositionTopAnchoredViews(forHeight: panelHeight)
 
-        var buttonY = panelHeight - 136
-        for cmd in commands {
-            let btn = NSButton(frame: NSRect(x: 20, y: buttonY, width: panelWidth - 40, height: 28))
-            btn.title = cmd
-            btn.bezelStyle = .rounded
-            btn.font = NSFont.systemFont(ofSize: 12)
-            if cmd == "@fix" {
-                btn.keyEquivalent = "\r"
-            }
-
-            btn.target = self
-            btn.action = #selector(handleCommandButtonClicked(_:))
-
-            contentView.addSubview(btn)
-            buttonY -= 34
+        // Command chips — fixed distance from the BOTTOM, same in both states.
+        var chipX = horizontalPadding
+        for (index, btn) in chipButtons.enumerated() {
+            let width = chipWidths[index]
+            btn.frame = NSRect(x: chipX, y: verticalPadding, width: width, height: chipHeight)
+            card.addSubview(btn)
+            chipX += width + chipSpacing
         }
 
-        let cancelBtn = NSButton(frame: NSRect(x: 20, y: 16, width: panelWidth - 40, height: 26))
-        cancelBtn.title = "Cancel"
-        cancelBtn.bezelStyle = .rounded
-        cancelBtn.keyEquivalent = "\u{1b}"
-        cancelBtn.target = self
-        cancelBtn.action = #selector(handleCancel)
-        contentView.addSubview(cancelBtn)
-
-        panel.contentView = contentView
+        panel.contentView = card
         self.promptPanel = panel
 
+        positionPanelNearCursor(panel, width: panelWidth, height: panelHeight)
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
         NSLog("[DesktopCommandShortcutManager] COMMAND PROMPT OPENED")
+    }
+
+    /// Repositions the top-anchored views (title, close button, preview,
+    /// status/spinner) for a given card height. Chips are NOT included here —
+    /// they sit at a fixed distance from the bottom and never move.
+    private func repositionTopAnchoredViews(forHeight height: CGFloat) {
+        let titleY = height - promptVerticalPadding - promptHeaderHeight
+        if var f = promptTitleLabel?.frame { f.origin.y = titleY; promptTitleLabel?.frame = f }
+
+        let closeY = height - promptVerticalPadding - promptCloseButtonSize + 4
+        if var f = promptCloseButton?.frame { f.origin.y = closeY; promptCloseButton?.frame = f }
+
+        let previewY = titleY - promptGapAfterHeader - promptPreviewHeight
+        if var f = promptPreviewLabel?.frame { f.origin.y = previewY; promptPreviewLabel?.frame = f }
+
+        let statusY = previewY - promptGapAfterPreviewExpanded - promptStatusAreaHeight
+        if var f = statusLabel?.frame { f.origin.y = statusY; statusLabel?.frame = f }
+        if var f = progressIndicator?.frame { f.origin.y = statusY + 3; progressIndicator?.frame = f }
+    }
+
+    /// Grows/shrinks the popup to show or hide the status row, instead of
+    /// leaving empty reserved space when there's nothing to display.
+    private func setStatusRowExpanded(_ expanded: Bool) {
+        statusLabel?.isHidden = !expanded
+        progressIndicator?.isHidden = !expanded
+
+        guard expanded != isStatusRowExpanded,
+              let panel = promptPanel,
+              let card = promptCardView else { return }
+        isStatusRowExpanded = expanded
+
+        let targetHeight = expanded ? expandedPanelHeight : compactPanelHeight
+        let deltaHeight = targetHeight - card.frame.height
+
+        var frame = panel.frame
+        frame.size.height = targetHeight
+        frame.origin.y -= deltaHeight // grow/shrink downward; keep the top edge visually anchored
+        panel.setFrame(frame, display: true, animate: true)
+
+        card.setFrameSize(NSSize(width: card.frame.width, height: targetHeight))
+        repositionTopAnchoredViews(forHeight: targetHeight)
+    }
+    
+    /// Positions the panel just below-and-right of the current mouse cursor,
+    /// clamped so it stays fully within the visible frame of whichever
+    /// screen the cursor is on (instead of always opening screen-centered).
+    private func positionPanelNearCursor(_ panel: NSPanel, width: CGFloat, height: CGFloat) {
+        let mouseLocation = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? NSScreen.main
+
+        guard let visibleFrame = screen?.visibleFrame else {
+            panel.center()
+            return
+        }
+
+        let offsetX: CGFloat = 16
+        let offsetY: CGFloat = 16
+
+        var originX = mouseLocation.x + offsetX
+        var originY = mouseLocation.y - height - offsetY // panel appears below the cursor
+
+        // Clamp horizontally.
+        if originX + width > visibleFrame.maxX {
+            originX = visibleFrame.maxX - width - 8
+        }
+        if originX < visibleFrame.minX {
+            originX = visibleFrame.minX + 8
+        }
+
+        // If there's no room below the cursor, place it above instead.
+        if originY < visibleFrame.minY {
+            originY = mouseLocation.y + offsetY
+        }
+        if originY + height > visibleFrame.maxY {
+            originY = visibleFrame.maxY - height - 8
+        }
+
+        panel.setFrameOrigin(NSPoint(x: originX, y: originY))
     }
 
     private func closePrompt() {
@@ -468,19 +803,17 @@ final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
             guard let self = self else { return }
             let running = self.activeExecutions.values.filter { !$0.isCancelled }.map { $0.command }
             if !running.isEmpty {
-                self.progressIndicator?.isHidden = false
+                self.setStatusRowExpanded(true)
                 self.progressIndicator?.startAnimation(nil)
                 if running.count == 1 {
-                    let cmd = running[0]
-                    self.statusLabel?.stringValue = "⏳ \(self.actionLabelForCommand(cmd))"
-                    self.statusLabel?.textColor = .labelColor
+                    self.statusLabel?.stringValue = "⏳ \(self.actionLabelForCommand(running[0]))"
                 } else {
                     self.statusLabel?.stringValue = "⏳ Processing \(running.joined(separator: ", "))..."
-                    self.statusLabel?.textColor = .labelColor
                 }
+                self.statusLabel?.textColor = AppPalette.textPrimary
             } else {
                 self.progressIndicator?.stopAnimation(nil)
-                self.progressIndicator?.isHidden = true
+                self.setStatusRowExpanded(false)
             }
         }
     }
@@ -489,13 +822,13 @@ final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.progressIndicator?.stopAnimation(nil)
-            self.progressIndicator?.isHidden = true
+            self.setStatusRowExpanded(true)
             self.statusLabel?.stringValue = "⚠️ \(execution.command) failed: \(message)"
-            self.statusLabel?.textColor = .systemRed
+            self.statusLabel?.textColor = AppPalette.error
         }
     }
 
-    // MARK: - Real AI Execution (@fix, @rewrite, @short, @expand)
+    // MARK: - AI Execution (@fix, @rewrite, @short, @expand)
 
     private func executeRealAiCommand(execution: DesktopCommandExecutionContext) async {
         do {
