@@ -2,14 +2,14 @@
 
 ## 1. Executive Summary
 
-This forensic audit investigates the Android keyboard codebase (`pavan-marthala/ai_keyboard`) to determine the exact technical strategy for integrating the Android Open Source Project (AOSP) LatinIME **More Keys / long-press infrastructure** into the existing keyboard without rebuilding the feature from scratch or replacing the custom keyboard UI.
+This forensic audit investigates the Android keyboard codebase (`pavan-marthala/atfix`) to determine the exact technical strategy for integrating the Android Open Source Project (AOSP) LatinIME **More Keys / long-press infrastructure** into the existing keyboard without rebuilding the feature from scratch or replacing the custom keyboard UI.
 
 ### Key Audit Findings
 
 1. **Current UI Architecture**:
-   - The Android keyboard UI in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/KeyboardView.kt` is a custom Android `LinearLayout`.
+   - The Android keyboard UI in `app/android/app/src/main/kotlin/com/pk/atfix/ui/KeyboardView.kt` is a custom Android `LinearLayout`.
    - Keys are procedurally built as nested `LinearLayout`, `FrameLayout`, and `TextView` views.
-   - The repository currently contains **zero** AOSP LatinIME keyboard UI classes. Only the AOSP LatinIME **suggestion engine** (native C++ trie and Kotlin wrappers in `com.pk.ai_keyboard.suggestion.aosp.*`) is present.
+   - The repository currently contains **zero** AOSP LatinIME keyboard UI classes. Only the AOSP LatinIME **suggestion engine** (native C++ trie and Kotlin wrappers in `com.pk.atfix.suggestion.aosp.*`) is present.
 
 2. **Current Long-Press / Number-Alternative Mechanism**:
    - In `KeyboardView.kt:1930-1964`, long-press detection is implemented via an inline `Handler(Looper.getMainLooper()).postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())`.
@@ -61,12 +61,12 @@ The Android keyboard consists of three primary layers:
 
 | Component | File Path | Responsibilities |
 | --- | --- | --- |
-| `KeyboardService` | `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/KeyboardService.kt` | `InputMethodService` entry point, lifecycle management, window creation, IME switching. |
-| `KeyboardController` | `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/KeyboardController.kt` | Orchestrates shift state, text commits, AI triggers, suggestions, voice input, modes. |
-| `KeyboardView` | `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/KeyboardView.kt` | View hierarchy, layout rendering (QWERTY, symbols, emoji, clipboard, GIF), touch events. |
-| `NumberRowRepository` | `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/NumberRowRepository.kt` | SharedPreferences storage (`"use_numbers"`) determining number row presence. |
-| `TextEditor` | `app/android/app/src/main/kotlin/com/pk/ai_keyboard/text/TextEditor.kt` | Wrapper around `InputConnection` for committing text, deletions, selections, cursor context. |
-| `AospSuggestionAdapter` | `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/AospSuggestionAdapter.kt` | Bridge between `KeyboardController` and the native C++ LatinIME suggestion engine. |
+| `KeyboardService` | `app/android/app/src/main/kotlin/com/pk/atfix/keyboard/KeyboardService.kt` | `InputMethodService` entry point, lifecycle management, window creation, IME switching. |
+| `KeyboardController` | `app/android/app/src/main/kotlin/com/pk/atfix/keyboard/KeyboardController.kt` | Orchestrates shift state, text commits, AI triggers, suggestions, voice input, modes. |
+| `KeyboardView` | `app/android/app/src/main/kotlin/com/pk/atfix/ui/KeyboardView.kt` | View hierarchy, layout rendering (QWERTY, symbols, emoji, clipboard, GIF), touch events. |
+| `NumberRowRepository` | `app/android/app/src/main/kotlin/com/pk/atfix/keyboard/NumberRowRepository.kt` | SharedPreferences storage (`"use_numbers"`) determining number row presence. |
+| `TextEditor` | `app/android/app/src/main/kotlin/com/pk/atfix/text/TextEditor.kt` | Wrapper around `InputConnection` for committing text, deletions, selections, cursor context. |
+| `AospSuggestionAdapter` | `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/AospSuggestionAdapter.kt` | Bridge between `KeyboardController` and the native C++ LatinIME suggestion engine. |
 
 ---
 
@@ -153,7 +153,7 @@ MotionEvent.ACTION_UP (KeyboardView.kt:1947)
 
 ### Code Location & Key Mechanism
 
-- **Source File**: `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/KeyboardView.kt`
+- **Source File**: `app/android/app/src/main/kotlin/com/pk/atfix/ui/KeyboardView.kt`
 - **Lines**: `1712–1725` and `1873–1966`
 - **Method**: `renderQwertyLayout()` and `createKeyView()`
 
@@ -266,7 +266,7 @@ A complete search of the repository for AOSP keyboard UI classes yields the foll
 
 ### Conclusion
 
-None of the AOSP keyboard rendering, touch tracking, or popup classes are currently in the repository. The only AOSP LatinIME code in this project is the **native dictionary suggestion engine** under `app/android/app/src/main/cpp/` and `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/`.
+None of the AOSP keyboard rendering, touch tracking, or popup classes are currently in the repository. The only AOSP LatinIME code in this project is the **native dictionary suggestion engine** under `app/android/app/src/main/cpp/` and `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/`.
 
 ---
 
@@ -495,7 +495,7 @@ In both configurations, the underlying More Keys system functions identically; o
 
 - **Key Preview**: Transient visual callout displayed immediately upon touch down above a pressed key during normal typing.
 - **More Keys**: Interactive popup opened only after long-press timeout holding multiple alternative selectable keys.
-- **Audit Finding**: AI Keyboard currently has **no key preview callout** (keys only scale in place via `animatePress`).
+- **Audit Finding**: AtFIx currently has **no key preview callout** (keys only scale in place via `animatePress`).
 - **Conflict Assessment**: **ZERO CONFLICT**. There is no existing key preview view or animation that interferes with popup placement.
 
 ---
@@ -507,7 +507,7 @@ AOSP More Keys delivers selection results via `KeyboardActionListener`:
 - `onCodeInput(int primaryCode, int x, int y, boolean isKeyRepeat)`
 - `onTextInput(CharSequence text)`
 
-### Existing Integration Point in AI Keyboard
+### Existing Integration Point in AtFIx
 
 In `KeyboardController.kt`:
 
@@ -585,20 +585,20 @@ All proposed classes originate from:
 
 ### Files to Add (Phase 9.2)
 
-1. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/MoreKeySpec.kt` (or `.java`)
-2. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/KeySpecParser.kt`
-3. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/MoreKeysKeyboard.kt`
-4. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/MoreKeysKeyboardView.kt`
-5. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/MoreKeysDetector.kt`
-6. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/MoreKeysPanel.kt`
-7. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/KeyboardActionListener.kt`
-8. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/morekeys/KeyDef.kt`
+1. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/MoreKeySpec.kt` (or `.java`)
+2. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/KeySpecParser.kt`
+3. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/MoreKeysKeyboard.kt`
+4. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/MoreKeysKeyboardView.kt`
+5. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/MoreKeysDetector.kt`
+6. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/MoreKeysPanel.kt`
+7. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/KeyboardActionListener.kt`
+8. `app/android/app/src/main/kotlin/com/pk/atfix/ui/morekeys/KeyDef.kt`
 9. `app/android/app/src/main/res/layout/more_keys_keyboard.xml`
 10. `app/android/app/src/main/res/drawable/more_keys_panel_background.xml`
 
 ### Files to Modify (Phase 9.2)
 
-1. `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/KeyboardView.kt`:
+1. `app/android/app/src/main/kotlin/com/pk/atfix/ui/KeyboardView.kt`:
    - Add overlay container (`FrameLayout`) to host `MoreKeysKeyboardView`.
    - Update key touch listener to forward events to `MoreKeysTouchHandler` / `MoreKeysPanel`.
    - Add dismissal call in `onFinishInputView()` / `updateModeUi()`.
@@ -606,12 +606,12 @@ All proposed classes originate from:
 
 ### Files That Must NOT Be Modified
 
-- `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/KeyboardController.kt` (receives characters via existing `onKeyTyped`)
-- `app/android/app/src/main/kotlin/com/pk/ai_keyboard/text/TextEditor.kt`
-- `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/*` (suggestion engine remains untouched)
+- `app/android/app/src/main/kotlin/com/pk/atfix/keyboard/KeyboardController.kt` (receives characters via existing `onKeyTyped`)
+- `app/android/app/src/main/kotlin/com/pk/atfix/text/TextEditor.kt`
+- `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/*` (suggestion engine remains untouched)
 - `app/android/app/src/main/cpp/*` (native C++ trie dictionary remains untouched)
-- `app/android/app/src/main/kotlin/com/pk/ai_keyboard/voice/*` (dictation remains untouched)
-- `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ai/*` (AI providers remain untouched)
+- `app/android/app/src/main/kotlin/com/pk/atfix/voice/*` (dictation remains untouched)
+- `app/android/app/src/main/kotlin/com/pk/atfix/ai/*` (AI providers remain untouched)
 
 ---
 
@@ -664,13 +664,13 @@ The implementation in Phase 9.2 should proceed in nine strict, incremental stage
 
 ### PHASE 9.2.1 — AOSP Source Import
 
-- Import `MoreKeysPanel.java`, `MoreKeySpec.java`, `KeySpecParser.java`, and `KeyboardActionListener.java` into package `com.pk.ai_keyboard.ui.morekeys`.
-- Adapt package declarations and imports to point to `com.pk.ai_keyboard`.
+- Import `MoreKeysPanel.java`, `MoreKeySpec.java`, `KeySpecParser.java`, and `KeyboardActionListener.java` into package `com.pk.atfix.ui.morekeys`.
+- Adapt package declarations and imports to point to `com.pk.atfix`.
 - Compile and verify that the imported base interfaces build cleanly.
 
 ### PHASE 9.2.2 — Resource Integration
 
-- Create `res/layout/more_keys_keyboard.xml` containing `<com.pk.ai_keyboard.ui.morekeys.MoreKeysKeyboardView>`.
+- Create `res/layout/more_keys_keyboard.xml` containing `<com.pk.atfix.ui.morekeys.MoreKeysKeyboardView>`.
 - Create `res/drawable/more_keys_panel_background.xml` with popup elevation styling.
 - Define `config_more_keys_keyboard_slide_allowance` in `res/values/dimens.xml`.
 
@@ -741,7 +741,7 @@ The implementation in Phase 9.2 should proceed in nine strict, incremental stage
 
 ## 24. Phase 9.2 Implementation Details
 
-### Implemented AOSP Classes (`com.pk.ai_keyboard.ui.aosp.morekeys`)
+### Implemented AOSP Classes (`com.pk.atfix.ui.aosp.morekeys`)
 
 1. **`MoreKeysPanel.java`**:
    - Original Apache-2.0 AOSP interface defining the contract for More Keys popup panels (`showMoreKeysPanel`, `dismissMoreKeysPanel`, `onDownEvent`, `onMoveEvent`, `onUpEvent`, `translateX`, `translateY`).
@@ -770,12 +770,12 @@ The implementation in Phase 9.2 should proceed in nine strict, incremental stage
    - Adapted from AOSP `MoreKeysKeyboardView.java`.
    - Canvas-based view that renders the popup bubble, key backgrounds, labels, real-time drag highlighting, and release-to-commit selection.
 
-### Key Model Decoupling (`com.pk.ai_keyboard.ui.KeyDef.kt`)
+### Key Model Decoupling (`com.pk.atfix.ui.KeyDef.kt`)
 
 - Decouples primary key `label`, visible top-right `hint`, and long-press `moreKeysSpec`.
 - Enabled the **Comma key** `,` to provide 34 commonly used special characters and currency symbols on long press with **NO visible hint** on the key.
 
-### UI Integration (`com.pk.ai_keyboard.ui.KeyboardView.kt`)
+### UI Integration (`com.pk.atfix.ui.KeyboardView.kt`)
 
 - Added `contentWrapper: FrameLayout` with `clipChildren = false` and `clipToPadding = false`.
 - Added `moreKeysOverlayContainer: FrameLayout` to host `MoreKeysKeyboardView`.

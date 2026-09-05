@@ -10,7 +10,7 @@
 
 ## Scope
 
-Comprehensive repository audit, documentation hardening, and governance alignment for the `ai_keyboard` repository (`https://github.com/pavan-marthala/ai_keyboard`). The audit covered root governance files, in-depth architectural guides, issue and pull request templates, and technical specifications, comparing every statement against the authoritative source code across Flutter (`app/lib/`), native Android (`app/android/`), native iOS (`app/ios/`), and native C++ AOSP (`app/android/app/src/main/cpp/`).
+Comprehensive repository audit, documentation hardening, and governance alignment for the `atfix` repository (`https://github.com/pavan-marthala/atfix`). The audit covered root governance files, in-depth architectural guides, issue and pull request templates, and technical specifications, comparing every statement against the authoritative source code across Flutter (`app/lib/`), native Android (`app/android/`), native iOS (`app/ios/`), and native C++ AOSP (`app/android/app/src/main/cpp/`).
 
 ---
 
@@ -48,7 +48,7 @@ The following Markdown, template, and configuration files were reviewed during t
 | :--- | :--- | :--- |
 | `README.md` | Complete overhaul | Corrected command syntax from slash commands (`/fix`) to inline `@` commands (`@fix`). Replaced erroneous Jetpack Compose claims with accurate Android View hierarchy documentation. Added explicit `## Project Status` section with granular component maturity breakdown. Updated setup, testing, and prerequisite instructions. |
 | `app/README.md` | Architecture rewrite | Updated Mermaid system architecture diagram to eliminate Compose and slash commands. Detailed actual component interactions (`KeyboardService`, `KeyboardController`, `KeyboardView`, `TextEditor`, `AospSuggestionAdapter`). Clarified direct native HTTP calls from keyboards to AI providers. Added accurate build runner code generation commands. |
-| `docs/architecture.md` | In-depth technical specification | Documented concrete architectural boundaries between Flutter host shell, native Android IME, native iOS extension, and AOSP C++ engine. Documented exact MethodChannel signatures (`com.pk.ai_keyboard/credentials` and `com.pk.ai_keyboard/keyboard`). Detailed JNI bridge execution path and dictionary cache extraction. |
+| `docs/architecture.md` | In-depth technical specification | Documented concrete architectural boundaries between Flutter host shell, native Android IME, native iOS extension, and AOSP C++ engine. Documented exact MethodChannel signatures (`com.pk.atfix/credentials` and `com.pk.atfix/keyboard`). Detailed JNI bridge execution path and dictionary cache extraction. |
 | `docs/android-keyboard.md` | Android subsystem specification | Removed all references to Jetpack Compose. Documented `KeyboardView` as an Android `LinearLayout` with custom Views, AndroidX `EmojiPickerView`, and `RecyclerView`. Detailed the 7 keyboard modes (`MAIN`, `MORE`, `EMOJI`, `CLIPBOARD`, `GIF`, `STICKERS`, `RESIZE`), double-tap shift behavior, `TextEditor` `InputConnection` lifecycle, Giphy API search and onsend pingbacks, transparent voice permission activity, and KeyStore AES-256-GCM. |
 | `docs/ai-providers.md` | AI integration reference | Verified and documented exact REST endpoints, headers, default models (`gemini-1.5-flash`, `gpt-4o-mini`, `llama-3.3-70b-versatile`, `openai/gpt-4o-mini`), parameter values (`temperature: 0.0`, `max_tokens: 1024`), custom base URL overrides, and credential storage partitioning across all 4 providers. |
 | `docs/development.md` | Setup & workflow guide | Standardized command execution contexts (`cd app`), documented prerequisites (Flutter, Android SDK, NDK, CMake 3.22.1, Xcode), explained code generation, testing, building debug/release APKs, and troubleshooting common issues. |
@@ -69,11 +69,11 @@ Every technical claim made in the revised documentation was verified directly ag
 
 1. **Command Syntax:**
    - Flutter: `app/lib/features/commands/domain/parser/command_parser.dart` and `command_registry.dart`.
-   - Android: `app/android/app/src/main/kotlin/com/pk/ai_keyboard/command/CommandParser.kt` and `NativeCommandRegistry.kt`.
+   - Android: `app/android/app/src/main/kotlin/com/pk/atfix/command/CommandParser.kt` and `NativeCommandRegistry.kt`.
    - iOS: `app/ios/KeyboardExtension/CommandParser.swift`.
    - *Verification Result:* Commands are strictly trailing tokens starting with `@` (`@fix`, `@rewrite`, `@pro`, `@casual`, `@short`, `@expand`, `@translate:<lang>`). Not slash commands.
 2. **Android UI Implementation:**
-   - Source: `app/android/app/src/main/kotlin/com/pk/ai_keyboard/ui/KeyboardView.kt` and `app/android/app/build.gradle.kts`.
+   - Source: `app/android/app/src/main/kotlin/com/pk/atfix/ui/KeyboardView.kt` and `app/android/app/build.gradle.kts`.
    - *Verification Result:* `KeyboardView` extends `android.widget.LinearLayout`. Uses custom Views, `androidx.emoji2.emojipicker.EmojiPickerView`, and `RecyclerView`. Jetpack Compose is not imported or used.
 3. **AOSP Suggestion Engine & Dictionary:**
    - Source: `app/android/app/src/main/cpp/CMakeLists.txt`, `format_utils.cpp`, `v4_dict_buffers.cpp`, `NativeBinaryDictionary.kt`, `BinaryDictionary.kt`, and `main_en.dict`.
@@ -91,7 +91,7 @@ Every technical claim made in the revised documentation was verified directly ag
 
 The system architecture is structured as follows:
 
-- **Layer 1 (Flutter Host):** Settings, provider management, and testing playground utilizing BLoC, Freezed, and Injectable. Communicates with native platforms via MethodChannels `com.pk.ai_keyboard/credentials` and `com.pk.ai_keyboard/keyboard`.
+- **Layer 1 (Flutter Host):** Settings, provider management, and testing playground utilizing BLoC, Freezed, and Injectable. Communicates with native platforms via MethodChannels `com.pk.atfix/credentials` and `com.pk.atfix/keyboard`.
 - **Layer 2 (Android Native Keyboard):** Kotlin `InputMethodService` (`KeyboardService`), `KeyboardController`, `KeyboardView` (Android Views), and direct HTTPS calls (`HttpURLConnection`) to AI providers.
 - **Layer 3 (iOS Native Keyboard):** Swift `UIInputViewController` (`KeyboardViewController`), UIKit `KeyboardView`, and direct HTTPS calls (`URLSession`) to AI providers.
 - **Layer 4 (AOSP C++ Engine):** Native C++ LatinIME library compiled via CMake and bound via JNI (`latinime_jni.cpp`) for Patricia trie word suggestions against `main_en.dict`.
@@ -122,7 +122,7 @@ Rules: Commands must appear at the end of input text separated by whitespace, wi
 - **Components Derived from AOSP:**
   - C++ source files in `app/android/app/src/main/cpp/aosp_latinime/`.
   - C++ JNI bridge files in `app/android/app/src/main/cpp/latinime/`.
-  - Kotlin adapter classes in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/` (19 files).
+  - Kotlin adapter classes in `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/` (19 files).
   - Bundled binary dictionary `app/android/app/src/main/assets/dictionaries/main_en.dict`.
 - **Attribution Status:** Fully documented in `NOTICE`, `README.md`, `app/README.md`, `docs/architecture.md`, `docs/android-keyboard.md`, and `CONTRIBUTING.md`.
 
@@ -130,7 +130,7 @@ Rules: Commands must appear at the end of input text separated by whitespace, wi
 
 ## Security Documentation
 
-- **API Keys:** Never committed to source control. Stored in hardware-backed Android KeyStore (AES-256-GCM, alias `AiKeyboardKeyStoreKey`) and iOS Keychain (`com.pk.ai_keyboard.apiKey`).
+- **API Keys:** Never committed to source control. Stored in hardware-backed Android KeyStore (AES-256-GCM, alias `AtFIxKeyStoreKey`) and iOS Keychain (`com.pk.atfix.apiKey`).
 - **Data Transmission:** Only text preceded by an `@` command is transmitted over HTTPS to user-configured AI providers. Standard keystrokes are processed locally.
 - **Third-Party Requests:** Giphy API queries for GIF search; silent onsend pingbacks upon GIF insertion.
 - **Telemetry:** Zero application telemetry, analytics, keystroke recording, or crash reporting.

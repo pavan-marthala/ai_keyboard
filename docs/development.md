@@ -1,6 +1,6 @@
 # Development & Setup Guide
 
-This document outlines environment prerequisites, local setup instructions, build configurations, testing procedures, and troubleshooting guidelines for the AI Keyboard project.
+This document outlines environment prerequisites, local setup instructions, build configurations, testing procedures, and troubleshooting guidelines for the AtFIx project.
 
 ---
 
@@ -24,8 +24,8 @@ Ensure your development environment meets the following toolchain requirements:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/pavan-marthala/ai_keyboard.git
-cd ai_keyboard
+git clone https://github.com/pavan-marthala/atfix.git
+cd atfix
 ```
 
 ### 2. Install Flutter Dependencies
@@ -71,15 +71,15 @@ flutter run
 1. Build and install the debug APK on an emulator or connected device (`flutter run` or `flutter install`).
 2. Open system **Settings** > **System** > **Languages & Input** (or **General Management** > **Keyboard list and default** on Samsung devices).
 3. Select **On-screen keyboard** > **Manage on-screen keyboards**.
-4. Enable **AI Keyboard**.
-5. Switch to AI Keyboard in any text field using the input method selector.
+4. Enable **AtFIx**.
+5. Switch to AtFIx in any text field using the input method selector.
 
 #### iOS
 
 1. Open `app/ios/Runner.xcworkspace` in Xcode.
-2. Ensure both the `Runner` and `KeyboardExtension` targets have valid development signing team and matching App Group (`group.com.pk.ai_keyboard.shared`) configurations.
+2. Ensure both the `Runner` and `KeyboardExtension` targets have valid development signing team and matching App Group (`group.com.pk.atfix.shared`) configurations.
 3. Deploy to an iOS device or simulator.
-4. In iOS **Settings**, navigate to **General** > **Keyboard** > **Keyboards** > **Add New Keyboard...** and select **AI Keyboard**.
+4. In iOS **Settings**, navigate to **General** > **Keyboard** > **Keyboards** > **Add New Keyboard...** and select **AtFIx**.
 5. Tap the added keyboard and toggle **Allow Full Access** (required for network access to call AI provider APIs).
 
 #### macOS
@@ -113,7 +113,7 @@ cd app/android
 To run a specific Android test class:
 
 ```bash
-./gradlew testDebugUnitTest --tests "com.pk.ai_keyboard.suggestion.aosp.AospSuggestionEngineTest"
+./gradlew testDebugUnitTest --tests "com.pk.atfix.suggestion.aosp.AospSuggestionEngineTest"
 ```
 
 ---
@@ -151,7 +151,7 @@ cd app
 flutter build macos --release
 ```
 
-The resulting application bundle will be generated at `build/macos/Build/Products/Release/ai_keyboard.app`. See [docs/macos-installation.md](macos-installation.md) for installation and Gatekeeper verification.
+The resulting application bundle will be generated at `build/macos/Build/Products/Release/atfix.app`. See [docs/macos-installation.md](macos-installation.md) for installation and Gatekeeper verification.
 
 ---
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.pk.ai_keyboard.suggestion.aosp
+package com.pk.atfix.suggestion.aosp
 
 import org.junit.After
 import org.junit.Assert.*

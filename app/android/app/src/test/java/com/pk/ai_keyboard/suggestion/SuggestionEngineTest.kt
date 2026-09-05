@@ -1,4 +1,4 @@
-package com.pk.ai_keyboard.suggestion
+package com.pk.atfix.suggestion
 
 import org.junit.Assert.*
 import org.junit.Before

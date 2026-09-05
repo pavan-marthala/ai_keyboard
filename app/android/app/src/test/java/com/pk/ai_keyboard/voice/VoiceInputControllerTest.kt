@@ -1,7 +1,7 @@
-package com.pk.ai_keyboard.voice
+package com.pk.atfix.voice
 
-import com.pk.ai_keyboard.keyboard.KeyboardMode
-import com.pk.ai_keyboard.text.TextEditor
+import com.pk.atfix.keyboard.KeyboardMode
+import com.pk.atfix.text.TextEditor
 import org.junit.Assert.*
 import org.junit.Test
 

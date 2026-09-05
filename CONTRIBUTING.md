@@ -1,6 +1,6 @@
-# Contributing to AI Keyboard
+# Contributing to AtFIx
 
-Thank you for your interest in contributing to AI Keyboard. This guide explains how to set up your environment, follow project conventions, develop features, and submit pull requests.
+Thank you for your interest in contributing to AtFIx. This guide explains how to set up your environment, follow project conventions, develop features, and submit pull requests.
 
 ---
 
@@ -28,8 +28,8 @@ Follow this step-by-step workflow when making contributions:
 1. **Fork & Clone:**
 
    ```bash
-   git clone https://github.com/<your-username>/ai_keyboard.git
-   cd ai_keyboard
+   git clone https://github.com/<your-username>/atfix.git
+   cd atfix
    ```
 
 2. **Install Dependencies:**
@@ -119,7 +119,7 @@ test: Add unit tests for AospSuggestionAdapter geometry bounds
 
 ## Guidelines for Native AOSP Components
 
-Portions of the suggestion infrastructure in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/` and `app/android/app/src/main/cpp/aosp_latinime/` are derived from the Android Open Source Project (AOSP) LatinIME implementation (Copyright (C) 2010–2014 The Android Open Source Project, Apache 2.0).
+Portions of the suggestion infrastructure in `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/` and `app/android/app/src/main/cpp/aosp_latinime/` are derived from the Android Open Source Project (AOSP) LatinIME implementation (Copyright (C) 2010–2014 The Android Open Source Project, Apache 2.0).
 
 When modifying or adding to these components, contributors must strictly adhere to the following rules:
 

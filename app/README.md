@@ -1,4 +1,4 @@
-# AI Keyboard — Application Architecture & Development Guide
+# AtFIx — Application Architecture & Development Guide
 
 This document provides a technical overview of the `app/` codebase, detailing the multi-layer architecture, component responsibilities, data flows, and build procedures.
 
@@ -118,8 +118,8 @@ The Android keyboard is implemented natively in Kotlin and C++ to ensure low-lat
   - Completely independent of the Flutter runtime during active keyboard operation.
 - **Secure Storage (`config/NativeSecureStorage.kt`):**
   - Hardware-backed Android KeyStore AES-256-GCM encryption for stored API keys.
-  - Key alias: `AiKeyboardKeyStoreKey` in `AndroidKeyStore`.
-  - Encrypted values stored in private preferences (`ai_keyboard_secure_prefs`).
+  - Key alias: `AtFIxKeyStoreKey` in `AndroidKeyStore`.
+  - Encrypted values stored in private preferences (`atfix_secure_prefs`).
 
 ---
 
@@ -156,8 +156,8 @@ The iOS implementation provides a native keyboard extension built in Swift using
 - **Native AI Pipeline (`KeyboardExtension/AI/`):**
   - Lightweight Swift implementations of Gemini, OpenAI, Groq, and OpenRouter using `URLSession`.
 - **Shared Code (`Shared/`):**
-  - `KeychainCredentialStore.swift`: Stores API keys in the iOS Keychain under service `com.pk.ai_keyboard.apiKey`.
-  - `SharedConfigurationStore.swift`: Synchronizes non-secret preferences via App Group `group.com.pk.ai_keyboard.shared`.
+  - `KeychainCredentialStore.swift`: Stores API keys in the iOS Keychain under service `com.pk.atfix.apiKey`.
+  - `SharedConfigurationStore.swift`: Synchronizes non-secret preferences via App Group `group.com.pk.atfix.shared`.
 
 ---
 
@@ -167,22 +167,22 @@ Inter-process communication between the Flutter app shell and the native host is
 
 ### Android Method Channels
 
-1. **`com.pk.ai_keyboard/credentials` (`MainActivity.kt`):**
+1. **`com.pk.atfix/credentials` (`MainActivity.kt`):**
    - `saveApiKey(provider, apiKey)`: Encrypts and persists key in Android KeyStore.
    - `getApiKey(provider)`: Retrieves decrypted API key.
    - `deleteApiKey(provider)`: Removes API key.
    - `hasApiKey(provider)`: Checks key existence.
    - `saveConfig(provider, modelId, baseUrl)`: Saves active provider settings.
    - `saveDisabledCommands(disabledTriggers)`: Persists user-disabled command triggers.
-2. **`com.pk.ai_keyboard/keyboard` (`MainActivity.kt`):**
-   - `isAiKeyboardActive`: Verifies if AI Keyboard is currently the default system IME.
+2. **`com.pk.atfix/keyboard` (`MainActivity.kt`):**
+   - `isAtFIxActive`: Verifies if AtFIx is currently the default system IME.
    - `openKeyboardSettings`: Launches system input method settings intent.
    - `getKeyboardHeight` / `setKeyboardHeight` / `resetKeyboardHeight`: Manages custom keyboard height.
    - `getUseNumbers` / `setUseNumbers`: Controls number row visibility.
 
 ### iOS Method Channel
 
-1. **`com.pk.ai_keyboard/credentials` (`AppDelegate.swift`):**
+1. **`com.pk.atfix/credentials` (`AppDelegate.swift`):**
    - `saveApiKey`, `getApiKey`, `deleteApiKey`, `hasApiKey`, `saveConfig`, `saveDisabledCommands`.
    - Reads/writes to iOS Keychain and App Group `UserDefaults`.
 
@@ -264,8 +264,8 @@ User taps letter key (e.g. 'h' -> 'e' -> 'l')
 ### Setup
 
 ```bash
-git clone https://github.com/pavan-marthala/ai_keyboard.git
-cd ai_keyboard/app
+git clone https://github.com/pavan-marthala/atfix.git
+cd atfix/app
 flutter pub get
 ```
 

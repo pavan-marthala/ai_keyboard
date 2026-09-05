@@ -7,10 +7,10 @@ import 'package:injectable/injectable.dart';
 class KeyboardStatusService {
   static const _channel = MethodChannel('com.pk.ai_keyboard/keyboard');
 
-  Future<bool> isAiKeyboardActive() async {
+  Future<bool> isAtFIxActive() async {
     if (!Platform.isAndroid) return false;
     try {
-      final bool isActive = await _channel.invokeMethod('isAiKeyboardActive');
+      final bool isActive = await _channel.invokeMethod('isAtFIxActive');
       return isActive;
     } catch (_) {
       return false;

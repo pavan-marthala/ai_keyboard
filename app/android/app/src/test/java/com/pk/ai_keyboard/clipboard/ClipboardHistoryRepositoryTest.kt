@@ -1,4 +1,4 @@
-package com.pk.ai_keyboard.clipboard
+package com.pk.atfix.clipboard
 
 import org.junit.Assert.*
 import org.junit.Before

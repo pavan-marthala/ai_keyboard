@@ -1,6 +1,6 @@
 # AOSP More Keys & Multi-Alternative Long Press Implementation
 
-This document describes the production implementation of AOSP LatinIME More Keys / long-press infrastructure in the AI Keyboard project (`pavan-marthala/ai_keyboard`).
+This document describes the production implementation of AOSP LatinIME More Keys / long-press infrastructure in the AtFIx project (`pavan-marthala/atfix`).
 
 ## 1. Overview
 
@@ -16,7 +16,7 @@ The implementation integrates the core mathematical layout, hit detection, and p
 All imported and adapted AOSP More Keys components reside in an isolated package:
 
 ```
-com.pk.ai_keyboard.ui.aosp.morekeys/
+com.pk.atfix.ui.aosp.morekeys/
 ├── MoreKeysPanel.kt            # Core interface defining the popup lifecycle contract
 ├── KeyboardActionListener.kt   # Interface for delivering code/text input to controller
 ├── MoreKeySpec.kt              # Parser for comma-delimited more-keys specifications
@@ -32,7 +32,7 @@ com.pk.ai_keyboard.ui.aosp.morekeys/
 
 ## 3. Key Model Decoupling
 
-The key model is defined in `com.pk.ai_keyboard.ui.KeyDef.kt`:
+The key model is defined in `com.pk.atfix.ui.KeyDef.kt`:
 
 ```kotlin
 data class KeyDef(

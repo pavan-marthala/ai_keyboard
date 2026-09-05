@@ -12,9 +12,9 @@ void main() {
 
   group('KeyboardStatusService Tests', () {
     test(
-      'isAiKeyboardActive returns false safely on non-Android test environment',
+      'isAtFIxActive returns false safely on non-Android test environment',
       () async {
-        final isActive = await service.isAiKeyboardActive();
+        final isActive = await service.isAtFIxActive();
         expect(isActive, isFalse);
       },
     );

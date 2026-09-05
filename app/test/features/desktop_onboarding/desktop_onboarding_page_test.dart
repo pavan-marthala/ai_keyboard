@@ -88,7 +88,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify Page 1 elements
-    expect(find.text('AI Keyboard'), findsOneWidget);
+    expect(find.text('AtFIx'), findsOneWidget);
     expect(find.text('AI assistance wherever you type'), findsOneWidget);
     expect(find.text('Supported Commands'), findsOneWidget);
     expect(find.text('@fix'), findsOneWidget);
@@ -122,7 +122,7 @@ void main() {
     await tester.tap(find.text('Back'));
     await tester.pumpAndSettle();
 
-    expect(find.text('AI Keyboard'), findsOneWidget);
+    expect(find.text('AtFIx'), findsOneWidget);
     expect(find.text('Supported Commands'), findsOneWidget);
   });
 

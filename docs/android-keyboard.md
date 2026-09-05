@@ -10,7 +10,7 @@ The Android keyboard is implemented as a native input method engine (IME) using 
 
 ### Service Entry Point: `KeyboardService.kt`
 
-Located in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/keyboard/KeyboardService.kt`.
+Located in `app/android/app/src/main/kotlin/com/pk/atfix/keyboard/KeyboardService.kt`.
 
 - **Inheritance:** Extends `android.inputmethodservice.InputMethodService`.
 - **Active Singleton Reference:** Maintains `activeInstance: KeyboardService?` in companion object, allowing companion components (such as `MainActivity` via MethodChannel) to notify the active keyboard instance of dynamic preference updates (e.g. number row toggling).
@@ -170,13 +170,13 @@ TextEditor.commitText(transformedText, 1)
 ### Clipboard History
 
 - **Manager:** `ClipboardHistoryManager.kt` monitors system clipboard changes using `ClipboardManager.OnPrimaryClipChangedListener`.
-- **Persistence:** Recent clips are stored in `SharedPreferences` under `ai_keyboard_clipboard_prefs`.
+- **Persistence:** Recent clips are stored in `SharedPreferences` under `atfix_clipboard_prefs`.
 
 ---
 
 ## 8. Secure Storage Implementation
 
 - **Class:** `NativeSecureStorage.kt`.
-- **Hardware Protection:** Uses Android KeyStore with alias `AiKeyboardKeyStoreKey`.
+- **Hardware Protection:** Uses Android KeyStore with alias `AtFIxKeyStoreKey`.
 - **Cryptographic Details:** AES-256-GCM (`AES/GCM/NoPadding`) with a 128-bit authentication tag.
-- **Storage Layout:** Ciphertext prepended with a 1-byte IV length and the IV bytes, Base64-encoded, and stored in `ai_keyboard_secure_prefs`.
+- **Storage Layout:** Ciphertext prepended with a 1-byte IV length and the IV bytes, Base64-encoded, and stored in `atfix_secure_prefs`.

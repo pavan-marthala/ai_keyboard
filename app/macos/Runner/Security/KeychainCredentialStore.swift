@@ -4,7 +4,7 @@ import Security
 /// macOS Keychain storage for AI provider API credentials.
 ///
 /// Uses Apple's Security framework (`kSecClassGenericPassword`) to securely
-/// persist and retrieve API keys under service `"com.pk.ai_keyboard"`.
+/// persist and retrieve API keys under service `"com.pk.atfix"`.
 ///
 /// Follows strict security requirements:
 /// - Never writes keys to disk files
@@ -14,7 +14,7 @@ final class KeychainCredentialStore {
 
     static let shared = KeychainCredentialStore()
 
-    private let service = "com.pk.ai_keyboard"
+    private let service = "com.pk.atfix"
 
     private init() {}
 

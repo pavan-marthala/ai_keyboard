@@ -1,4 +1,4 @@
-# AI Keyboard
+# AtFIx
 
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 
@@ -59,7 +59,7 @@ An AI-powered keyboard application for Android and iOS. It combines a Flutter ap
 
 ## Command System
 
-AI Keyboard uses an inline, trailing command syntax prefixed with `@`. Commands are recognized when entered at the **end** of input text, preceded by whitespace:
+AtFIx uses an inline, trailing command syntax prefixed with `@`. Commands are recognized when entered at the **end** of input text, preceded by whitespace:
 
 | Command | Action | Description |
 | :--- | :--- | :--- |
@@ -169,8 +169,8 @@ For deep architectural diagrams and data-flow specifications, see [app/README.md
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/pavan-marthala/ai_keyboard.git
-   cd ai_keyboard/app
+   git clone https://github.com/pavan-marthala/atfix.git
+   cd atfix/app
    ```
 
 2. **Install Flutter dependencies:**
@@ -201,8 +201,8 @@ flutter run
 
 After installing the application, enable the keyboard through system settings:
 
-- **Android:** *Settings > System > Languages & Input > On-screen keyboard > Manage on-screen keyboards > Toggle AI Keyboard on.*
-- **iOS:** *Settings > General > Keyboard > Keyboards > Add New Keyboard... > Select AI Keyboard.*
+- **Android:** *Settings > System > Languages & Input > On-screen keyboard > Manage on-screen keyboards > Toggle AtFIx on.*
+- **iOS:** *Settings > General > Keyboard > Keyboards > Add New Keyboard... > Select AtFIx.*
 - **macOS:** *Launch the app to configure Accessibility & Input Monitoring permissions (see [docs/macos-installation.md](docs/macos-installation.md)), then select text anywhere and press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>Space</kbd>.*
 
 ---
@@ -227,7 +227,7 @@ For complete development, building, and debugging workflows, refer to [docs/deve
 
 - **On-Device Storage:** Sensitive credentials (API keys) are stored in hardware-backed storage (Android KeyStore with AES-256-GCM; iOS Keychain with `kSecClassGenericPassword`).
 - **Data Transmission:** Only text explicitly targeted by an `@` command is sent over HTTPS to the user's chosen AI provider. No text is transmitted during ordinary typing.
-- **Zero App Telemetry:** The AI Keyboard does not collect, record, or transmit keystrokes, personal information, analytics, or crash reports.
+- **Zero App Telemetry:** The AtFIx does not collect, record, or transmit keystrokes, personal information, analytics, or crash reports.
 - **External Pings:** When a GIF is inserted, Giphy's API requires an HTTP ping to an `onsend` analytics URL to comply with Giphy's API terms.
 
 For full cryptographic and privacy details, see [docs/security.md](docs/security.md). To report vulnerabilities, review [SECURITY.md](SECURITY.md).
@@ -241,8 +241,8 @@ Contributions are welcome! Please review [CONTRIBUTING.md](CONTRIBUTING.md) for 
 All participants are expected to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 <p >
-  <a href="https://github.com/pavan-marthala/ai_keyboard/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=pavan-marthala/ai_keyboard" />
+  <a href="https://github.com/pavan-marthala/atfix/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=pavan-marthala/atfix" />
   </a>
 </p>
 

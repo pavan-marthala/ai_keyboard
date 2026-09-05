@@ -1,4 +1,4 @@
-package com.pk.ai_keyboard.ui.aosp.morekeys
+package com.pk.atfix.ui.aosp.morekeys
 
 import org.junit.Assert.*
 import org.junit.Test

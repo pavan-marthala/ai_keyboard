@@ -84,11 +84,11 @@ final GoRouter _appRouter = GoRouter(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
-  runApp(const AiKeyboardApp());
+  runApp(const AtFIxApp());
 }
 
-class AiKeyboardApp extends StatelessWidget {
-  const AiKeyboardApp({super.key});
+class AtFIxApp extends StatelessWidget {
+  const AtFIxApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +107,7 @@ class AiKeyboardApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         routerConfig: _appRouter,
-        title: 'AI Keyboard Utility',
+        title: 'AtFIx Utility',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         darkTheme: AppTheme.dark,

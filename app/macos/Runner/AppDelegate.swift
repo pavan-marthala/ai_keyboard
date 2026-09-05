@@ -28,7 +28,7 @@ class AppDelegate: FlutterAppDelegate {
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
       let channel = FlutterMethodChannel(
-        name: "com.pk.ai_keyboard/desktop",
+        name: "com.pk.atfix/desktop",
         binaryMessenger: messenger
       )
       channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
@@ -93,7 +93,7 @@ class AppDelegate: FlutterAppDelegate {
       }
 
       let credentialsChannel = FlutterMethodChannel(
-        name: "com.pk.ai_keyboard/credentials",
+        name: "com.pk.atfix/credentials",
         binaryMessenger: messenger
       )
       credentialsChannel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in

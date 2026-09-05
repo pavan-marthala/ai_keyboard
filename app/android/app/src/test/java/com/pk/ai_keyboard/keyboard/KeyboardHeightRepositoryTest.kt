@@ -1,4 +1,4 @@
-package com.pk.ai_keyboard.keyboard
+package com.pk.atfix.keyboard
 
 import org.junit.Assert.assertEquals
 import org.junit.Before

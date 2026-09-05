@@ -1,4 +1,4 @@
-package com.pk.ai_keyboard.gif
+package com.pk.atfix.gif
 
 import org.junit.Assert.*
 import org.junit.Before

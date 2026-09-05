@@ -19,10 +19,10 @@ void main() {
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const AiKeyboardApp());
+    await tester.pumpWidget(const AtFIxApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('AI Keyboard'), findsWidgets);
+    expect(find.text('AtFIx'), findsWidgets);
     expect(find.text('AI assistance wherever you type'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
   });
@@ -36,7 +36,7 @@ void main() {
     await getIt.reset();
     await configureDependencies();
 
-    await tester.pumpWidget(const AiKeyboardApp());
+    await tester.pumpWidget(const AtFIxApp());
     await tester.pumpAndSettle();
 
     expect(find.text('Playground'), findsWidgets);

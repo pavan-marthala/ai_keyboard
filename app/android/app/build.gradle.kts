@@ -16,7 +16,7 @@ val giphyApiKey = System.getenv("GIPHY_API_KEY")
     ?: "dc6zaTOxFJmzC" // Default dev key placeholder
 
 android {
-    namespace = "com.pk.ai_keyboard"
+    namespace = "com.pk.atfix
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
@@ -31,7 +31,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.pk.ai_keyboard"
+        applicationId = "com.pk.atfix
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

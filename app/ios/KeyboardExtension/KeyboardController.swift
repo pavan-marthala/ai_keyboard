@@ -101,12 +101,12 @@ class KeyboardController {
 
     func checkForCommandTrigger() {
         guard let textBefore = editor.textBeforeInput, !textBefore.isEmpty else {
-            onStatusUpdate?("✨ AI Keyboard")
+            onStatusUpdate?("✨ AtFIx")
             return
         }
 
         guard let parsed = CommandParser.parse(inputText: textBefore) else {
-            onStatusUpdate?("✨ AI Keyboard")
+            onStatusUpdate?("✨ AtFIx")
             return
         }
 
@@ -151,7 +151,7 @@ class KeyboardController {
 
                 let currentTextBefore = self.editor.textBeforeInput ?? ""
                 if currentTextBefore != submittedTextBefore {
-                    self.onStatusUpdate?("✨ AI Keyboard")
+                    self.onStatusUpdate?("✨ AtFIx")
                     return
                 }
 
@@ -159,7 +159,7 @@ class KeyboardController {
                 case .success(let transformedText):
                     self.editor.deleteBeforeCursor(count: parsed.fullMatchLength)
                     self.editor.insertText(transformedText)
-                    self.onStatusUpdate?("✨ AI Keyboard")
+                    self.onStatusUpdate?("✨ AtFIx")
                 case .failure(let failure):
                     self.onStatusUpdate?(failure.userMessage)
                 }

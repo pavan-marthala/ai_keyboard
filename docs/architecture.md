@@ -1,12 +1,12 @@
 # Architecture Specification
 
-This document defines the complete architecture of the AI Keyboard system, detailing runtime components, class hierarchies, inter-process communication, and third-party integrations across Flutter, Android, and iOS.
+This document defines the complete architecture of the AtFIx system, detailing runtime components, class hierarchies, inter-process communication, and third-party integrations across Flutter, Android, and iOS.
 
 ---
 
 ## 1. Architectural Principles & High-Level View
 
-The AI Keyboard system isolates configuration management from active keyboard execution:
+The AtFIx system isolates configuration management from active keyboard execution:
 
 1. **Decoupled Keyboard Runtime:** The native keyboard extensions (Android and iOS) run independently of the Flutter runtime during active typing sessions. Keystroke handling, AOSP dictionary lookup, and AI API dispatching occur natively without invoking Dart isolate execution.
 2. **Secure Credential Partitioning:** Sensitive user credentials (AI provider API keys) are stored in platform hardware security modules (Android KeyStore and iOS Keychain). Flutter writes these credentials through native method channels, and the native keyboards read and decrypt them directly.
@@ -63,8 +63,8 @@ flowchart TD
         AS --> JNI --> Engine --> Dict
     end
 
-    SecStore -.->|MethodChannel: com.pk.ai_keyboard/credentials| AKStore
-    SecStore -.->|MethodChannel: com.pk.ai_keyboard/credentials| IKChain
+    SecStore -.->|MethodChannel: com.pk.atfix/credentials| AKStore
+    SecStore -.->|MethodChannel: com.pk.atfix/credentials| IKChain
 ```
 
 ---
@@ -159,9 +159,9 @@ KeyboardService (InputMethodService)
    - Interacts with `android.view.inputmethod.InputConnection`.
    - Implements safe cursor reads (`getTextBeforeCursor`, `getTextAfterCursor`), text deletion (`deleteSurroundingText`), and text insertion (`commitText`).
 5. **`NativeSecureStorage.kt`:**
-   - Key storage: Generates an AES-256 key in `AndroidKeyStore` (`AiKeyboardKeyStoreKey`).
+   - Key storage: Generates an AES-256 key in `AndroidKeyStore` (`AtFIxKeyStoreKey`).
    - Cipher: `AES/GCM/NoPadding` with 128-bit authentication tag.
-   - Prepends IV bytes to ciphertext and Base64 encodes into `ai_keyboard_secure_prefs`.
+   - Prepends IV bytes to ciphertext and Base64 encodes into `atfix_secure_prefs`.
 
 ---
 
@@ -226,8 +226,8 @@ The iOS keyboard runs as an `UIInputViewController` extension within an isolated
 - **`CommandParser.swift`:** Swift implementation of trailing `@` command parsing matching the Flutter and Android contracts.
 - **`AI/` Directory:** Swift network clients for Gemini, OpenAI, Groq, and OpenRouter using `URLSession`.
 - **`Shared/` Directory:**
-  - `KeychainCredentialStore.swift`: Manages API keys in the system Keychain under service `com.pk.ai_keyboard.apiKey`.
-  - `SharedConfigurationStore.swift`: Reads and writes active provider, active model, and custom base URL via `UserDefaults(suiteName: "group.com.pk.ai_keyboard.shared")`.
+  - `KeychainCredentialStore.swift`: Manages API keys in the system Keychain under service `com.pk.atfix.apiKey`.
+  - `SharedConfigurationStore.swift`: Reads and writes active provider, active model, and custom base URL via `UserDefaults(suiteName: "group.com.pk.atfix.shared")`.
 
 ---
 
@@ -235,7 +235,7 @@ The iOS keyboard runs as an `UIInputViewController` extension within an isolated
 
 Communication between the Flutter application shell and native platforms is achieved through Flutter `MethodChannel`:
 
-### Channel: `com.pk.ai_keyboard/credentials`
+### Channel: `com.pk.atfix/credentials`
 
 Implemented in `MainActivity.kt` (Android) and `AppDelegate.swift` (iOS).
 
@@ -248,13 +248,13 @@ Implemented in `MainActivity.kt` (Android) and `AppDelegate.swift` (iOS).
 | `saveConfig` | `provider: String`, `modelId: String`, `baseUrl: String?` | Saves active provider configuration. |
 | `saveDisabledCommands` | `disabledTriggers: List<String>` | Persists list of disabled command triggers. |
 
-### Channel: `com.pk.ai_keyboard/keyboard`
+### Channel: `com.pk.atfix/keyboard`
 
 Implemented in `MainActivity.kt` (Android only).
 
 | Method | Arguments | Description |
 | :--- | :--- | :--- |
-| `isAiKeyboardActive` | None | Returns whether AI Keyboard is selected as active IME in Android Settings. |
+| `isAtFIxActive` | None | Returns whether AtFIx is selected as active IME in Android Settings. |
 | `getCurrentInputMethod` | None | Returns the package identifier of the active system IME. |
 | `openKeyboardSettings` | None | Dispatches `Settings.ACTION_INPUT_METHOD_SETTINGS` intent. |
 | `getKeyboardHeight` | None | Returns configured height in dp. |
@@ -284,12 +284,12 @@ Presentation Layer
             │
             ▼
    DesktopPlatformChannelDataSource
-            │  (MethodChannel: com.pk.ai_keyboard/desktop)
+            │  (MethodChannel: com.pk.atfix/desktop)
             ▼
    Native Desktop Runner (macOS AppDelegate.swift / Windows)
 ```
 
-### Channel: `com.pk.ai_keyboard/desktop`
+### Channel: `com.pk.atfix/desktop`
 
 | Method | Arguments | Returns | Description |
 | :--- | :--- | :--- | :--- |
@@ -426,7 +426,7 @@ app/
    - **`ConfigurationStore.swift`**: Active provider, model ID, custom base URL, and disabled command configuration persisted in `UserDefaults` with Flutter fallback synchronization.
 
 4. **`AppDelegate.swift`**:
-   - Manages application lifecycle, starts `CommandShortcutManager.shared.start()`, and bridges Flutter platform channels (`com.pk.ai_keyboard/desktop` and `com.pk.ai_keyboard/credentials`).
+   - Manages application lifecycle, starts `CommandShortcutManager.shared.start()`, and bridges Flutter platform channels (`com.pk.atfix/desktop` and `com.pk.atfix/credentials`).
 
 #### Shelved / Experimental Status
 - **Old Inline/Trailing Command Detection (`hello world @fix`)**: Continuous keyboard event monitoring that buffered all user keystrokes looking for trailing `@fix` triggers has been **permanently shelved as an experimental prototype**. It is not part of the active or supported desktop workflow.

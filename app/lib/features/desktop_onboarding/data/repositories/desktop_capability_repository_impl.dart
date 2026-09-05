@@ -30,14 +30,14 @@ class DesktopCapabilityRepositoryImpl implements DesktopCapabilityRepository {
         DesktopCapability(
           type: DesktopCapabilityType.accessibility,
           title: 'Accessibility',
-          description: 'Allows AI Keyboard to interact with active application text fields and insert transformed text.',
+          description: 'Allows AtFIx to interact with active application text fields and insert transformed text.',
           status: accessibilityStatus,
           isRequired: true,
         ),
         DesktopCapability(
           type: DesktopCapabilityType.inputMonitoring,
           title: 'Keyboard Input Monitoring',
-          description: 'Allows AI Keyboard to detect trailing commands (such as @fix) directly as you type.',
+          description: 'Allows AtFIx to detect trailing commands (such as @fix) directly as you type.',
           status: inputMonitoringStatus,
           isRequired: true,
         ),

@@ -4,7 +4,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="AI Keyboard"
+        android:label="AtFIx"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:fullBackupContent="@xml/backup_rules"
@@ -53,10 +53,10 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- Native AI Keyboard InputMethodService -->
+        <!-- Native AtFIx InputMethodService -->
         <service
             android:name=".keyboard.KeyboardService"
-            android:label="AI Keyboard"
+            android:label="AtFIx"
             android:permission="android.permission.BIND_INPUT_METHOD"
             android:exported="true">
             <intent-filter>

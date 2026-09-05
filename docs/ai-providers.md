@@ -1,12 +1,12 @@
 # AI Provider Integration Reference
 
-This document provides a detailed specification for the AI providers integrated into the AI Keyboard, covering network protocols, authentication mechanisms, default models, runtime parameters, and storage locations across Android, iOS, and Flutter.
+This document provides a detailed specification for the AI providers integrated into the AtFIx, covering network protocols, authentication mechanisms, default models, runtime parameters, and storage locations across Android, iOS, and Flutter.
 
 ---
 
 ## 1. Supported Providers Overview
 
-The AI Keyboard supports four AI providers. All four providers are implemented natively across Android and iOS, as well as within the Flutter application shell:
+The AtFIx supports four AI providers. All four providers are implemented natively across Android and iOS, as well as within the Flutter application shell:
 
 | Provider | Platform Support | API Protocol | Default Model | Authentication Style |
 | :--- | :--- | :--- | :--- | :--- |
@@ -19,7 +19,7 @@ The AI Keyboard supports four AI providers. All four providers are implemented n
 
 ## 2. Execution Architecture & Direct Native Calls
 
-A critical architectural design of the AI Keyboard is that **native keyboards invoke AI provider endpoints directly without routing through the Flutter runtime**:
+A critical architectural design of the AtFIx is that **native keyboards invoke AI provider endpoints directly without routing through the Flutter runtime**:
 
 - **Android Native Keyboard:** Invokes AI endpoints using `java.net.HttpURLConnection` inside Kotlin coroutines on `Dispatchers.IO` (`GeminiProvider.kt`, `OpenAiProvider.kt`, `GroqProvider.kt`, `OpenRouterProvider.kt`).
 - **iOS Native Keyboard:** Invokes AI endpoints using Swift's `URLSession` async APIs (`GeminiProvider.swift`, `OpenAiProvider.swift`, `GroqProvider.swift`, `OpenRouterProvider.swift`).
@@ -114,14 +114,14 @@ Provider configurations and API credentials are saved separately to guarantee se
 
 ### Non-Sensitive Settings (Active Provider, Active Model, Base URL)
 
-- **Android:** Stored in `SharedPreferences` under `ai_keyboard_config_prefs` via `NativeSecureStorage.saveConfig(...)`.
-- **iOS:** Stored in `UserDefaults(suiteName: "group.com.pk.ai_keyboard.shared")` via `SharedConfigurationStore.saveConfig(...)`.
+- **Android:** Stored in `SharedPreferences` under `atfix_config_prefs` via `NativeSecureStorage.saveConfig(...)`.
+- **iOS:** Stored in `UserDefaults(suiteName: "group.com.pk.atfix.shared")` via `SharedConfigurationStore.saveConfig(...)`.
 - **Flutter:** Persisted in `SharedPreferences` via `SettingsRepositoryImpl.dart`.
 
 ### Sensitive Credentials (API Keys)
 
-- **Android:** Encrypted using Android KeyStore AES-256-GCM (`AiKeyboardKeyStoreKey`) and stored as Base64 ciphertext in `ai_keyboard_secure_prefs`.
-- **iOS:** Stored in the iOS Keychain under service identifier `com.pk.ai_keyboard.apiKey`.
+- **Android:** Encrypted using Android KeyStore AES-256-GCM (`AtFIxKeyStoreKey`) and stored as Base64 ciphertext in `atfix_secure_prefs`.
+- **iOS:** Stored in the iOS Keychain under service identifier `com.pk.atfix.apiKey`.
 - **Flutter:** Managed through `FlutterSecureStorage`.
 
 ---

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <exclude domain="sharedpref" path="ai_keyboard_clipboard_prefs.xml" />
-    <exclude domain="sharedpref" path="ai_keyboard_recent_gifs_prefs.xml" />
-    <exclude domain="sharedpref" path="ai_keyboard_height_prefs.xml" />
+    <exclude domain="sharedpref" path="atfix_clipboard_prefs.xml" />
+    <exclude domain="sharedpref" path="atfix_recent_gifs_prefs.xml" />
+    <exclude domain="sharedpref" path="atfix_height_prefs.xml" />
 </full-backup-content>

@@ -160,7 +160,7 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
           ),
           const SizedBox(height: 24),
           Text(
-            'AI Keyboard',
+            'AtFIx',
             style: typo.displayMedium.copyWith(
               fontWeight: FontWeight.w800,
               color: colors.textPrimary,
@@ -207,8 +207,8 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
 
     final title = 'Enable Desktop Access';
     final subtitle = isWindows
-        ? 'AI Keyboard needs desktop integration to detect commands and interact with supported text fields.'
-        : 'AI Keyboard needs access to interact with supported applications and detect your typing commands.';
+        ? 'AtFIx needs desktop integration to detect commands and interact with supported text fields.'
+        : 'AtFIx needs access to interact with supported applications and detect your typing commands.';
 
     return BlocBuilder<DesktopOnboardingBloc, DesktopOnboardingState>(
       builder: (context, state) {

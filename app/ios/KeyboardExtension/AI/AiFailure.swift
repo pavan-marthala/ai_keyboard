@@ -28,7 +28,7 @@ enum AiFailure: Error {
         case .network: return "⚠️ Network Error"
         case .server: return "⚠️ Provider Error"
         case .invalidResponse, .emptyResponse: return "⚠️ Empty AI Response"
-        case .cancelled, .contextChanged: return "✨ AI Keyboard"
+        case .cancelled, .contextChanged: return "✨ AtFIx"
         case .textTooLong: return "⚠️ Text Too Long"
         case .unknown(let msg): return "⚠️ Error: \(msg)"
         }

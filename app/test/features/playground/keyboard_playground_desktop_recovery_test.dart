@@ -17,7 +17,7 @@ class MockKeyboardStatusService extends KeyboardStatusService {
   bool openedSettings = false;
 
   @override
-  Future<bool> isAiKeyboardActive() async => active;
+  Future<bool> isAtFIxActive() async => active;
 
   @override
   Future<void> openKeyboardSettings() async {
@@ -101,16 +101,16 @@ void main() {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
-          expect(find.text('AI Keyboard Not Active'), findsOneWidget);
+          expect(find.text('AtFIx Not Active'), findsOneWidget);
           expect(
             find.text(
-              'Enable and select AI Keyboard in Android System Settings to test transformation.',
+              'Enable and select AtFIx in Android System Settings to test transformation.',
             ),
             findsOneWidget,
           );
-          expect(find.text('Select AI Keyboard'), findsOneWidget);
+          expect(find.text('Select AtFIx'), findsOneWidget);
 
-          await tester.tap(find.text('Select AI Keyboard'));
+          await tester.tap(find.text('Select AtFIx'));
           await tester.pumpAndSettle();
           expect(mockKeyboardService.openedSettings, isTrue);
         } finally {
@@ -133,13 +133,13 @@ void main() {
             DesktopCapability(
               type: DesktopCapabilityType.accessibility,
               title: 'Accessibility',
-              description: 'Allows AI Keyboard to interact with text fields.',
+              description: 'Allows AtFIx to interact with text fields.',
               status: DesktopCapabilityStatus.enabled,
             ),
             DesktopCapability(
               type: DesktopCapabilityType.inputMonitoring,
               title: 'Keyboard Input Monitoring',
-              description: 'Allows AI Keyboard to detect trailing commands.',
+              description: 'Allows AtFIx to detect trailing commands.',
               status: DesktopCapabilityStatus.enabled,
             ),
           ];
@@ -147,16 +147,16 @@ void main() {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
-          expect(find.text('AI Keyboard Active'), findsOneWidget);
+          expect(find.text('AtFIx Active'), findsOneWidget);
           expect(
             find.text(
-              'AI Keyboard has the necessary system permissions to detect commands and transform text.',
+              'AtFIx has the necessary system permissions to detect commands and transform text.',
             ),
             findsOneWidget,
           );
           // No recovery buttons should appear
           expect(find.text('Open Settings'), findsNothing);
-          expect(find.text('Select AI Keyboard'), findsNothing);
+          expect(find.text('Select AtFIx'), findsNothing);
         } finally {
           debugDefaultTargetPlatformOverride = null;
         }
@@ -177,13 +177,13 @@ void main() {
             DesktopCapability(
               type: DesktopCapabilityType.accessibility,
               title: 'Accessibility',
-              description: 'Allows AI Keyboard to interact with text fields.',
+              description: 'Allows AtFIx to interact with text fields.',
               status: DesktopCapabilityStatus.required,
             ),
             DesktopCapability(
               type: DesktopCapabilityType.inputMonitoring,
               title: 'Keyboard Input Monitoring',
-              description: 'Allows AI Keyboard to detect trailing commands.',
+              description: 'Allows AtFIx to detect trailing commands.',
               status: DesktopCapabilityStatus.enabled,
             ),
           ];
@@ -191,10 +191,10 @@ void main() {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
-          expect(find.text('AI Keyboard Not Active'), findsOneWidget);
+          expect(find.text('AtFIx Not Active'), findsOneWidget);
           expect(
             find.text(
-              'AI Keyboard requires system permissions to detect commands and interact with active text fields.',
+              'AtFIx requires system permissions to detect commands and interact with active text fields.',
             ),
             findsOneWidget,
           );
@@ -229,13 +229,13 @@ void main() {
             DesktopCapability(
               type: DesktopCapabilityType.accessibility,
               title: 'Accessibility',
-              description: 'Allows AI Keyboard to interact with text fields.',
+              description: 'Allows AtFIx to interact with text fields.',
               status: DesktopCapabilityStatus.enabled,
             ),
             DesktopCapability(
               type: DesktopCapabilityType.inputMonitoring,
               title: 'Keyboard Input Monitoring',
-              description: 'Allows AI Keyboard to detect trailing commands.',
+              description: 'Allows AtFIx to detect trailing commands.',
               status: DesktopCapabilityStatus.unknown,
             ),
           ];
@@ -243,7 +243,7 @@ void main() {
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
 
-          expect(find.text('AI Keyboard Not Active'), findsOneWidget);
+          expect(find.text('AtFIx Not Active'), findsOneWidget);
           expect(find.text('Keyboard Input Monitoring'), findsOneWidget);
           expect(find.text('Verify in Settings'), findsOneWidget);
           expect(
@@ -281,33 +281,33 @@ void main() {
             DesktopCapability(
               type: DesktopCapabilityType.accessibility,
               title: 'Accessibility',
-              description: 'Allows AI Keyboard to interact with text fields.',
+              description: 'Allows AtFIx to interact with text fields.',
               status: DesktopCapabilityStatus.required,
             ),
             DesktopCapability(
               type: DesktopCapabilityType.inputMonitoring,
               title: 'Keyboard Input Monitoring',
-              description: 'Allows AI Keyboard to detect trailing commands.',
+              description: 'Allows AtFIx to detect trailing commands.',
               status: DesktopCapabilityStatus.enabled,
             ),
           ];
 
           await tester.pumpWidget(createTestWidget());
           await tester.pumpAndSettle();
-          expect(find.text('AI Keyboard Not Active'), findsOneWidget);
+          expect(find.text('AtFIx Not Active'), findsOneWidget);
 
           // Simulate user granted Accessibility in System Settings
           mockDesktopRepo.capabilities = const [
             DesktopCapability(
               type: DesktopCapabilityType.accessibility,
               title: 'Accessibility',
-              description: 'Allows AI Keyboard to interact with text fields.',
+              description: 'Allows AtFIx to interact with text fields.',
               status: DesktopCapabilityStatus.enabled,
             ),
             DesktopCapability(
               type: DesktopCapabilityType.inputMonitoring,
               title: 'Keyboard Input Monitoring',
-              description: 'Allows AI Keyboard to detect trailing commands.',
+              description: 'Allows AtFIx to detect trailing commands.',
               status: DesktopCapabilityStatus.enabled,
             ),
           ];
@@ -319,7 +319,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // Card automatically transitions to Active!
-          expect(find.text('AI Keyboard Active'), findsOneWidget);
+          expect(find.text('AtFIx Active'), findsOneWidget);
           expect(find.text('Open Settings'), findsNothing);
         } finally {
           debugDefaultTargetPlatformOverride = null;
@@ -342,13 +342,13 @@ void main() {
             DesktopCapability(
               type: DesktopCapabilityType.accessibility,
               title: 'Accessibility',
-              description: 'Allows AI Keyboard to interact with text fields.',
+              description: 'Allows AtFIx to interact with text fields.',
               status: DesktopCapabilityStatus.required, // Revoked!
             ),
             DesktopCapability(
               type: DesktopCapabilityType.inputMonitoring,
               title: 'Keyboard Input Monitoring',
-              description: 'Allows AI Keyboard to detect trailing commands.',
+              description: 'Allows AtFIx to detect trailing commands.',
               status: DesktopCapabilityStatus.enabled,
             ),
           ];
@@ -357,7 +357,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // Missing permission must NOT be hidden
-          expect(find.text('AI Keyboard Not Active'), findsOneWidget);
+          expect(find.text('AtFIx Not Active'), findsOneWidget);
           expect(find.text('Accessibility'), findsOneWidget);
           expect(find.text('Required'), findsOneWidget);
           expect(find.text('Open Settings'), findsOneWidget);

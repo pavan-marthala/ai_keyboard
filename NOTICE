@@ -1,4 +1,4 @@
-AI Keyboard
+AtFIx
 Copyright (c) 2024–2026 Pavan Marthala
 
 This product includes software developed by the Android Open Source Project (AOSP)
@@ -7,7 +7,7 @@ This product includes software developed by the Android Open Source Project (AOS
 AOSP LatinIME components include:
 - Native C++ source code located in `app/android/app/src/main/cpp/aosp_latinime/`
 - Native C++ JNI bridge components located in `app/android/app/src/main/cpp/latinime/`
-- Kotlin dictionary and suggestion classes located in `app/android/app/src/main/kotlin/com/pk/ai_keyboard/suggestion/aosp/`
+- Kotlin dictionary and suggestion classes located in `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/`
 - Bundled binary dictionary asset `app/android/app/src/main/assets/dictionaries/main_en.dict`
 
 Copyright (C) 2010–2014 The Android Open Source Project
