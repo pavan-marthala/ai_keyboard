@@ -34,35 +34,28 @@ final class DesktopCommandExecutionContext {
     }
 }
 
-/// macOS Shortcut + Selected Text @Command Prototype (Phase 2A).
+/// macOS Shortcut + Selected Text @Command Manager.
 ///
 /// Workflow:
 /// 1. User selects text in any supported macOS text application.
 /// 2. User presses global shortcut: Control + Option + Space.
-/// 3. Prototype captures focused element and selected text via AX.
+/// 3. Manager captures focused element and selected text via AX.
 /// 4. Native AppKit command prompt window appears.
 /// 5. User selects a command (@fix, @rewrite, @short, @expand).
 /// 6. Prompt remains OPEN during processing and displays loading state.
-/// 7. @fix executes real AI transformation (NO mock fallback on failure).
-///    Other commands execute deterministic mock transformations.
+/// 7. Selected command executes real AI transformation (NO mock fallback on failure).
 /// 8. User can trigger another command concurrently without corruption.
 /// 9. Selected text in target application is replaced via synthetic
 ///    keystroke injection (NOT via AX attribute mutation) and verified.
 /// 10. Prompt closes when all active executions finish successfully.
 ///
-/// FIX NOTE (this revision):
-/// triggerShortcut() previously queried the FOCUSED element through
-/// AXUIElementCreateSystemWide(), which routes the "who is focused" question
-/// through WindowServer generically. That call was intermittently returning
-/// kAXErrorCannotComplete (-25204) even with AXIsProcessTrusted() == true —
-/// i.e. not a permissions problem, an IPC/routing problem for that specific
-/// query. The fix queries the FRONTMOST APP's own AX element directly via
-/// copyFocusedElement(), which is more targeted and does not depend on the
-/// systemwide routing path, with a short bounded retry for transient IPC
-/// hiccups.
-final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
+/// Query strategy:
+/// triggerShortcut() queries the frontmost application's AX element directly
+/// via copyFocusedElement(), which is targeted and avoids transient system-wide
+/// routing issues (-25204), with bounded retry.
+final class DesktopCommandShortcutManager: NSObject, NSWindowDelegate {
 
-    static let shared = DesktopShortcutCommandPrototype()
+    static let shared = DesktopCommandShortcutManager()
 
     // MARK: - State
 
@@ -92,8 +85,8 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
     // MARK: - Lifecycle
 
     func start() {
-        NSLog("[DesktopShortcutPrototype] STARTED")
-        NSLog("[DesktopShortcutPrototype] Registered global shortcut: Control + Option + Space")
+        NSLog("[DesktopCommandShortcutManager] STARTED")
+        NSLog("[DesktopCommandShortcutManager] Registered global shortcut: Control + Option + Space")
 
         setupEventTap()
         setupGlobalMonitor()
@@ -128,18 +121,18 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
             eventsOfInterest: mask,
             callback: { proxy, type, event, refcon in
                 guard let refcon else { return Unmanaged.passRetained(event) }
-                let prototype = Unmanaged<DesktopShortcutCommandPrototype>.fromOpaque(refcon).takeUnretainedValue()
-                return prototype.handleEvent(proxy: proxy, type: type, event: event)
+                let manager = Unmanaged<DesktopCommandShortcutManager>.fromOpaque(refcon).takeUnretainedValue()
+                return manager.handleEvent(proxy: proxy, type: type, event: event)
             },
             userInfo: observerSelf
         ) else {
-            NSLog("[DesktopShortcutPrototype] CGEvent.tapCreate failed (Accessibility permission may be required)")
+            NSLog("[DesktopCommandShortcutManager] CGEvent.tapCreate failed (Accessibility permission may be required)")
             return
         }
 
         eventTap = tap
         guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
-            NSLog("[DesktopShortcutPrototype] Failed to create run loop source for event tap")
+            NSLog("[DesktopCommandShortcutManager] Failed to create run loop source for event tap")
             return
         }
 
@@ -212,7 +205,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         delayMicroseconds: useconds_t = 40_000
     ) -> (element: AXUIElement?, pid: pid_t, lastError: AXError) {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            NSLog("[DesktopShortcutPrototype] No frontmost application reported by NSWorkspace")
+            NSLog("[DesktopCommandShortcutManager] No frontmost application reported by NSWorkspace")
             return (nil, 0, .cannotComplete)
         }
         let appPid = frontApp.processIdentifier
@@ -230,7 +223,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
                 return (focusedRef as! AXUIElement, appPid, .success)
             }
             lastError = err
-            NSLog("[DesktopShortcutPrototype] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
+            NSLog("[DesktopCommandShortcutManager] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
             if attempt < attempts {
                 usleep(delayMicroseconds)
             }
@@ -240,22 +233,22 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
 
     // MARK: - Shortcut Triggered
 
-    private func triggerShortcut() {
-        NSLog("[DesktopShortcutPrototype] GLOBAL SHORTCUT DETECTED: Control + Option + Space")
-        NSLog("[DesktopShortcutPrototype] AXIsProcessTrusted = \(AXIsProcessTrusted())")
+    func triggerShortcut() {
+        NSLog("[DesktopCommandShortcutManager] GLOBAL SHORTCUT DETECTED: Control + Option + Space")
+        NSLog("[DesktopCommandShortcutManager] AXIsProcessTrusted = \(AXIsProcessTrusted())")
 
         let (focusedElement, pid, focusedErr) = copyFocusedElement()
 
         guard let element = focusedElement else {
-            NSLog("[DesktopShortcutPrototype] No focused AX element after retries. AXError = \(focusedErr.rawValue), frontmost pid = \(pid)")
+            NSLog("[DesktopCommandShortcutManager] No focused AX element after retries. AXError = \(focusedErr.rawValue), frontmost pid = \(pid)")
             return
         }
 
         let app = NSRunningApplication(processIdentifier: pid)
         let appName = app?.localizedName ?? "Unknown (\(pid))"
 
-        NSLog("[DesktopShortcutPrototype] TARGET PID = \(pid)")
-        NSLog("[DesktopShortcutPrototype] TARGET APP = \(appName)")
+        NSLog("[DesktopCommandShortcutManager] TARGET PID = \(pid)")
+        NSLog("[DesktopCommandShortcutManager] TARGET APP = \(appName)")
 
         var selectedTextRef: CFTypeRef?
         let textErr = AXUIElementCopyAttributeValue(
@@ -268,11 +261,11 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
               let selectedText = selectedTextRef as? String,
               !selectedText.isEmpty
         else {
-            NSLog("[DesktopShortcutPrototype] No selected text. AXError = \(textErr.rawValue)")
+            NSLog("[DesktopCommandShortcutManager] No selected text. AXError = \(textErr.rawValue)")
             return
         }
 
-        NSLog("[DesktopShortcutPrototype] SELECTED TEXT = '\(selectedText)'")
+        NSLog("[DesktopCommandShortcutManager] SELECTED TEXT = '\(selectedText)'")
 
         var rangeRef: CFTypeRef?
         var range = CFRange(location: -1, length: 0)
@@ -384,7 +377,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        NSLog("[DesktopShortcutPrototype] COMMAND PROMPT OPENED")
+        NSLog("[DesktopCommandShortcutManager] COMMAND PROMPT OPENED")
     }
 
     private func closePrompt() {
@@ -399,12 +392,12 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
     }
 
     @objc private func handleCancel() {
-        NSLog("[DesktopShortcutPrototype] Command prompt cancelled by user")
+        NSLog("[DesktopCommandShortcutManager] Command prompt cancelled by user")
         closePrompt()
     }
 
     func windowWillClose(_ notification: Notification) {
-        NSLog("[DesktopShortcutPrototype] Command prompt window closed")
+        NSLog("[DesktopCommandShortcutManager] Command prompt window closed")
         cancelAllActiveExecutions()
         promptPanel = nil
         statusLabel = nil
@@ -434,7 +427,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
 
     private func executeCommand(_ command: String) {
         guard let element = targetElement, let app = targetApp else {
-            NSLog("[DesktopShortcutPrototype] Cannot execute command: Target AX element or app is nil")
+            NSLog("[DesktopCommandShortcutManager] Cannot execute command: Target AX element or app is nil")
             return
         }
 
@@ -451,7 +444,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         activeExecutions[execution.id] = execution
         updateUIForActiveExecutions()
 
-        NSLog("[DesktopShortcutPrototype] COMMAND SELECTED = \(command) [execId: \(execution.id.uuidString.prefix(8))]")
+        NSLog("[DesktopCommandShortcutManager] COMMAND SELECTED = \(command) [execId: \(execution.id.uuidString.prefix(8))]")
 
         // All commands (@fix, @rewrite, @short, @expand) execute real AI asynchronously
         let task = Task {
@@ -513,12 +506,12 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
 
             await MainActor.run {
                 guard !execution.isCancelled else {
-                    NSLog("[DesktopShortcutPrototype] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
+                    NSLog("[DesktopCommandShortcutManager] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
                     self.cleanupExecution(execution.id)
                     return
                 }
 
-                NSLog("[DesktopShortcutPrototype] REAL AI TRANSFORMED [\(execution.command)] = '\(transformedText)'")
+                NSLog("[DesktopCommandShortcutManager] REAL AI TRANSFORMED [\(execution.command)] = '\(transformedText)'")
                 let success = self.executeReplacement(transformedText: transformedText, execution: execution)
 
                 self.cleanupExecution(execution.id)
@@ -540,7 +533,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
                     return
                 }
 
-                NSLog("[DesktopShortcutPrototype] REAL AI FAILURE for \(execution.command): \(error.localizedDescription)")
+                NSLog("[DesktopCommandShortcutManager] REAL AI FAILURE for \(execution.command): \(error.localizedDescription)")
                 self.cleanupExecution(execution.id)
 
                 // CRITICAL REQUIREMENT:
@@ -569,11 +562,11 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         // 1. Reactivate the ORIGINAL target application and WAIT until it is
         // actually frontmost.
         guard reactivateAndWaitForFrontmost(app: app, timeout: 1.0) else {
-            NSLog("[DesktopShortcutPrototype] Target app '\(app.localizedName ?? "?")' did not become frontmost in time")
-            NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
+            NSLog("[DesktopCommandShortcutManager] Target app '\(app.localizedName ?? "?")' did not become frontmost in time")
+            NSLog("[DesktopCommandShortcutManager] REPLACEMENT FAILED")
             return false
         }
-        NSLog("[DesktopShortcutPrototype] TARGET APP ACTIVATED")
+        NSLog("[DesktopCommandShortcutManager] TARGET APP ACTIVATED")
 
         // 2. Re-validate that the ORIGINAL selection is still intact on the
         // ORIGINAL captured element.
@@ -582,40 +575,40 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
             expectedText: execution.selectedText,
             expectedRange: execution.selectedRange
         ) != nil else {
-            NSLog("[DesktopShortcutPrototype] Selection lost or altered after reactivation. Expected '\(execution.selectedText)'")
-            NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
+            NSLog("[DesktopCommandShortcutManager] Selection lost or altered after reactivation. Expected '\(execution.selectedText)'")
+            NSLog("[DesktopCommandShortcutManager] REPLACEMENT FAILED")
             return false
         }
-        NSLog("[DesktopShortcutPrototype] SELECTION REVALIDATED")
+        NSLog("[DesktopCommandShortcutManager] SELECTION REVALIDATED")
 
-        NSLog("[DesktopShortcutPrototype] REPLACEMENT STARTED")
+        NSLog("[DesktopCommandShortcutManager] REPLACEMENT STARTED")
 
         var docBeforeRef: CFTypeRef?
         let docBefore = (AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &docBeforeRef) == .success ? docBeforeRef as? String : nil) ?? ""
-        NSLog("[DesktopShortcutPrototype] DOC BEFORE (AX) = '\(docBefore)'")
+        NSLog("[DesktopCommandShortcutManager] DOC BEFORE (AX) = '\(docBefore)'")
 
         // 3. PRIMARY replacement mechanism: synthetic keystroke injection.
-        NSLog("[DesktopShortcutPrototype] SENDING REPLACEMENT = '\(transformedText)'")
+        NSLog("[DesktopCommandShortcutManager] SENDING REPLACEMENT = '\(transformedText)'")
         let apiCallSucceeded = typeReplacement(transformedText, targetPid: pid)
 
         guard apiCallSucceeded else {
-            NSLog("[DesktopShortcutPrototype] API CALL SUCCESS = false (failed to post synthetic keyboard events)")
-            NSLog("[DesktopShortcutPrototype] REPLACEMENT FAILED")
+            NSLog("[DesktopCommandShortcutManager] API CALL SUCCESS = false (failed to post synthetic keyboard events)")
+            NSLog("[DesktopCommandShortcutManager] REPLACEMENT FAILED")
             return false
         }
-        NSLog("[DesktopShortcutPrototype] API CALL SUCCESS = true (synthetic keystrokes posted)")
+        NSLog("[DesktopCommandShortcutManager] API CALL SUCCESS = true (synthetic keystrokes posted)")
 
         usleep(100_000) // 100ms
 
         var docAfterRef: CFTypeRef?
         let docAfter = (AXUIElementCopyAttributeValue(element, kAXValueAttribute as CFString, &docAfterRef) == .success ? docAfterRef as? String : nil) ?? ""
-        NSLog("[DesktopShortcutPrototype] DOC AFTER (AX readback) = '\(docAfter)'")
+        NSLog("[DesktopCommandShortcutManager] DOC AFTER (AX readback) = '\(docAfter)'")
 
         let normalizedTransformed = transformedText.trimmingCharacters(in: .whitespacesAndNewlines)
         let axReadbackChanged = (docAfter != docBefore) && docAfter.contains(normalizedTransformed)
 
-        NSLog("[DesktopShortcutPrototype] AX READBACK SUCCESS = \(axReadbackChanged)")
-        NSLog("[DesktopShortcutPrototype] REPLACEMENT COMPLETED")
+        NSLog("[DesktopCommandShortcutManager] AX READBACK SUCCESS = \(axReadbackChanged)")
+        NSLog("[DesktopCommandShortcutManager] REPLACEMENT COMPLETED")
         return true
     }
 

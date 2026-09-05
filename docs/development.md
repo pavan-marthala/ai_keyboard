@@ -82,6 +82,12 @@ flutter run
 4. In iOS **Settings**, navigate to **General** > **Keyboard** > **Keyboards** > **Add New Keyboard...** and select **AI Keyboard**.
 5. Tap the added keyboard and toggle **Allow Full Access** (required for network access to call AI provider APIs).
 
+#### macOS
+
+1. Run the macOS desktop app (`flutter run -d macos`) or build a release app (`flutter build macos --release`).
+2. Complete the initial desktop onboarding to grant **Accessibility** and **Input Monitoring** permissions.
+3. For Gatekeeper resolution and manual distribution steps, refer to [docs/macos-installation.md](macos-installation.md).
+
 ---
 
 ## 4. Testing
@@ -137,6 +143,15 @@ flutter build apk --release
 cd app
 flutter build ios --no-codesign
 ```
+
+### macOS Application
+
+```bash
+cd app
+flutter build macos --release
+```
+
+The resulting application bundle will be generated at `build/macos/Build/Products/Release/ai_keyboard.app`. See [docs/macos-installation.md](macos-installation.md) for installation and Gatekeeper verification.
 
 ---
 

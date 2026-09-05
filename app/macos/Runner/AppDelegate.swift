@@ -23,8 +23,8 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
 
     NSLog("[AppDelegate] applicationDidFinishLaunching CALLED")
-    NSLog("[AppDelegate] Starting DesktopShortcutCommandPrototype")
-    DesktopShortcutCommandPrototype.shared.start()
+    NSLog("[AppDelegate] Starting DesktopCommandShortcutManager")
+    DesktopCommandShortcutManager.shared.start()
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
       let channel = FlutterMethodChannel(

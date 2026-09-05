@@ -138,6 +138,7 @@ For deep architectural diagrams and data-flow specifications, see [app/README.md
 │   ├── android-keyboard.md             # Android InputMethodService & view architecture
 │   ├── architecture.md                 # Cross-platform system architecture & data flows
 │   ├── development.md                  # Development setup, building, and troubleshooting
+│   ├── macos-installation.md           # macOS installation, Gatekeeper resolution & permissions
 │   ├── repository-documentation-audit.md # Complete documentation audit and verification report
 │   └── security.md                     # Cryptographic storage, data transmission, and privacy
 ├── .github/                            # GitHub templates and workflows
@@ -202,6 +203,7 @@ After installing the application, enable the keyboard through system settings:
 
 - **Android:** *Settings > System > Languages & Input > On-screen keyboard > Manage on-screen keyboards > Toggle AI Keyboard on.*
 - **iOS:** *Settings > General > Keyboard > Keyboards > Add New Keyboard... > Select AI Keyboard.*
+- **macOS:** *Launch the app to configure Accessibility & Input Monitoring permissions (see [docs/macos-installation.md](docs/macos-installation.md)), then select text anywhere and press <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>Space</kbd>.*
 
 ---
 
