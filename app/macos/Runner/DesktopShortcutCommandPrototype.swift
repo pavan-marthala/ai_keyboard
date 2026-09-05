@@ -208,8 +208,8 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
     /// frontmost app's own AX element directly is more targeted and more
     /// reliable, with a short bounded retry for transient IPC hiccups.
     private func copyFocusedElement(
-        attempts: Int = 5,
-        delayMicroseconds: useconds_t = 60_000
+        attempts: Int = 3,
+        delayMicroseconds: useconds_t = 40_000
     ) -> (element: AXUIElement?, pid: pid_t, lastError: AXError) {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
             NSLog("[DesktopShortcutPrototype] No frontmost application reported by NSWorkspace")
@@ -219,8 +219,6 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         let appElement = AXUIElementCreateApplication(appPid)
 
         var lastError: AXError = .cannotComplete
-        var didRequestEnhancedUI = false
-
         for attempt in 1...attempts {
             var focusedRef: CFTypeRef?
             let err = AXUIElementCopyAttributeValue(
@@ -233,23 +231,6 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
             }
             lastError = err
             NSLog("[DesktopShortcutPrototype] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
-
-            // Chromium/Electron apps (VS Code, Chrome, WhatsApp Desktop,
-            // Slack, ...) do not build a full accessibility tree until
-            // something actually requests one - kAXErrorCannotComplete
-            // here often means "no tree exists yet", not "access denied".
-            // AXEnhancedUserInterface is the standard (if undocumented)
-            // signal used by macOS automation tools to force Chromium to
-            // activate its accessibility bridge, same as VoiceOver would.
-            // Tree construction isn't instant, so give it real time once.
-            if !didRequestEnhancedUI, (err == .cannotComplete || err == .noValue) {
-                NSLog("[DesktopShortcutPrototype] Requesting AXEnhancedUserInterface for pid=\(appPid) (Chromium/Electron tree activation)")
-                _ = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
-                didRequestEnhancedUI = true
-                usleep(300_000) // first-time tree construction can take a few hundred ms
-                continue
-            }
-
             if attempt < attempts {
                 usleep(delayMicroseconds)
             }
