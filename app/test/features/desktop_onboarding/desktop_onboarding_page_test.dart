@@ -4,7 +4,7 @@ import 'package:atfix/features/desktop_onboarding/domain/entities/desktop_capabi
 import 'package:atfix/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
 import 'package:atfix/features/desktop_onboarding/presentation/bloc/desktop_onboarding_bloc.dart';
 import 'package:atfix/features/desktop_onboarding/presentation/pages/desktop_onboarding_page.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class TestDesktopCapabilityRepository implements DesktopCapabilityRepository {

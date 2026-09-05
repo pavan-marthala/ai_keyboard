@@ -4,7 +4,7 @@ import 'package:atfix/core/utils/sized_context.dart';
 import 'package:atfix/main.dart';
 import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/utils/enums.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 void showNotificationToast({
   required String message,

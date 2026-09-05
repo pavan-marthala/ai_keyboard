@@ -11,7 +11,7 @@ import 'package:atfix/features/settings/presentation/pages/settings_page.dart';
 import 'package:atfix/core/utils/check_platforms.dart';
 import 'package:atfix/features/desktop_onboarding/domain/repositories/desktop_capability_repository.dart';
 import 'package:atfix/features/desktop_onboarding/presentation/pages/desktop_onboarding_page.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 

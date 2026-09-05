@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:atfix/core/theme/app_colors.dart';
 import 'package:atfix/core/theme/app_theme.dart';
 import 'package:atfix/core/utils/sized_context.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AppNavigationBar extends StatelessWidget {
   const AppNavigationBar({

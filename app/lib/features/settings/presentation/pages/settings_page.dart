@@ -12,7 +12,7 @@ import 'package:atfix/features/commands/presentation/bloc/command_state.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_event.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_state.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 

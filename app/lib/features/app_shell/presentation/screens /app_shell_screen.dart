@@ -1,6 +1,6 @@
 import 'package:atfix/core/theme/app_theme.dart';
 import 'package:atfix/features/app_shell/presentation/screens%20/app_navigation_bar.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShellScreen extends StatelessWidget {
