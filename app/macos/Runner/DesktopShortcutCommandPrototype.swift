@@ -49,6 +49,17 @@ final class DesktopCommandExecutionContext {
 /// 9. Selected text in target application is replaced via synthetic
 ///    keystroke injection (NOT via AX attribute mutation) and verified.
 /// 10. Prompt closes when all active executions finish successfully.
+///
+/// FIX NOTE (this revision):
+/// triggerShortcut() previously queried the FOCUSED element through
+/// AXUIElementCreateSystemWide(), which routes the "who is focused" question
+/// through WindowServer generically. That call was intermittently returning
+/// kAXErrorCannotComplete (-25204) even with AXIsProcessTrusted() == true —
+/// i.e. not a permissions problem, an IPC/routing problem for that specific
+/// query. The fix queries the FRONTMOST APP's own AX element directly via
+/// copyFocusedElement(), which is more targeted and does not depend on the
+/// systemwide routing path, with a short bounded retry for transient IPC
+/// hiccups.
 final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
 
     static let shared = DesktopShortcutCommandPrototype()
@@ -187,27 +198,77 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
         return Unmanaged.passRetained(event)
     }
 
+    // MARK: - Focused Element Lookup
+
+    /// Queries the FRONTMOST APP's own AX element for its focused UI
+    /// element, instead of going through AXUIElementCreateSystemWide().
+    /// The systemwide query depends on WindowServer correctly routing to
+    /// whichever app happens to be frontmost and is known to intermittently
+    /// return kAXErrorCannotComplete for some apps/timing; asking the
+    /// frontmost app's own AX element directly is more targeted and more
+    /// reliable, with a short bounded retry for transient IPC hiccups.
+    private func copyFocusedElement(
+        attempts: Int = 5,
+        delayMicroseconds: useconds_t = 60_000
+    ) -> (element: AXUIElement?, pid: pid_t, lastError: AXError) {
+        guard let frontApp = NSWorkspace.shared.frontmostApplication else {
+            NSLog("[DesktopShortcutPrototype] No frontmost application reported by NSWorkspace")
+            return (nil, 0, .cannotComplete)
+        }
+        let appPid = frontApp.processIdentifier
+        let appElement = AXUIElementCreateApplication(appPid)
+
+        var lastError: AXError = .cannotComplete
+        var didRequestEnhancedUI = false
+
+        for attempt in 1...attempts {
+            var focusedRef: CFTypeRef?
+            let err = AXUIElementCopyAttributeValue(
+                appElement,
+                kAXFocusedUIElementAttribute as CFString,
+                &focusedRef
+            )
+            if err == .success, let focusedRef {
+                return (focusedRef as! AXUIElement, appPid, .success)
+            }
+            lastError = err
+            NSLog("[DesktopShortcutPrototype] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
+
+            // Chromium/Electron apps (VS Code, Chrome, WhatsApp Desktop,
+            // Slack, ...) do not build a full accessibility tree until
+            // something actually requests one - kAXErrorCannotComplete
+            // here often means "no tree exists yet", not "access denied".
+            // AXEnhancedUserInterface is the standard (if undocumented)
+            // signal used by macOS automation tools to force Chromium to
+            // activate its accessibility bridge, same as VoiceOver would.
+            // Tree construction isn't instant, so give it real time once.
+            if !didRequestEnhancedUI, (err == .cannotComplete || err == .noValue) {
+                NSLog("[DesktopShortcutPrototype] Requesting AXEnhancedUserInterface for pid=\(appPid) (Chromium/Electron tree activation)")
+                _ = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
+                didRequestEnhancedUI = true
+                usleep(300_000) // first-time tree construction can take a few hundred ms
+                continue
+            }
+
+            if attempt < attempts {
+                usleep(delayMicroseconds)
+            }
+        }
+        return (nil, appPid, lastError)
+    }
+
     // MARK: - Shortcut Triggered
 
     private func triggerShortcut() {
         NSLog("[DesktopShortcutPrototype] GLOBAL SHORTCUT DETECTED: Control + Option + Space")
+        NSLog("[DesktopShortcutPrototype] AXIsProcessTrusted = \(AXIsProcessTrusted())")
 
-        let systemWide = AXUIElementCreateSystemWide()
-        var focusedRef: CFTypeRef?
-        let focusedErr = AXUIElementCopyAttributeValue(
-            systemWide,
-            kAXFocusedUIElementAttribute as CFString,
-            &focusedRef
-        )
+        let (focusedElement, pid, focusedErr) = copyFocusedElement()
 
-        guard focusedErr == .success, let focusedRef else {
-            NSLog("[DesktopShortcutPrototype] No focused AX element")
+        guard let element = focusedElement else {
+            NSLog("[DesktopShortcutPrototype] No focused AX element after retries. AXError = \(focusedErr.rawValue), frontmost pid = \(pid)")
             return
         }
-
-        let element = focusedRef as! AXUIElement
-        var pid: pid_t = 0
-        AXUIElementGetPid(element, &pid)
 
         let app = NSRunningApplication(processIdentifier: pid)
         let appName = app?.localizedName ?? "Unknown (\(pid))"
@@ -226,7 +287,7 @@ final class DesktopShortcutCommandPrototype: NSObject, NSWindowDelegate {
               let selectedText = selectedTextRef as? String,
               !selectedText.isEmpty
         else {
-            NSLog("[DesktopShortcutPrototype] No selected text")
+            NSLog("[DesktopShortcutPrototype] No selected text. AXError = \(textErr.rawValue)")
             return
         }
 
