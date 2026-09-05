@@ -43,9 +43,16 @@ final class CommandShortcutManager: NSObject, CommandPromptDelegate {
         self.prompt.delegate = self
     }
 
+    private var isStarted = false
+
     // MARK: - Lifecycle
 
     func start() {
+        guard !isStarted else {
+            NSLog("[CommandShortcutManager] Already started. Ignoring duplicate start request.")
+            return
+        }
+        isStarted = true
         NSLog("[CommandShortcutManager] STARTED")
         NSLog("[CommandShortcutManager] Registered global shortcut: Control + Option + Space")
 
@@ -54,6 +61,7 @@ final class CommandShortcutManager: NSObject, CommandPromptDelegate {
     }
 
     func stop() {
+        isStarted = false
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
         }
