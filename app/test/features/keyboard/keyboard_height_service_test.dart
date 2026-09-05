@@ -6,7 +6,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('KeyboardStatusService Height MethodChannel Tests', () {
-    const channel = MethodChannel('com.pk.ai_keyboard/keyboard');
+    const channel = MethodChannel('com.pk.atfix/keyboard');
     late KeyboardStatusService service;
     int currentHeight = 216;
 

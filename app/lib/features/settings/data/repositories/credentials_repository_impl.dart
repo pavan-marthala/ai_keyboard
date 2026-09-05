@@ -9,7 +9,7 @@ import 'package:injectable/injectable.dart';
 @LazySingleton(as: CredentialsRepository)
 class CredentialsRepositoryImpl implements CredentialsRepository {
   final FlutterSecureStorage _secureStorage;
-  static const _channel = MethodChannel('com.pk.ai_keyboard/credentials');
+  static const _channel = MethodChannel('com.pk.atfix/credentials');
 
   CredentialsRepositoryImpl(this._secureStorage);
 
@@ -22,12 +22,12 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
       if (apiKey != null && apiKey.isNotEmpty) {
         return Success(apiKey);
       }
-      final fallbackKey =
-          await _secureStorage.read(key: 'api_key_${provider.name}');
+      final fallbackKey = await _secureStorage.read(
+        key: 'api_key_${provider.name}',
+      );
       return Success(fallbackKey);
     } catch (e) {
-      final apiKey =
-          await _secureStorage.read(key: 'api_key_${provider.name}');
+      final apiKey = await _secureStorage.read(key: 'api_key_${provider.name}');
       return Success(apiKey);
     }
   }
@@ -48,6 +48,7 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
       );
       return const Success(null);
     } catch (e) {
+      print('Error saving API key: $e');
       return FailureResult(Failure.cache(message: e.toString()));
     }
   }
@@ -55,9 +56,7 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
   @override
   Future<Result<void, Failure>> deleteApiKey(AiProviderType provider) async {
     try {
-      await _channel.invokeMethod('deleteApiKey', {
-        'provider': provider.name,
-      });
+      await _channel.invokeMethod('deleteApiKey', {'provider': provider.name});
       await _secureStorage.delete(key: 'api_key_${provider.name}');
       return const Success(null);
     } catch (e) {

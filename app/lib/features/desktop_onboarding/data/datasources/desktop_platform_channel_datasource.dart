@@ -7,9 +7,7 @@ import '../../domain/entities/desktop_capability.dart';
 
 @lazySingleton
 class DesktopPlatformChannelDataSource {
-  static const MethodChannel _channel = MethodChannel(
-    'com.pk.ai_keyboard/desktop',
-  );
+  static const MethodChannel _channel = MethodChannel('com.pk.atfix/desktop');
 
   Future<bool> isAccessibilityGranted() async {
     if (!Platform.isMacOS) return false;

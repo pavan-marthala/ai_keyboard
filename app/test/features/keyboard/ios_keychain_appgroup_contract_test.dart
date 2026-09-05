@@ -3,13 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   group('iOS App Group & Keychain Configuration Contract Tests', () {
     test('Verify App Group identifier and Keychain service constants', () {
-      const appGroup = 'group.com.pk.ai_keyboard.shared';
-      const keychainService = 'com.pk.ai_keyboard.apiKey';
-      const channelName = 'com.pk.ai_keyboard/credentials';
+      const appGroup = 'group.com.pk.atfix.shared';
+      const keychainService = 'com.pk.atfix.apiKey';
+      const channelName = 'com.pk.atfix/credentials';
 
-      expect(appGroup, equals('group.com.pk.ai_keyboard.shared'));
-      expect(keychainService, equals('com.pk.ai_keyboard.apiKey'));
-      expect(channelName, equals('com.pk.ai_keyboard/credentials'));
+      expect(appGroup, equals('group.com.pk.atfix.shared'));
+      expect(keychainService, equals('com.pk.atfix.apiKey'));
+      expect(channelName, equals('com.pk.atfix/credentials'));
     });
 
     test('Verify provider credential accounts isolation contract', () {

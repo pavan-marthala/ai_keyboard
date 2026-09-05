@@ -97,9 +97,7 @@ class CommandBloc extends Bloc<CommandEvent, CommandState> {
     }
   }
 
-  static const _credentialsChannel = MethodChannel(
-    'com.pk.ai_keyboard/credentials',
-  );
+  static const _credentialsChannel = MethodChannel('com.pk.atfix/credentials');
 
   Future<void> _saveCommands(List<CommandEntity> commands) async {
     final jsonString = jsonEncode(commands.map((c) => c.toJson()).toList());

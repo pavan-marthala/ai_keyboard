@@ -5,7 +5,7 @@ import 'package:injectable/injectable.dart';
 
 @lazySingleton
 class KeyboardStatusService {
-  static const _channel = MethodChannel('com.pk.ai_keyboard/keyboard');
+  static const _channel = MethodChannel('com.pk.atfix/keyboard');
 
   Future<bool> isAtFIxActive() async {
     if (!Platform.isAndroid) return false;

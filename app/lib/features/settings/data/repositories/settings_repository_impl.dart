@@ -12,8 +12,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsRepositoryImpl implements SettingsRepository {
   final SharedPreferences _prefs;
   static const String _settingsKey = 'user_settings';
-  static const _channel = MethodChannel('com.pk.ai_keyboard/credentials');
-  static const _keyboardChannel = MethodChannel('com.pk.ai_keyboard/keyboard');
+  static const _channel = MethodChannel('com.pk.atfix/credentials');
+  static const _keyboardChannel = MethodChannel('com.pk.atfix/keyboard');
 
   SettingsRepositoryImpl(this._prefs);
 
