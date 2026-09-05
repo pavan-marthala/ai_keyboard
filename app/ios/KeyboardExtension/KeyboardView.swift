@@ -65,10 +65,10 @@ class KeyboardView: UIView {
         toolbarStack.translatesAutoresizingMaskIntoConstraints = false
         toolbarScrollView.addSubview(toolbarStack)
 
-        statusLabel.text = "✨ AtFIx"
+        statusLabel.text = "✨ AtFix"
         statusLabel.font = .boldSystemFont(ofSize: 13)
         statusLabel.textColor = theme.accentColor
-        statusLabel.accessibilityLabel = "AtFIx Status"
+        statusLabel.accessibilityLabel = "AtFix Status"
         toolbarStack.addArrangedSubview(statusLabel)
 
         // Main Container Stack

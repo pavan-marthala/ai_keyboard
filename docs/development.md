@@ -1,6 +1,6 @@
 # Development & Setup Guide
 
-This document outlines environment prerequisites, local setup instructions, build configurations, testing procedures, and troubleshooting guidelines for the AtFIx project.
+This document outlines environment prerequisites, local setup instructions, build configurations, testing procedures, and troubleshooting guidelines for the AtFix project.
 
 ---
 
@@ -71,15 +71,15 @@ flutter run
 1. Build and install the debug APK on an emulator or connected device (`flutter run` or `flutter install`).
 2. Open system **Settings** > **System** > **Languages & Input** (or **General Management** > **Keyboard list and default** on Samsung devices).
 3. Select **On-screen keyboard** > **Manage on-screen keyboards**.
-4. Enable **AtFIx**.
-5. Switch to AtFIx in any text field using the input method selector.
+4. Enable **AtFix**.
+5. Switch to AtFix in any text field using the input method selector.
 
 #### iOS
 
 1. Open `app/ios/Runner.xcworkspace` in Xcode.
 2. Ensure both the `Runner` and `KeyboardExtension` targets have valid development signing team and matching App Group (`group.com.pk.atfix.shared`) configurations.
 3. Deploy to an iOS device or simulator.
-4. In iOS **Settings**, navigate to **General** > **Keyboard** > **Keyboards** > **Add New Keyboard...** and select **AtFIx**.
+4. In iOS **Settings**, navigate to **General** > **Keyboard** > **Keyboards** > **Add New Keyboard...** and select **AtFix**.
 5. Tap the added keyboard and toggle **Allow Full Access** (required for network access to call AI provider APIs).
 
 #### macOS

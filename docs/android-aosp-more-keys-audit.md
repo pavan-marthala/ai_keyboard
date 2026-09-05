@@ -495,7 +495,7 @@ In both configurations, the underlying More Keys system functions identically; o
 
 - **Key Preview**: Transient visual callout displayed immediately upon touch down above a pressed key during normal typing.
 - **More Keys**: Interactive popup opened only after long-press timeout holding multiple alternative selectable keys.
-- **Audit Finding**: AtFIx currently has **no key preview callout** (keys only scale in place via `animatePress`).
+- **Audit Finding**: AtFix currently has **no key preview callout** (keys only scale in place via `animatePress`).
 - **Conflict Assessment**: **ZERO CONFLICT**. There is no existing key preview view or animation that interferes with popup placement.
 
 ---
@@ -507,7 +507,7 @@ AOSP More Keys delivers selection results via `KeyboardActionListener`:
 - `onCodeInput(int primaryCode, int x, int y, boolean isKeyRepeat)`
 - `onTextInput(CharSequence text)`
 
-### Existing Integration Point in AtFIx
+### Existing Integration Point in AtFix
 
 In `KeyboardController.kt`:
 

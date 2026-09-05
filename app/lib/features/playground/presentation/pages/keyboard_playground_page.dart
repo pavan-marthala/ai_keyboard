@@ -70,7 +70,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
         });
       }
     } else {
-      final active = await _keyboardStatusService.isAtFIxActive();
+      final active = await _keyboardStatusService.isAtFixActive();
       if (mounted) {
         setState(() {
           _isKeyboardActive = active;
@@ -109,7 +109,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                 right: 16,
               ),
               children: [
-                Text('Test Your AtFIx', style: typo.titleLarge),
+                Text('Test Your AtFix', style: typo.titleLarge),
                 const SizedBox(height: 4),
                 Text(
                   'Type text below and use @commands (like @fix) to transform text using your native keyboard.',
@@ -233,7 +233,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                   children: [
                     Expanded(
                       child: Text(
-                        'Try Your AtFIx',
+                        'Try Your AtFix',
                         style: typo.titleMedium.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -249,7 +249,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                 const SizedBox(height: 8),
                 AppTextField(
                   controller: _textController,
-                  hintText: 'Tap here to open AtFIx and type text with @fix...',
+                  hintText: 'Tap here to open AtFix and type text with @fix...',
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -374,7 +374,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    _isKeyboardActive ? 'AtFIx Active' : 'AtFIx Not Active',
+                    _isKeyboardActive ? 'AtFix Active' : 'AtFix Not Active',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -395,8 +395,8 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               const SizedBox(height: 8),
               Text(
                 _isKeyboardActive
-                    ? 'AtFIx has the necessary system permissions to detect commands and transform text.'
-                    : 'AtFIx requires system permissions to detect commands and interact with active text fields.',
+                    ? 'AtFix has the necessary system permissions to detect commands and transform text.'
+                    : 'AtFix requires system permissions to detect commands and interact with active text fields.',
                 style: typo.bodyMedium.copyWith(
                   fontSize: 13,
                   color: _isKeyboardActive
@@ -440,7 +440,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  _isKeyboardActive ? 'AtFIx Active' : 'AtFIx Not Active',
+                  _isKeyboardActive ? 'AtFix Active' : 'AtFix Not Active',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -459,7 +459,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
             if (!_isKeyboardActive) ...[
               const SizedBox(height: 12),
               Text(
-                'Enable and select AtFIx in Android System Settings to test transformation.',
+                'Enable and select AtFix in Android System Settings to test transformation.',
                 style: typo.bodyMedium.copyWith(
                   fontSize: 13,
                   color: colors.warning,
@@ -467,7 +467,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               ),
               const SizedBox(height: 12),
               AppButton(
-                text: "Select AtFIx",
+                text: "Select AtFix",
                 color: colors.warning,
                 onPressed: () async {
                   await _keyboardStatusService.openKeyboardSettings();

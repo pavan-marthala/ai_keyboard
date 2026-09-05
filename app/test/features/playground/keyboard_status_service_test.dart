@@ -12,10 +12,12 @@ void main() {
 
   group('KeyboardStatusService Tests', () {
     test(
-      'isAtFIxActive returns false safely on non-Android test environment',
+      'isAtFixActive returns false safely on non-Android test environment',
       () async {
-        final isActive = await service.isAtFIxActive();
+        final isActive = await service.isAtFixActive();
         expect(isActive, isFalse);
+        final isDeprecatedActive = await service.isAtFixActive();
+        expect(isDeprecatedActive, isFalse);
       },
     );
 

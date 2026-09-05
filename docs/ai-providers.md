@@ -1,12 +1,12 @@
 # AI Provider Integration Reference
 
-This document provides a detailed specification for the AI providers integrated into the AtFIx, covering network protocols, authentication mechanisms, default models, runtime parameters, and storage locations across Android, iOS, and Flutter.
+This document provides a detailed specification for the AI providers integrated into AtFix, covering network protocols, authentication mechanisms, default models, runtime parameters, and storage locations across Android, iOS, and Flutter.
 
 ---
 
 ## 1. Supported Providers Overview
 
-The AtFIx supports four AI providers. All four providers are implemented natively across Android and iOS, as well as within the Flutter application shell:
+AtFix supports four AI providers. All four providers are implemented natively across Android and iOS, as well as within the Flutter application shell:
 
 | Provider | Platform Support | API Protocol | Default Model | Authentication Style |
 | :--- | :--- | :--- | :--- | :--- |
@@ -19,7 +19,7 @@ The AtFIx supports four AI providers. All four providers are implemented nativel
 
 ## 2. Execution Architecture & Direct Native Calls
 
-A critical architectural design of the AtFIx is that **native keyboards invoke AI provider endpoints directly without routing through the Flutter runtime**:
+A critical architectural design of AtFix is that **native keyboards invoke AI provider endpoints directly without routing through the Flutter runtime**:
 
 - **Android Native Keyboard:** Invokes AI endpoints using `java.net.HttpURLConnection` inside Kotlin coroutines on `Dispatchers.IO` (`GeminiProvider.kt`, `OpenAiProvider.kt`, `GroqProvider.kt`, `OpenRouterProvider.kt`).
 - **iOS Native Keyboard:** Invokes AI endpoints using Swift's `URLSession` async APIs (`GeminiProvider.swift`, `OpenAiProvider.swift`, `GroqProvider.swift`, `OpenRouterProvider.swift`).

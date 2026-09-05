@@ -141,11 +141,11 @@ Rules: Commands must appear at the end of input text separated by whitespace, wi
 
 ### Suggested Repository Description
 >
-> "AI-powered keyboard for Android and iOS with native keyboard features, AI text transformation, and Android AOSP-based suggestions."
+> "AI writing assistant and keyboard for macOS, Android, and iOS with system-wide shortcut integration, native keyboard features, AI text transformations, and Android AOSP-based suggestions."
 
 ### Recommended Repository Topics
 
-`ai`, `keyboard`, `flutter`, `android`, `ios`, `aosp`, `latinime`, `kotlin`, `swift`, `dart`, `ai-keyboard`, `ime`
+`ai`, `keyboard`, `flutter`, `macos`, `android`, `ios`, `aosp`, `latinime`, `kotlin`, `swift`, `dart`, `atfix`, `ime`
 
 ### Templates & Workflows
 

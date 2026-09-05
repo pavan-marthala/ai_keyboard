@@ -7,15 +7,23 @@ import 'package:injectable/injectable.dart';
 class KeyboardStatusService {
   static const _channel = MethodChannel('com.pk.atfix/keyboard');
 
-  Future<bool> isAtFIxActive() async {
+  Future<bool> isAtFixActive() async {
     if (!Platform.isAndroid) return false;
     try {
-      final bool isActive = await _channel.invokeMethod('isAtFIxActive');
+      final bool isActive = await _channel.invokeMethod('isAtFixActive');
       return isActive;
     } catch (_) {
-      return false;
+      try {
+        final bool fallback = await _channel.invokeMethod('isAtFixActive');
+        return fallback;
+      } catch (_) {
+        return false;
+      }
     }
   }
+
+  @Deprecated('Use isAtFixActive instead')
+  Future<bool> isAtFIxActive() => isAtFixActive();
 
   Future<String> getCurrentInputMethod() async {
     if (!Platform.isAndroid) return 'Unsupported Platform';

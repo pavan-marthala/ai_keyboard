@@ -10,7 +10,7 @@
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
 		31858D8180F70E2AE845267F /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B675FF20DABF3BAD36FA3B4A /* Pods_Runner.framework */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
-		35A4B9FD30472987002C98BD /* AtFIx.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 35A4B9F630472987002C98BD /* AtFIx.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		35A4B9FD30472987002C98BD /* AtFix.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 35A4B9F630472987002C98BD /* AtFix.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		35A4BA08304729B0002C98BD /* SharedConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A4BA05304729B0002C98BD /* SharedConfigurationStore.swift */; };
 		35A4BA09304729B0002C98BD /* KeychainCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A4BA04304729B0002C98BD /* KeychainCredentialStore.swift */; };
 		35A4BA0A304729B0002C98BD /* SharedConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35A4BA06304729B0002C98BD /* SharedConstants.swift */; };
@@ -41,7 +41,7 @@
 			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 35A4B9F530472987002C98BD;
-			remoteInfo = "AtFIx";
+			remoteInfo = "AtFix";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -52,7 +52,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				35A4B9FD30472987002C98BD /* AtFIx.appex in Embed Foundation Extensions */,
+				35A4B9FD30472987002C98BD /* AtFix.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -75,7 +75,7 @@
 		3049F1DCD4AFFD7E8584E5BE /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		35A4B9F630472987002C98BD /* AtFIx.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "AtFIx.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		35A4B9F630472987002C98BD /* AtFix.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "AtFix.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		35A4BA04304729B0002C98BD /* KeychainCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainCredentialStore.swift; sourceTree = "<group>"; };
 		35A4BA05304729B0002C98BD /* SharedConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConfigurationStore.swift; sourceTree = "<group>"; };
 		35A4BA06304729B0002C98BD /* SharedConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedConstants.swift; sourceTree = "<group>"; };
@@ -108,12 +108,12 @@
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 35A4B9F530472987002C98BD /* AtFIx */;
+			target = 35A4B9F530472987002C98BD /* AtFix */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		35A4B9F730472987002C98BD /* AtFIx */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (35A4BA0230472987002C98BD /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "AtFIx"; sourceTree = "<group>"; };
+		35A4B9F730472987002C98BD /* AtFix */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (35A4BA0230472987002C98BD /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = "AtFix"; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -189,7 +189,7 @@
 				35A4BA07304729B0002C98BD /* Shared */,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
-				35A4B9F730472987002C98BD /* AtFIx */,
+				35A4B9F730472987002C98BD /* AtFix */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				F7F9CA9A4FB5A69D5EBFCEA0 /* Pods */,
@@ -202,7 +202,7 @@
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
-				35A4B9F630472987002C98BD /* AtFIx.appex */,
+				35A4B9F630472987002C98BD /* AtFix.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -259,9 +259,9 @@
 			productReference = 331C8081294A63A400263BE5 /* RunnerTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		35A4B9F530472987002C98BD /* AtFIx */ = {
+		35A4B9F530472987002C98BD /* AtFix */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 35A4BA0330472987002C98BD /* Build configuration list for PBXNativeTarget "AtFIx" */;
+			buildConfigurationList = 35A4BA0330472987002C98BD /* Build configuration list for PBXNativeTarget "AtFix" */;
 			buildPhases = (
 				35A4B9F230472987002C98BD /* Sources */,
 				35A4B9F330472987002C98BD /* Frameworks */,
@@ -272,11 +272,11 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				35A4B9F730472987002C98BD /* AtFIx */,
+				35A4B9F730472987002C98BD /* AtFix */,
 			);
-			name = "AtFIx";
-			productName = "AtFIx";
-			productReference = 35A4B9F630472987002C98BD /* AtFIx.appex */;
+			name = "AtFix";
+			productName = "AtFix";
+			productReference = 35A4B9F630472987002C98BD /* AtFix.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
@@ -348,7 +348,7 @@
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
-				35A4B9F530472987002C98BD /* AtFIx */,
+				35A4B9F530472987002C98BD /* AtFix */,
 			);
 		};
 /* End PBXProject section */
@@ -523,7 +523,7 @@
 		};
 		35A4B9FC30472987002C98BD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 35A4B9F530472987002C98BD /* AtFIx */;
+			target = 35A4B9F530472987002C98BD /* AtFix */;
 			targetProxy = 35A4B9FB30472987002C98BD /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -611,7 +611,7 @@
 				DEVELOPMENT_TEAM = P2T9UK5F59;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFIx";
+				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -689,8 +689,8 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "AtFIx/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFIx";
+				INFOPLIST_FILE = "AtFix/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -731,8 +731,8 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "AtFIx/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFIx";
+				INFOPLIST_FILE = "AtFix/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -770,8 +770,8 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = "AtFIx/Info.plist";
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFIx";
+				INFOPLIST_FILE = "AtFix/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -917,7 +917,7 @@
 				DEVELOPMENT_TEAM = P2T9UK5F59;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFIx";
+				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -941,7 +941,7 @@
 				DEVELOPMENT_TEAM = P2T9UK5F59;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFIx";
+				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -967,7 +967,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		35A4BA0330472987002C98BD /* Build configuration list for PBXNativeTarget "AtFIx" */ = {
+		35A4BA0330472987002C98BD /* Build configuration list for PBXNativeTarget "AtFix" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				35A4B9FF30472987002C98BD /* Debug */,

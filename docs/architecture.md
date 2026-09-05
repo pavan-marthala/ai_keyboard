@@ -1,12 +1,12 @@
 # Architecture Specification
 
-This document defines the complete architecture of the AtFIx system, detailing runtime components, class hierarchies, inter-process communication, and third-party integrations across Flutter, Android, and iOS.
+This document defines the complete architecture of the AtFix system, detailing runtime components, class hierarchies, inter-process communication, and third-party integrations across Flutter, Android, iOS, and macOS.
 
 ---
 
 ## 1. Architectural Principles & High-Level View
 
-The AtFIx system isolates configuration management from active keyboard execution:
+The AtFix system isolates configuration management from active keyboard execution:
 
 1. **Decoupled Keyboard Runtime:** The native keyboard extensions (Android and iOS) run independently of the Flutter runtime during active typing sessions. Keystroke handling, AOSP dictionary lookup, and AI API dispatching occur natively without invoking Dart isolate execution.
 2. **Secure Credential Partitioning:** Sensitive user credentials (AI provider API keys) are stored in platform hardware security modules (Android KeyStore and iOS Keychain). Flutter writes these credentials through native method channels, and the native keyboards read and decrypt them directly.
@@ -254,7 +254,7 @@ Implemented in `MainActivity.kt` (Android only).
 
 | Method | Arguments | Description |
 | :--- | :--- | :--- |
-| `isAtFIxActive` | None | Returns whether AtFIx is selected as active IME in Android Settings. |
+| `isAtFixActive` / `isAtFIxActive` | None | Returns whether AtFix is selected as active IME in Android Settings. |
 | `getCurrentInputMethod` | None | Returns the package identifier of the active system IME. |
 | `openKeyboardSettings` | None | Dispatches `Settings.ACTION_INPUT_METHOD_SETTINGS` intent. |
 | `getKeyboardHeight` | None | Returns configured height in dp. |

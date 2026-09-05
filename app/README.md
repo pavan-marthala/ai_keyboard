@@ -1,4 +1,4 @@
-# AtFIx — Application Architecture & Development Guide
+# AtFix — Application Architecture & Development Guide
 
 This document provides a technical overview of the `app/` codebase, detailing the multi-layer architecture, component responsibilities, data flows, and build procedures.
 
@@ -175,7 +175,7 @@ Inter-process communication between the Flutter app shell and the native host is
    - `saveConfig(provider, modelId, baseUrl)`: Saves active provider settings.
    - `saveDisabledCommands(disabledTriggers)`: Persists user-disabled command triggers.
 2. **`com.pk.atfix/keyboard` (`MainActivity.kt`):**
-   - `isAtFIxActive`: Verifies if AtFIx is currently the default system IME.
+   - `isAtFixActive` / `isAtFIxActive`: Verifies if AtFix is currently the default system IME.
    - `openKeyboardSettings`: Launches system input method settings intent.
    - `getKeyboardHeight` / `setKeyboardHeight` / `resetKeyboardHeight`: Manages custom keyboard height.
    - `getUseNumbers` / `setUseNumbers`: Controls number row visibility.

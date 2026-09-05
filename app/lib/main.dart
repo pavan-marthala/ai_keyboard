@@ -84,11 +84,11 @@ final GoRouter _appRouter = GoRouter(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
-  runApp(const AtFIxApp());
+  runApp(const AtFixApp());
 }
 
-class AtFIxApp extends StatelessWidget {
-  const AtFIxApp({super.key});
+class AtFixApp extends StatelessWidget {
+  const AtFixApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -107,7 +107,7 @@ class AtFIxApp extends StatelessWidget {
       ],
       child: MaterialApp.router(
         routerConfig: _appRouter,
-        title: 'AtFIx Utility',
+        title: 'AtFix',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.dark,
         darkTheme: AppTheme.dark,

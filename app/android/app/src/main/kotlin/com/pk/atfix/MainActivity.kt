@@ -57,7 +57,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, KEYBOARD_CHANNEL).setMethodCallHandler { call, result ->
             val heightRepo = KeyboardHeightRepository(context)
             when (call.method) {
-                "isAtFIxActive" -> {
+                "isAtFixActive" -> {
                     try {
                         val currentIme = Settings.Secure.getString(
                             contentResolver,

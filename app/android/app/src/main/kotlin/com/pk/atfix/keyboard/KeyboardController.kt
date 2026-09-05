@@ -265,7 +265,7 @@ class KeyboardController(
         isTransforming = false
         suggestionSequenceId++
         onSuggestionsUpdated?.invoke(SuggestionResult())
-        onStatusUpdate?.invoke("✨ AtFIx")
+        onStatusUpdate?.invoke("✨ AtFix")
     }
 
     fun onKeyTyped(char: String) {
@@ -395,14 +395,14 @@ class KeyboardController(
 
                 if (requestContext != activeRequestContext || requestContext.sessionId != currentSessionId || !textEditor.hasValidInputConnection()) {
                     Log.w(TAG, "Selection request context invalid or changed. Discarding AI result.")
-                    onStatusUpdate?.invoke("✨ AtFIx")
+                    onStatusUpdate?.invoke("✨ AtFix")
                     return@launch
                 }
 
                 val currentSelected = textEditor.getSelectedText()
                 if (currentSelected != selectedText) {
                     Log.w(TAG, "Selection modified while request in flight. Discarding AI result.")
-                    onStatusUpdate?.invoke("✨ AtFIx")
+                    onStatusUpdate?.invoke("✨ AtFix")
                     return@launch
                 }
 
@@ -410,7 +410,7 @@ class KeyboardController(
                     is AiResult.Success -> {
                         val replaced = textEditor.replaceSelectedText(result.data)
                         if (replaced) {
-                            onStatusUpdate?.invoke("✨ AtFIx")
+                            onStatusUpdate?.invoke("✨ AtFix")
                         } else {
                             onStatusUpdate?.invoke("⚠️ Replacement failed")
                         }
@@ -505,14 +505,14 @@ class KeyboardController(
 
                 if (requestContext != activeRequestContext || requestContext.sessionId != currentSessionId || !textEditor.hasValidInputConnection()) {
                     Log.w(TAG, "Trailing command request context invalid or changed. Discarding AI result.")
-                    onStatusUpdate?.invoke("✨ AtFIx")
+                    onStatusUpdate?.invoke("✨ AtFix")
                     return@launch
                 }
 
                 val currentTextBeforeCursor = textEditor.getTextBeforeCursor(1000)
                 if (currentTextBeforeCursor != requestContext.submittedText) {
                     Log.w(TAG, "Context changed while AI request was in flight. Discarding result.")
-                    onStatusUpdate?.invoke("✨ AtFIx")
+                    onStatusUpdate?.invoke("✨ AtFix")
                     return@launch
                 }
 
@@ -523,7 +523,7 @@ class KeyboardController(
                             transformedText = result.data
                         )
                         if (replaced) {
-                            onStatusUpdate?.invoke("✨ AtFIx")
+                            onStatusUpdate?.invoke("✨ AtFix")
                         } else {
                             onStatusUpdate?.invoke("⚠️ Replacement failed")
                         }
@@ -558,6 +558,6 @@ class KeyboardController(
         Log.e(TAG, "AI request failed: $message")
         onStatusUpdate?.invoke("⚠️ $message")
         delay(2500)
-        onStatusUpdate?.invoke("✨ AtFIx")
+        onStatusUpdate?.invoke("✨ AtFix")
     }
 }

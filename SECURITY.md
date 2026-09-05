@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The AtFIx project is currently in active pre-release development. As an early-stage open-source milestone, formal version support matrices and backported security releases are not currently maintained. Security fixes are applied directly to the `master` branch.
+The AtFix project is currently in active pre-release development. As an early-stage open-source milestone, formal version support matrices and backported security releases are not currently maintained. Security fixes are applied directly to the `master` branch.
 
 | Branch / Version | Supported |
 | :--- | :--- |

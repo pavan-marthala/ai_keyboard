@@ -5,13 +5,13 @@ class KeyboardViewController: UIInputViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        NSLog("AtFIx: KeyboardViewController viewDidLoad")
-        NSLog("AtFIx: TEST VIEW LOADED")
+        NSLog("AtFix: KeyboardViewController viewDidLoad")
+        NSLog("AtFix: TEST VIEW LOADED")
 
         view.backgroundColor = .systemRed
 
         let label = UILabel()
-        label.text = "AtFIx TEST"
+        label.text = "AtFix TEST"
         label.textColor = .white
         label.font = .boldSystemFont(ofSize: 20)
         label.translatesAutoresizingMaskIntoConstraints = false
@@ -30,13 +30,13 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        NSLog("AtFIx: viewWillAppear")
-        NSLog("AtFIx: bounds = \(view.bounds)")
+        NSLog("AtFix: viewWillAppear")
+        NSLog("AtFix: bounds = \(view.bounds)")
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        NSLog("AtFIx: viewDidAppear")
-        NSLog("AtFIx: bounds = \(view.bounds)")
+        NSLog("AtFix: viewDidAppear")
+        NSLog("AtFix: bounds = \(view.bounds)")
     }
 }

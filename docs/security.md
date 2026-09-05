@@ -1,12 +1,12 @@
 # Security, Cryptography & Privacy Specification
 
-This document details the security architecture, cryptographic implementations, network transmission characteristics, and privacy posture of the AtFIx.
+This document details the security architecture, cryptographic implementations, network transmission characteristics, and privacy posture of AtFix.
 
 ---
 
 ## 1. Credential Management & Storage Architecture
 
-The AtFIx operates on a **Bring Your Own Key (BYOK)** model. Users supply their own API keys for the AI providers they choose to enable. No default or shared API credentials are baked into the repository or release binaries.
+AtFix operates on a **Bring Your Own Key (BYOK)** model. Users supply their own API keys for the AI providers they choose to enable. No default or shared API credentials are baked into the repository or release binaries.
 
 ### Storage Implementations by Platform
 
@@ -59,7 +59,7 @@ Non-sensitive configuration items—such as active provider selection, model ide
 
 ## 2. Network Data Transmission
 
-The AtFIx establishes external network connections strictly for user-requested features:
+AtFix establishes external network connections strictly for user-requested features:
 
 | Traffic Category | Destination Endpoint | Trigger Mechanism | Data Transmitted |
 | :--- | :--- | :--- | :--- |
@@ -72,7 +72,7 @@ The AtFIx establishes external network connections strictly for user-requested f
 
 - **Ordinary Typing:** Keystrokes, words, sentences, and composition events that do not invoke an explicit `@` command are handled strictly on-device by the keyboard view and AOSP suggestion engine.
 - **Keystroke Logging:** The keyboard does not log keystrokes to disk or external servers.
-- **Telemetry & Crash Tracking:** The AtFIx project bundles **no** telemetry SDKs, analytics tracking libraries (Firebase, Mixpanel, Amplitude), or crash reporting frameworks (Crashlytics, Sentry).
+- **Telemetry & Crash Tracking:** The AtFix project bundles **no** telemetry SDKs, analytics tracking libraries (Firebase, Mixpanel, Amplitude), or crash reporting frameworks (Crashlytics, Sentry).
 
 ---
 

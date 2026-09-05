@@ -1,6 +1,6 @@
 # AOSP More Keys & Multi-Alternative Long Press Implementation
 
-This document describes the production implementation of AOSP LatinIME More Keys / long-press infrastructure in the AtFIx project (`pavan-marthala/atfix`).
+This document describes the production implementation of AOSP LatinIME More Keys / long-press infrastructure in the AtFix project (`pavan-marthala/atfix`).
 
 ## 1. Overview
 

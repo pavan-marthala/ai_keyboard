@@ -17,7 +17,7 @@
             android:id="@+id/tv_status"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="✨ AtFIx"
+            android:text="✨ AtFix"
             android:textColor="#A6ADC8"
             android:textSize="12sp"
             android:textStyle="bold" />

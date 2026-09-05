@@ -1,6 +1,6 @@
-# Contributing to AtFIx
+# Contributing to AtFix
 
-Thank you for your interest in contributing to AtFIx. This guide explains how to set up your environment, follow project conventions, develop features, and submit pull requests.
+Thank you for your interest in contributing to AtFix. This guide explains how to set up your environment, follow project conventions, develop features, and submit pull requests.
 
 ---
 

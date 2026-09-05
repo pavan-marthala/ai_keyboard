@@ -17,7 +17,7 @@ class OpenRouterProvider: AiProvider {
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("AtFIx iOS", forHTTPHeaderField: "HTTP-Referer")
+        request.setValue("AtFix iOS", forHTTPHeaderField: "HTTP-Referer")
         request.timeoutInterval = 15.0
 
         let systemInstruction = "You are a text transformation engine. Transform the text according to instructions. Return ONLY the transformed text. Do not explain, add notes, or use surrounding quotes."

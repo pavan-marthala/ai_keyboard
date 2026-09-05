@@ -1,6 +1,6 @@
 {
-    "name": "atfix",
-    "short_name": "atfix",
+    "name": "AtFix",
+    "short_name": "AtFix",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

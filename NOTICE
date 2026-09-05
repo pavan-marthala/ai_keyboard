@@ -1,10 +1,11 @@
-AtFIx
+AtFix
 Copyright (c) 2024–2026 Pavan Marthala
 
 This product includes software developed by the Android Open Source Project (AOSP)
-(https://android.googlesource.com/platform/packages/inputmethods/LatinIME/).
+(<https://android.googlesource.com/platform/packages/inputmethods/LatinIME/>).
 
 AOSP LatinIME components include:
+
 - Native C++ source code located in `app/android/app/src/main/cpp/aosp_latinime/`
 - Native C++ JNI bridge components located in `app/android/app/src/main/cpp/latinime/`
 - Kotlin dictionary and suggestion classes located in `app/android/app/src/main/kotlin/com/pk/atfix/suggestion/aosp/`
