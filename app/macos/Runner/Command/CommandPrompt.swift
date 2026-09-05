@@ -1,7 +1,7 @@
 import Cocoa
 
-/// Delegate protocol for DesktopCommandPrompt user interactions and lifecycle events.
-protocol DesktopCommandPromptDelegate: AnyObject {
+/// Delegate protocol for CommandPrompt user interactions and lifecycle events.
+protocol CommandPromptDelegate: AnyObject {
     func promptDidSelectCommand(_ command: String)
     func promptDidCancel()
     func promptDidClose()
@@ -143,9 +143,9 @@ enum AppPalette {
 }
 
 /// Native AppKit floating command prompt window.
-final class DesktopCommandPrompt: NSObject, NSWindowDelegate {
+final class CommandPrompt: NSObject, NSWindowDelegate {
 
-    weak var delegate: DesktopCommandPromptDelegate?
+    weak var delegate: CommandPromptDelegate?
 
     private var promptPanel: NSPanel?
     private var promptCardView: NSView?
@@ -330,7 +330,7 @@ final class DesktopCommandPrompt: NSObject, NSWindowDelegate {
         panel.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
-        NSLog("[DesktopCommandPrompt] COMMAND PROMPT OPENED")
+        NSLog("[CommandPrompt] COMMAND PROMPT OPENED")
     }
 
     func close() {
@@ -463,13 +463,13 @@ final class DesktopCommandPrompt: NSObject, NSWindowDelegate {
     }
 
     @objc private func handleCancel() {
-        NSLog("[DesktopCommandPrompt] Command prompt cancelled by user")
+        NSLog("[CommandPrompt] Command prompt cancelled by user")
         delegate?.promptDidCancel()
         close()
     }
 
     func windowWillClose(_ notification: Notification) {
-        NSLog("[DesktopCommandPrompt] Command prompt window closed")
+        NSLog("[CommandPrompt] Command prompt window closed")
         delegate?.promptDidClose()
         promptPanel = nil
         promptCardView = nil

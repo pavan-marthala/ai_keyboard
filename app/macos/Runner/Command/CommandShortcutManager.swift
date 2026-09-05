@@ -2,21 +2,21 @@ import Cocoa
 import ApplicationServices
 import Carbon
 
-/// Coordinator for the macOS Desktop AI Shortcut workflow.
+/// Coordinator for the macOS AI Shortcut workflow.
 ///
 /// Workflow:
 /// 1. Intercepts the global shortcut (Control + Option + Space).
-/// 2. Queries DesktopAccessibilityService for focused element and selected text.
-/// 3. Presents DesktopCommandPrompt floating panel near the cursor.
-/// 4. Dispatches chosen command to DesktopCommandDispatcher.
-/// 5. DesktopCommandDispatcher orchestrates AI transformation and DesktopTextReplacementService.
-final class DesktopCommandShortcutManager: NSObject, DesktopCommandPromptDelegate {
+/// 2. Queries AccessibilityService for focused element and selected text.
+/// 3. Presents CommandPrompt floating panel near the cursor.
+/// 4. Dispatches chosen command to CommandDispatcher.
+/// 5. CommandDispatcher orchestrates AI transformation and TextReplacementService.
+final class CommandShortcutManager: NSObject, CommandPromptDelegate {
 
-    static let shared = DesktopCommandShortcutManager()
+    static let shared = CommandShortcutManager()
 
-    private let accessibilityService: DesktopAccessibilityService
-    private let dispatcher: DesktopCommandDispatcher
-    private let prompt: DesktopCommandPrompt
+    private let accessibilityService: AccessibilityService
+    private let dispatcher: CommandDispatcher
+    private let prompt: CommandPrompt
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -32,9 +32,9 @@ final class DesktopCommandShortcutManager: NSObject, DesktopCommandPromptDelegat
     private var originalSelectedRange = CFRange(location: -1, length: 0)
 
     init(
-        accessibilityService: DesktopAccessibilityService = .shared,
-        dispatcher: DesktopCommandDispatcher = .shared,
-        prompt: DesktopCommandPrompt = DesktopCommandPrompt()
+        accessibilityService: AccessibilityService = .shared,
+        dispatcher: CommandDispatcher = .shared,
+        prompt: CommandPrompt = CommandPrompt()
     ) {
         self.accessibilityService = accessibilityService
         self.dispatcher = dispatcher
@@ -46,8 +46,8 @@ final class DesktopCommandShortcutManager: NSObject, DesktopCommandPromptDelegat
     // MARK: - Lifecycle
 
     func start() {
-        NSLog("[DesktopCommandShortcutManager] STARTED")
-        NSLog("[DesktopCommandShortcutManager] Registered global shortcut: Control + Option + Space")
+        NSLog("[CommandShortcutManager] STARTED")
+        NSLog("[CommandShortcutManager] Registered global shortcut: Control + Option + Space")
 
         setupEventTap()
         setupGlobalMonitor()
@@ -83,18 +83,18 @@ final class DesktopCommandShortcutManager: NSObject, DesktopCommandPromptDelegat
             eventsOfInterest: mask,
             callback: { proxy, type, event, refcon in
                 guard let refcon else { return Unmanaged.passRetained(event) }
-                let manager = Unmanaged<DesktopCommandShortcutManager>.fromOpaque(refcon).takeUnretainedValue()
+                let manager = Unmanaged<CommandShortcutManager>.fromOpaque(refcon).takeUnretainedValue()
                 return manager.handleEvent(proxy: proxy, type: type, event: event)
             },
             userInfo: observerSelf
         ) else {
-            NSLog("[DesktopCommandShortcutManager] CGEvent.tapCreate failed (Accessibility permission may be required)")
+            NSLog("[CommandShortcutManager] CGEvent.tapCreate failed (Accessibility permission may be required)")
             return
         }
 
         eventTap = tap
         guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
-            NSLog("[DesktopCommandShortcutManager] Failed to create run loop source for event tap")
+            NSLog("[CommandShortcutManager] Failed to create run loop source for event tap")
             return
         }
 
@@ -156,29 +156,29 @@ final class DesktopCommandShortcutManager: NSObject, DesktopCommandPromptDelegat
     // MARK: - Shortcut Triggered
 
     func triggerShortcut() {
-        NSLog("[DesktopCommandShortcutManager] GLOBAL SHORTCUT DETECTED: Control + Option + Space")
-        NSLog("[DesktopCommandShortcutManager] AXIsProcessTrusted = \(accessibilityService.isProcessTrusted())")
+        NSLog("[CommandShortcutManager] GLOBAL SHORTCUT DETECTED: Control + Option + Space")
+        NSLog("[CommandShortcutManager] AXIsProcessTrusted = \(accessibilityService.isProcessTrusted())")
 
         let (focusedElement, pid, app, focusedErr) = accessibilityService.copyFocusedElement()
 
         guard let element = focusedElement else {
-            NSLog("[DesktopCommandShortcutManager] No focused AX element after retries. AXError = \(focusedErr.rawValue), frontmost pid = \(pid)")
+            NSLog("[CommandShortcutManager] No focused AX element after retries. AXError = \(focusedErr.rawValue), frontmost pid = \(pid)")
             return
         }
 
         let resolvedApp = app ?? NSRunningApplication(processIdentifier: pid)
         let appName = resolvedApp?.localizedName ?? "Unknown (\(pid))"
 
-        NSLog("[DesktopCommandShortcutManager] TARGET PID = \(pid)")
-        NSLog("[DesktopCommandShortcutManager] TARGET APP = \(appName)")
+        NSLog("[CommandShortcutManager] TARGET PID = \(pid)")
+        NSLog("[CommandShortcutManager] TARGET APP = \(appName)")
 
         guard let selectedText = accessibilityService.readSelectedText(element: element),
               !selectedText.isEmpty else {
-            NSLog("[DesktopCommandShortcutManager] No selected text.")
+            NSLog("[CommandShortcutManager] No selected text.")
             return
         }
 
-        NSLog("[DesktopCommandShortcutManager] SELECTED TEXT = '\(selectedText)'")
+        NSLog("[CommandShortcutManager] SELECTED TEXT = '\(selectedText)'")
 
         let range = accessibilityService.readSelectedRange(element: element)
 
@@ -191,11 +191,11 @@ final class DesktopCommandShortcutManager: NSObject, DesktopCommandPromptDelegat
         prompt.show(selectedText: selectedText)
     }
 
-    // MARK: - DesktopCommandPromptDelegate
+    // MARK: - CommandPromptDelegate
 
     func promptDidSelectCommand(_ command: String) {
         guard let element = targetElement, let app = targetApp else {
-            NSLog("[DesktopCommandShortcutManager] Cannot execute command: Target AX element or app is nil")
+            NSLog("[CommandShortcutManager] Cannot execute command: Target AX element or app is nil")
             return
         }
 

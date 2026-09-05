@@ -27,17 +27,17 @@
 		33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F22044A3C60003C045 /* Assets.xcassets */; };
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
-		33CC11332044C79F0003C045 /* DesktopCommandShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11322044C79F0003C045 /* DesktopCommandShortcutManager.swift */; };
-		33CC11412044C79F0003C045 /* DesktopAccessibilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11402044C79F0003C045 /* DesktopAccessibilityService.swift */; };
-		33CC11432044C79F0003C045 /* DesktopTextReplacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11422044C79F0003C045 /* DesktopTextReplacementService.swift */; };
-		33CC11452044C79F0003C045 /* DesktopCommandPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11442044C79F0003C045 /* DesktopCommandPrompt.swift */; };
-		33CC11472044C79F0003C045 /* DesktopCommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* DesktopCommandDispatcher.swift */; };
+		33CC11332044C79F0003C045 /* CommandShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11322044C79F0003C045 /* CommandShortcutManager.swift */; };
+		33CC11412044C79F0003C045 /* AccessibilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11402044C79F0003C045 /* AccessibilityService.swift */; };
+		33CC11432044C79F0003C045 /* TextReplacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11422044C79F0003C045 /* TextReplacementService.swift */; };
+		33CC11452044C79F0003C045 /* CommandPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11442044C79F0003C045 /* CommandPrompt.swift */; };
+		33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* CommandDispatcher.swift */; };
 		33CC11352044C79F0003C045 /* KeychainCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */; };
-		33CC11372044C79F0003C045 /* DesktopConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11362044C79F0003C045 /* DesktopConfigurationStore.swift */; };
-		33CC11392044C79F0003C045 /* DesktopAiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11382044C79F0003C045 /* DesktopAiProvider.swift */; };
-		33CC113B2044C79F0003C045 /* OpenAiDesktopProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113A2044C79F0003C045 /* OpenAiDesktopProvider.swift */; };
-		33CC113D2044C79F0003C045 /* DesktopAiProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113C2044C79F0003C045 /* DesktopAiProviderFactory.swift */; };
-		33CC113F2044C79F0003C045 /* DesktopAiTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113E2044C79F0003C045 /* DesktopAiTransformer.swift */; };
+		33CC11372044C79F0003C045 /* ConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11362044C79F0003C045 /* ConfigurationStore.swift */; };
+		33CC11392044C79F0003C045 /* AiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11382044C79F0003C045 /* AiProvider.swift */; };
+		33CC113B2044C79F0003C045 /* OpenAiCompatibleProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113A2044C79F0003C045 /* OpenAiCompatibleProvider.swift */; };
+		33CC113D2044C79F0003C045 /* AiProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113C2044C79F0003C045 /* AiProviderFactory.swift */; };
+		33CC113F2044C79F0003C045 /* AiTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113E2044C79F0003C045 /* AiTransformer.swift */; };
 		35CE073D304B10F500D074C6 /* ai_keyboard.icon in Resources */ = {isa = PBXBuildFile; fileRef = 35CE073C304B10F500D074C6 /* ai_keyboard.icon */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 /* End PBXBuildFile section */
@@ -83,17 +83,17 @@
 		33CC10F52044A3C60003C045 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		33CC10F72044A3C60003C045 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Runner/Info.plist; sourceTree = "<group>"; };
 		33CC11122044BFA00003C045 /* MainFlutterWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainFlutterWindow.swift; sourceTree = "<group>"; };
-		33CC11322044C79F0003C045 /* DesktopCommandShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopCommandShortcutManager.swift; sourceTree = "<group>"; };
-		33CC11402044C79F0003C045 /* DesktopAccessibilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAccessibilityService.swift; sourceTree = "<group>"; };
-		33CC11422044C79F0003C045 /* DesktopTextReplacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopTextReplacementService.swift; sourceTree = "<group>"; };
-		33CC11442044C79F0003C045 /* DesktopCommandPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopCommandPrompt.swift; sourceTree = "<group>"; };
-		33CC11462044C79F0003C045 /* DesktopCommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopCommandDispatcher.swift; sourceTree = "<group>"; };
+		33CC11322044C79F0003C045 /* CommandShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandShortcutManager.swift; sourceTree = "<group>"; };
+		33CC11402044C79F0003C045 /* AccessibilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityService.swift; sourceTree = "<group>"; };
+		33CC11422044C79F0003C045 /* TextReplacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextReplacementService.swift; sourceTree = "<group>"; };
+		33CC11442044C79F0003C045 /* CommandPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPrompt.swift; sourceTree = "<group>"; };
+		33CC11462044C79F0003C045 /* CommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDispatcher.swift; sourceTree = "<group>"; };
 		33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainCredentialStore.swift; sourceTree = "<group>"; };
-		33CC11362044C79F0003C045 /* DesktopConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopConfigurationStore.swift; sourceTree = "<group>"; };
-		33CC11382044C79F0003C045 /* DesktopAiProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAiProvider.swift; sourceTree = "<group>"; };
-		33CC113A2044C79F0003C045 /* OpenAiDesktopProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAiDesktopProvider.swift; sourceTree = "<group>"; };
-		33CC113C2044C79F0003C045 /* DesktopAiProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAiProviderFactory.swift; sourceTree = "<group>"; };
-		33CC113E2044C79F0003C045 /* DesktopAiTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesktopAiTransformer.swift; sourceTree = "<group>"; };
+		33CC11362044C79F0003C045 /* ConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationStore.swift; sourceTree = "<group>"; };
+		33CC11382044C79F0003C045 /* AiProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiProvider.swift; sourceTree = "<group>"; };
+		33CC113A2044C79F0003C045 /* OpenAiCompatibleProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAiCompatibleProvider.swift; sourceTree = "<group>"; };
+		33CC113C2044C79F0003C045 /* AiProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiProviderFactory.swift; sourceTree = "<group>"; };
+		33CC113E2044C79F0003C045 /* AiTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiTransformer.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -187,16 +187,36 @@
 			path = Flutter;
 			sourceTree = "<group>";
 		};
-		33CC11502044C79F0003C045 /* Desktop */ = {
+		33CC11502044C79F0003C045 /* Command */ = {
 			isa = PBXGroup;
 			children = (
-				33CC11322044C79F0003C045 /* DesktopCommandShortcutManager.swift */,
-				33CC11402044C79F0003C045 /* DesktopAccessibilityService.swift */,
-				33CC11422044C79F0003C045 /* DesktopTextReplacementService.swift */,
-				33CC11442044C79F0003C045 /* DesktopCommandPrompt.swift */,
-				33CC11462044C79F0003C045 /* DesktopCommandDispatcher.swift */,
+				33CC11322044C79F0003C045 /* CommandShortcutManager.swift */,
+				33CC11402044C79F0003C045 /* AccessibilityService.swift */,
+				33CC11422044C79F0003C045 /* TextReplacementService.swift */,
+				33CC11442044C79F0003C045 /* CommandPrompt.swift */,
+				33CC11462044C79F0003C045 /* CommandDispatcher.swift */,
 			);
-			path = Desktop;
+			path = Command;
+			sourceTree = "<group>";
+		};
+		33CC11602044C79F0003C045 /* AI */ = {
+			isa = PBXGroup;
+			children = (
+				33CC11382044C79F0003C045 /* AiProvider.swift */,
+				33CC113A2044C79F0003C045 /* OpenAiCompatibleProvider.swift */,
+				33CC113C2044C79F0003C045 /* AiProviderFactory.swift */,
+				33CC113E2044C79F0003C045 /* AiTransformer.swift */,
+			);
+			path = AI;
+			sourceTree = "<group>";
+		};
+		33CC11702044C79F0003C045 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */,
+				33CC11362044C79F0003C045 /* ConfigurationStore.swift */,
+			);
+			path = Security;
 			sourceTree = "<group>";
 		};
 		33FAB671232836740065AC1E /* Runner */ = {
@@ -204,13 +224,9 @@
 			children = (
 				33CC10F02044A3C60003C045 /* AppDelegate.swift */,
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
-				33CC11502044C79F0003C045 /* Desktop */,
-				33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */,
-				33CC11362044C79F0003C045 /* DesktopConfigurationStore.swift */,
-				33CC11382044C79F0003C045 /* DesktopAiProvider.swift */,
-				33CC113A2044C79F0003C045 /* OpenAiDesktopProvider.swift */,
-				33CC113C2044C79F0003C045 /* DesktopAiProviderFactory.swift */,
-				33CC113E2044C79F0003C045 /* DesktopAiTransformer.swift */,
+				33CC11502044C79F0003C045 /* Command */,
+				33CC11602044C79F0003C045 /* AI */,
+				33CC11702044C79F0003C045 /* Security */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -401,17 +417,17 @@
 			files = (
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
-				33CC11332044C79F0003C045 /* DesktopCommandShortcutManager.swift in Sources */,
-				33CC11412044C79F0003C045 /* DesktopAccessibilityService.swift in Sources */,
-				33CC11432044C79F0003C045 /* DesktopTextReplacementService.swift in Sources */,
-				33CC11452044C79F0003C045 /* DesktopCommandPrompt.swift in Sources */,
-				33CC11472044C79F0003C045 /* DesktopCommandDispatcher.swift in Sources */,
+				33CC11332044C79F0003C045 /* CommandShortcutManager.swift in Sources */,
+				33CC11412044C79F0003C045 /* AccessibilityService.swift in Sources */,
+				33CC11432044C79F0003C045 /* TextReplacementService.swift in Sources */,
+				33CC11452044C79F0003C045 /* CommandPrompt.swift in Sources */,
+				33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */,
 				33CC11352044C79F0003C045 /* KeychainCredentialStore.swift in Sources */,
-				33CC11372044C79F0003C045 /* DesktopConfigurationStore.swift in Sources */,
-				33CC11392044C79F0003C045 /* DesktopAiProvider.swift in Sources */,
-				33CC113B2044C79F0003C045 /* OpenAiDesktopProvider.swift in Sources */,
-				33CC113D2044C79F0003C045 /* DesktopAiProviderFactory.swift in Sources */,
-				33CC113F2044C79F0003C045 /* DesktopAiTransformer.swift in Sources */,
+				33CC11372044C79F0003C045 /* ConfigurationStore.swift in Sources */,
+				33CC11392044C79F0003C045 /* AiProvider.swift in Sources */,
+				33CC113B2044C79F0003C045 /* OpenAiCompatibleProvider.swift in Sources */,
+				33CC113D2044C79F0003C045 /* AiProviderFactory.swift in Sources */,
+				33CC113F2044C79F0003C045 /* AiTransformer.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

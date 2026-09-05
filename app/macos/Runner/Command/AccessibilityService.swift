@@ -3,9 +3,9 @@ import ApplicationServices
 
 /// Service encapsulating all macOS Accessibility (AXUIElement) operations.
 /// Hides low-level AX attribute APIs and platform-specific quirks (e.g. Chromium tree activation).
-final class DesktopAccessibilityService {
+final class AccessibilityService {
 
-    static let shared = DesktopAccessibilityService()
+    static let shared = AccessibilityService()
 
     private init() {}
 
@@ -28,7 +28,7 @@ final class DesktopAccessibilityService {
         delayMicroseconds: useconds_t = 40_000
     ) -> (element: AXUIElement?, pid: pid_t, app: NSRunningApplication?, lastError: AXError) {
         guard let frontApp = NSWorkspace.shared.frontmostApplication else {
-            NSLog("[DesktopAccessibilityService] No frontmost application reported by NSWorkspace")
+            NSLog("[AccessibilityService] No frontmost application reported by NSWorkspace")
             return (nil, 0, nil, .cannotComplete)
         }
         let appPid = frontApp.processIdentifier
@@ -49,7 +49,7 @@ final class DesktopAccessibilityService {
                 return (element, appPid, frontApp, .success)
             }
             lastError = err
-            NSLog("[DesktopAccessibilityService] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
+            NSLog("[AccessibilityService] Focused element query via app element, attempt \(attempt): AXError = \(err.rawValue), app='\(frontApp.localizedName ?? "?")' pid=\(appPid)")
 
             // Chromium/Electron apps (VS Code, Chrome, WhatsApp Desktop,
             // Slack, ...) do not build a full accessibility tree until
@@ -58,7 +58,7 @@ final class DesktopAccessibilityService {
             // AXEnhancedUserInterface is the standard signal used to force
             // Chromium to activate its accessibility bridge.
             if !didRequestEnhancedUI, (err == .cannotComplete || err == .noValue) {
-                NSLog("[DesktopAccessibilityService] Requesting AXEnhancedUserInterface for pid=\(appPid) (Chromium/Electron tree activation)")
+                NSLog("[AccessibilityService] Requesting AXEnhancedUserInterface for pid=\(appPid) (Chromium/Electron tree activation)")
                 _ = AXUIElementSetAttributeValue(appElement, "AXEnhancedUserInterface" as CFString, kCFBooleanTrue)
                 didRequestEnhancedUI = true
                 usleep(300_000) // First-time tree construction takes a few hundred ms

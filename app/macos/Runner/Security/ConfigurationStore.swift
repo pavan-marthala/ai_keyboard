@@ -1,20 +1,20 @@
 import Foundation
 
 /// Active AI configuration representation on native macOS.
-struct DesktopAiConfiguration: Equatable {
+struct AiConfiguration: Equatable {
     let provider: String
     let modelId: String
     let baseUrl: String?
 }
 
-/// Native configuration storage for macOS desktop AI commands.
+/// Native configuration storage for macOS AI commands.
 ///
 /// Stores active provider, model, custom base URL, and disabled commands in
 /// `UserDefaults.standard`, with fallback support for reading Flutter's
 /// `"flutter.user_settings"`.
-final class DesktopConfigurationStore {
+final class ConfigurationStore {
 
-    static let shared = DesktopConfigurationStore()
+    static let shared = ConfigurationStore()
 
     private let userDefaults: UserDefaults
 
@@ -48,11 +48,11 @@ final class DesktopConfigurationStore {
     ///
     /// Checks native keys first, then falls back to parsing Flutter's
     /// `"flutter.user_settings"` JSON, and finally defaults to OpenAI/gpt-4o-mini.
-    func getConfig() -> DesktopAiConfiguration? {
+    func getConfig() -> AiConfiguration? {
         if let p = userDefaults.string(forKey: keyActiveProvider), !p.isEmpty {
             let model = userDefaults.string(forKey: keyActiveModel) ?? "gpt-4o-mini"
             let baseUrl = userDefaults.string(forKey: keyCustomBaseUrl)
-            return DesktopAiConfiguration(provider: p, modelId: model, baseUrl: baseUrl)
+            return AiConfiguration(provider: p, modelId: model, baseUrl: baseUrl)
         }
 
         // Fallback: parse flutter.user_settings if native config has not been explicitly saved yet
@@ -62,10 +62,10 @@ final class DesktopConfigurationStore {
             let rawProvider = (json["activeProvider"] as? String)?.lowercased() ?? "openai"
             let model = (json["activeModelId"] as? String) ?? "gpt-4o-mini"
             let baseUrl = json["customBaseUrl"] as? String
-            return DesktopAiConfiguration(provider: rawProvider, modelId: model, baseUrl: baseUrl)
+            return AiConfiguration(provider: rawProvider, modelId: model, baseUrl: baseUrl)
         }
 
-        return DesktopAiConfiguration(provider: "openai", modelId: "gpt-4o-mini", baseUrl: nil)
+        return AiConfiguration(provider: "openai", modelId: "gpt-4o-mini", baseUrl: nil)
     }
 
     /// Persists the list of disabled command triggers.

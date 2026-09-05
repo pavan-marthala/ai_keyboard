@@ -3,13 +3,13 @@ import ApplicationServices
 
 /// Service responsible for replacing selected text in target applications using
 /// reliable synthetic keyboard event injection and AX selection revalidation.
-final class DesktopTextReplacementService {
+final class TextReplacementService {
 
-    static let shared = DesktopTextReplacementService()
+    static let shared = TextReplacementService()
 
-    private let accessibilityService: DesktopAccessibilityService
+    private let accessibilityService: AccessibilityService
 
-    init(accessibilityService: DesktopAccessibilityService = .shared) {
+    init(accessibilityService: AccessibilityService = .shared) {
         self.accessibilityService = accessibilityService
     }
 
@@ -26,11 +26,11 @@ final class DesktopTextReplacementService {
     ) -> Bool {
         // 1. Reactivate the ORIGINAL target application and wait until it is frontmost.
         guard reactivateAndWaitForFrontmost(app: targetApp, timeout: 1.0) else {
-            NSLog("[DesktopTextReplacementService] Target app '\(targetApp.localizedName ?? "?")' did not become frontmost in time")
-            NSLog("[DesktopTextReplacementService] REPLACEMENT FAILED")
+            NSLog("[TextReplacementService] Target app '\(targetApp.localizedName ?? "?")' did not become frontmost in time")
+            NSLog("[TextReplacementService] REPLACEMENT FAILED")
             return false
         }
-        NSLog("[DesktopTextReplacementService] TARGET APP ACTIVATED")
+        NSLog("[TextReplacementService] TARGET APP ACTIVATED")
 
         // 2. Re-validate that the ORIGINAL selection is still intact on the ORIGINAL captured element.
         guard accessibilityService.revalidateSelection(
@@ -38,38 +38,38 @@ final class DesktopTextReplacementService {
             expectedText: expectedSelectedText,
             expectedRange: expectedSelectedRange
         ) != nil else {
-            NSLog("[DesktopTextReplacementService] Selection lost or altered after reactivation. Expected '\(expectedSelectedText)'")
-            NSLog("[DesktopTextReplacementService] REPLACEMENT FAILED")
+            NSLog("[TextReplacementService] Selection lost or altered after reactivation. Expected '\(expectedSelectedText)'")
+            NSLog("[TextReplacementService] REPLACEMENT FAILED")
             return false
         }
-        NSLog("[DesktopTextReplacementService] SELECTION REVALIDATED")
+        NSLog("[TextReplacementService] SELECTION REVALIDATED")
 
-        NSLog("[DesktopTextReplacementService] REPLACEMENT STARTED")
+        NSLog("[TextReplacementService] REPLACEMENT STARTED")
 
         let docBefore = accessibilityService.readDocumentValue(element: targetElement)
-        NSLog("[DesktopTextReplacementService] DOC BEFORE (AX) = '\(docBefore)'")
+        NSLog("[TextReplacementService] DOC BEFORE (AX) = '\(docBefore)'")
 
         // 3. Primary replacement mechanism: synthetic keystroke injection.
-        NSLog("[DesktopTextReplacementService] SENDING REPLACEMENT = '\(transformedText)'")
+        NSLog("[TextReplacementService] SENDING REPLACEMENT = '\(transformedText)'")
         let apiCallSucceeded = typeReplacement(transformedText, targetPid: targetPid)
 
         guard apiCallSucceeded else {
-            NSLog("[DesktopTextReplacementService] API CALL SUCCESS = false (failed to post synthetic keyboard events)")
-            NSLog("[DesktopTextReplacementService] REPLACEMENT FAILED")
+            NSLog("[TextReplacementService] API CALL SUCCESS = false (failed to post synthetic keyboard events)")
+            NSLog("[TextReplacementService] REPLACEMENT FAILED")
             return false
         }
-        NSLog("[DesktopTextReplacementService] API CALL SUCCESS = true (synthetic keystrokes posted)")
+        NSLog("[TextReplacementService] API CALL SUCCESS = true (synthetic keystrokes posted)")
 
         usleep(100_000) // 100ms synchronization pause
 
         let docAfter = accessibilityService.readDocumentValue(element: targetElement)
-        NSLog("[DesktopTextReplacementService] DOC AFTER (AX readback) = '\(docAfter)'")
+        NSLog("[TextReplacementService] DOC AFTER (AX readback) = '\(docAfter)'")
 
         let normalizedTransformed = transformedText.trimmingCharacters(in: .whitespacesAndNewlines)
         let axReadbackChanged = (docAfter != docBefore) && docAfter.contains(normalizedTransformed)
 
-        NSLog("[DesktopTextReplacementService] AX READBACK SUCCESS = \(axReadbackChanged)")
-        NSLog("[DesktopTextReplacementService] REPLACEMENT COMPLETED")
+        NSLog("[TextReplacementService] AX READBACK SUCCESS = \(axReadbackChanged)")
+        NSLog("[TextReplacementService] REPLACEMENT COMPLETED")
         return true
     }
 

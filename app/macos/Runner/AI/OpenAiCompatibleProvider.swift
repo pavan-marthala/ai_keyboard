@@ -1,8 +1,8 @@
 import Foundation
 
-/// OpenAI-compatible Chat Completions Provider for macOS desktop.
+/// OpenAI-compatible Chat Completions Provider for macOS.
 /// Supports OpenAI, OpenRouter, and Groq REST APIs.
-class OpenAiDesktopProvider: DesktopAiProvider {
+class OpenAiCompatibleProvider: AiProvider {
     let providerType: String
     let defaultEndpoint: String
     let defaultModel: String
@@ -25,7 +25,7 @@ class OpenAiDesktopProvider: DesktopAiProvider {
         baseURL: String?
     ) async throws -> String {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw DesktopAiFailure.missingApiKey
+            throw AiFailure.missingApiKey
         }
 
         // Endpoint selection: custom base URL takes priority if non-empty
@@ -37,7 +37,7 @@ class OpenAiDesktopProvider: DesktopAiProvider {
         }
 
         guard let url = URL(string: rawEndpoint) else {
-            throw DesktopAiFailure.network
+            throw AiFailure.network
         }
 
         // Effective model ID selection
@@ -77,7 +77,7 @@ Preserve the user's intended meaning.
         ]
 
         guard let httpBody = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
-            throw DesktopAiFailure.invalidResponse
+            throw AiFailure.invalidResponse
         }
         request.httpBody = httpBody
 
@@ -89,18 +89,18 @@ Preserve the user's intended meaning.
         } catch let urlError as URLError {
             switch urlError.code {
             case .timedOut:
-                throw DesktopAiFailure.timeout
+                throw AiFailure.timeout
             case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
-                throw DesktopAiFailure.network
+                throw AiFailure.network
             default:
-                throw DesktopAiFailure.network
+                throw AiFailure.network
             }
         } catch {
-            throw DesktopAiFailure.unknown(error.localizedDescription)
+            throw AiFailure.unknown(error.localizedDescription)
         }
 
         guard let httpResponse = response as? HTTPURLResponse else {
-            throw DesktopAiFailure.network
+            throw AiFailure.network
         }
 
         // Handle HTTP Status Codes
@@ -111,7 +111,7 @@ Preserve the user's intended meaning.
                   let firstChoice = choices.first,
                   let message = firstChoice["message"] as? [String: Any],
                   let content = message["content"] as? String else {
-                throw DesktopAiFailure.invalidResponse
+                throw AiFailure.invalidResponse
             }
 
             var cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -124,24 +124,24 @@ Preserve the user's intended meaning.
             }
 
             if cleaned.isEmpty {
-                throw DesktopAiFailure.emptyResponse
+                throw AiFailure.emptyResponse
             }
 
             return cleaned
 
         case 401:
-            throw DesktopAiFailure.invalidApiKey
+            throw AiFailure.invalidApiKey
         case 403:
-            throw DesktopAiFailure.forbidden
+            throw AiFailure.forbidden
         case 404:
-            throw DesktopAiFailure.modelNotFound
+            throw AiFailure.modelNotFound
         case 429:
-            throw DesktopAiFailure.rateLimited
+            throw AiFailure.rateLimited
         case 500...599:
             let serverMsg = String(data: data, encoding: .utf8) ?? "Server Error"
-            throw DesktopAiFailure.server(httpResponse.statusCode, serverMsg)
+            throw AiFailure.server(httpResponse.statusCode, serverMsg)
         default:
-            throw DesktopAiFailure.unknown("HTTP \(httpResponse.statusCode)")
+            throw AiFailure.unknown("HTTP \(httpResponse.statusCode)")
         }
     }
 }

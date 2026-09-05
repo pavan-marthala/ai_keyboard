@@ -23,8 +23,8 @@ class AppDelegate: FlutterAppDelegate {
   override func applicationDidFinishLaunching(_ notification: Notification) {
 
     NSLog("[AppDelegate] applicationDidFinishLaunching CALLED")
-    NSLog("[AppDelegate] Starting DesktopCommandShortcutManager")
-    DesktopCommandShortcutManager.shared.start()
+    NSLog("[AppDelegate] Starting CommandShortcutManager")
+    CommandShortcutManager.shared.start()
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
       let channel = FlutterMethodChannel(
@@ -147,7 +147,7 @@ class AppDelegate: FlutterAppDelegate {
             return
           }
           let baseUrl = args["baseUrl"] as? String
-          DesktopConfigurationStore.shared.saveConfig(provider: provider, modelId: modelId, baseUrl: baseUrl)
+          ConfigurationStore.shared.saveConfig(provider: provider, modelId: modelId, baseUrl: baseUrl)
           NSLog("[CredentialsChannel] saveConfig provider=\(provider) modelId=\(modelId) customBaseUrl=\(baseUrl ?? "nil")")
           result(true)
 
@@ -157,7 +157,7 @@ class AppDelegate: FlutterAppDelegate {
             result(FlutterError(code: "INVALID_ARGS", message: "Missing disabledTriggers", details: nil))
             return
           }
-          DesktopConfigurationStore.shared.saveDisabledCommands(Set(list))
+          ConfigurationStore.shared.saveDisabledCommands(Set(list))
           NSLog("[CredentialsChannel] saveDisabledCommands count=\(list.count)")
           result(true)
 

@@ -3,7 +3,7 @@ import Cocoa
 /// Independent execution context for an asynchronous command execution.
 /// Guarantees that each command retains its immutable target, element,
 /// range, and cancellation status across async boundaries.
-final class DesktopCommandExecutionContext {
+final class CommandExecutionContext {
     let id: UUID
     let command: String
     let targetApp: NSRunningApplication
@@ -35,16 +35,16 @@ final class DesktopCommandExecutionContext {
 /// Dispatches selected desktop commands (@fix, @rewrite, @short, @expand) to
 /// the native AI transformer, coordinates asynchronous execution and cancellation,
 /// updates prompt feedback, and triggers text replacement on success.
-final class DesktopCommandDispatcher {
+final class CommandDispatcher {
 
-    static let shared = DesktopCommandDispatcher()
+    static let shared = CommandDispatcher()
 
-    private let textReplacementService: DesktopTextReplacementService
+    private let textReplacementService: TextReplacementService
 
-    private var activeExecutions: [UUID: DesktopCommandExecutionContext] = [:]
+    private var activeExecutions: [UUID: CommandExecutionContext] = [:]
     private var activeTasks: [UUID: Task<Void, Never>] = [:]
 
-    init(textReplacementService: DesktopTextReplacementService = .shared) {
+    init(textReplacementService: TextReplacementService = .shared) {
         self.textReplacementService = textReplacementService
     }
 
@@ -61,9 +61,9 @@ final class DesktopCommandDispatcher {
         targetElement: AXUIElement,
         selectedText: String,
         selectedRange: CFRange,
-        prompt: DesktopCommandPrompt
+        prompt: CommandPrompt
     ) {
-        let execution = DesktopCommandExecutionContext(
+        let execution = CommandExecutionContext(
             command: command,
             targetApp: targetApp,
             targetPid: targetPid,
@@ -75,23 +75,23 @@ final class DesktopCommandDispatcher {
         activeExecutions[execution.id] = execution
         prompt.updateLoadingState(runningCommands: runningCommands)
 
-        NSLog("[DesktopCommandDispatcher] COMMAND SELECTED = \(command) [execId: \(execution.id.uuidString.prefix(8))]")
+        NSLog("[CommandDispatcher] COMMAND SELECTED = \(command) [execId: \(execution.id.uuidString.prefix(8))]")
 
         let task = Task {
             do {
-                let transformedText = try await DesktopAiTransformer.shared.transform(
+                let transformedText = try await AiTransformer.shared.transform(
                     command: execution.command,
                     text: execution.selectedText
                 )
 
                 await MainActor.run {
                     guard !execution.isCancelled else {
-                        NSLog("[DesktopCommandDispatcher] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
+                        NSLog("[CommandDispatcher] Execution \(execution.id.uuidString.prefix(8)) was cancelled. Skipping replacement.")
                         self.cleanupExecution(execution.id)
                         return
                     }
 
-                    NSLog("[DesktopCommandDispatcher] REAL AI TRANSFORMED [\(execution.command)] = '\(transformedText)'")
+                    NSLog("[CommandDispatcher] REAL AI TRANSFORMED [\(execution.command)] = '\(transformedText)'")
                     let success = self.textReplacementService.replaceSelectedText(
                         transformedText: transformedText,
                         targetApp: execution.targetApp,
@@ -120,7 +120,7 @@ final class DesktopCommandDispatcher {
                         return
                     }
 
-                    NSLog("[DesktopCommandDispatcher] REAL AI FAILURE for \(execution.command): \(error.localizedDescription)")
+                    NSLog("[CommandDispatcher] REAL AI FAILURE for \(execution.command): \(error.localizedDescription)")
                     self.cleanupExecution(execution.id)
 
                     // Strictly NO mock fallback. Display error and keep prompt open.

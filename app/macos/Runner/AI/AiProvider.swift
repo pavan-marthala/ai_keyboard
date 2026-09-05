@@ -1,7 +1,7 @@
 import Foundation
 
 /// Native macOS AI Provider Protocol.
-protocol DesktopAiProvider {
+protocol AiProvider {
     var providerType: String { get }
 
     func transform(
@@ -13,8 +13,8 @@ protocol DesktopAiProvider {
     ) async throws -> String
 }
 
-/// Typed failures for macOS desktop AI operations.
-enum DesktopAiFailure: Error, LocalizedError, Equatable {
+/// Typed failures for macOS AI operations.
+enum AiFailure: Error, LocalizedError, Equatable {
     case missingApiKey
     case invalidApiKey
     case unauthorized

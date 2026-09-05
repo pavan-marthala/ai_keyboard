@@ -379,5 +379,54 @@ Text replaced via synthetic CGEvent keystroke injection (deletes selection & typ
    - Acquires the focused UI element (`kAXFocusedUIElementAttribute`) and original selected text/range (`kAXSelectedTextAttribute`, `kAXSelectedTextRangeAttribute`).
    - Revalidates the active selection and restores focus prior to synthetic keystroke dispatch.
 
+#### Native macOS Architecture Structure
+
+```text
+app/
+└── macos/
+    └── Runner/
+        ├── AppDelegate.swift
+        ├── MainFlutterWindow.swift
+        │
+        ├── Command/
+        │   ├── CommandShortcutManager.swift
+        │   ├── AccessibilityService.swift
+        │   ├── TextReplacementService.swift
+        │   ├── CommandPrompt.swift
+        │   └── CommandDispatcher.swift
+        │
+        ├── AI/
+        │   ├── AiProvider.swift
+        │   ├── AiProviderFactory.swift
+        │   ├── AiTransformer.swift
+        │   └── OpenAiCompatibleProvider.swift
+        │
+        └── Security/
+            ├── KeychainCredentialStore.swift
+            └── ConfigurationStore.swift
+```
+
+#### Component Responsibilities
+
+1. **`Command/`**: Contains the macOS command workflow:
+   - **`CommandShortcutManager.swift`**: Coordinates global shortcut registration (`Control + Option + Space`), target window/AX element acquisition, and prompt lifecycle.
+   - **`AccessibilityService.swift`**: Low-level Accessibility APIs (`AXUIElement`), focused element querying with Chromium/Electron `AXEnhancedUserInterface` activation, selection reading, and revalidation.
+   - **`TextReplacementService.swift`**: Target application reactivation, selection revalidation, and reliable text replacement via synthetic Unicode `CGEvent` keystroke injection with readback verification.
+   - **`CommandPrompt.swift`**: Floating NSPanel card UI, cursor-anchored positioning, command chip buttons (`@fix`, `@rewrite`, `@short`, `@expand`), loading indicators, and error presentation.
+   - **`CommandDispatcher.swift`**: Asynchronous command execution coordination, task cancellation, `CommandExecutionContext` isolation, and dispatch to `AiTransformer`.
+
+2. **`AI/`**: Contains the native AI transformation subsystem:
+   - **`AiProvider.swift`**: Core `AiProvider` protocol and `AiFailure` error enumerations.
+   - **`AiProviderFactory.swift`**: Factory resolving provider instances dynamically for OpenAI, OpenRouter, and Groq.
+   - **`AiTransformer.swift`**: High-level text transformation orchestrator reading credentials and configuration.
+   - **`OpenAiCompatibleProvider.swift`**: OpenAI-compatible REST chat completions implementation supporting OpenAI, OpenRouter, and Groq.
+
+3. **`Security/`**: Contains credential and configuration storage:
+   - **`KeychainCredentialStore.swift`**: Secure storage of provider API keys in macOS Keychain using `kSecClassGenericPassword`.
+   - **`ConfigurationStore.swift`**: Active provider, model ID, custom base URL, and disabled command configuration persisted in `UserDefaults` with Flutter fallback synchronization.
+
+4. **`AppDelegate.swift`**:
+   - Manages application lifecycle, starts `CommandShortcutManager.shared.start()`, and bridges Flutter platform channels (`com.pk.ai_keyboard/desktop` and `com.pk.ai_keyboard/credentials`).
+
 #### Shelved / Experimental Status
 - **Old Inline/Trailing Command Detection (`hello world @fix`)**: Continuous keyboard event monitoring that buffered all user keystrokes looking for trailing `@fix` triggers has been **permanently shelved as an experimental prototype**. It is not part of the active or supported desktop workflow.
