@@ -177,15 +177,27 @@ class AppDelegate: FlutterAppDelegate {
       }
     }
 
+    NotificationCenter.default.addObserver(
+      forName: NSWindow.willCloseNotification,
+      object: mainFlutterWindow,
+      queue: .main
+    ) { [weak self] _ in
+      NSLog("[AppDelegate] mainFlutterWindow willCloseNotification -> setDockIconVisible(false)")
+      self?.setDockIconVisible(false)
+    }
+
     let isBackground = CommandLine.arguments.contains("--background")
     if isBackground {
       NSLog("[AppDelegate] Starting in background mode (--background) — keeping main window hidden")
       mainFlutterWindow?.orderOut(nil)
+      setDockIconVisible(false)
     } else {
       NSLog("[AppDelegate] Starting in normal UI mode — presenting main window")
+      setDockIconVisible(true)
       mainFlutterWindow?.makeKeyAndOrderFront(nil)
       NSApp.activate(ignoringOtherApps: true)
       DispatchQueue.main.async { [weak self] in
+        self?.setDockIconVisible(true)
         self?.mainFlutterWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
       }
@@ -194,8 +206,14 @@ class AppDelegate: FlutterAppDelegate {
     super.applicationDidFinishLaunching(notification)
   }
 
+  private func setDockIconVisible(_ visible: Bool) {
+    NSLog("[AppDelegate] setDockIconVisible(\(visible))")
+    NSApp.setActivationPolicy(visible ? .regular : .accessory)
+  }
+
   override func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
     NSLog("[AppDelegate] applicationShouldHandleReopen CALLED, hasVisibleWindows=\(flag)")
+    setDockIconVisible(true)
     if !flag {
       mainFlutterWindow?.makeKeyAndOrderFront(nil)
     }
@@ -209,6 +227,7 @@ class AppDelegate: FlutterAppDelegate {
       return .terminateNow
     }
     mainFlutterWindow?.orderOut(nil)
+    setDockIconVisible(false)
     return .terminateCancel
   }
 
