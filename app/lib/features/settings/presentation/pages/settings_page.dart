@@ -1,9 +1,12 @@
+import 'package:atfix/core/di/injection.dart';
 import 'package:atfix/core/errors/failures.dart';
 import 'package:atfix/core/theme/app_theme.dart';
 import 'package:atfix/core/utils/app_buitton.dart';
 import 'package:atfix/core/utils/app_text_field.dart';
 import 'package:atfix/core/utils/app_toast.dart';
+import 'package:atfix/core/utils/check_platforms.dart';
 import 'package:atfix/core/utils/sized_context.dart';
+import 'package:atfix/features/desktop_onboarding/data/datasources/desktop_platform_channel_datasource.dart';
 import 'package:atfix/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:atfix/features/commands/presentation/bloc/command_bloc.dart';
@@ -38,6 +41,37 @@ class _SettingsPageState extends State<SettingsPage> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+
+  void _confirmQuitAtFix(BuildContext context) {
+    final colors = context.appColors;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Quit AtFix Completely?'),
+          content: const Text(
+            'This will terminate the AtFix process entirely. Global shortcuts, '
+            'inline AI replacements, and background services will stop running until you restart the app.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: colors.error),
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                getIt<DesktopPlatformChannelDataSource>().quitAtFixCompletely();
+              },
+              child: const Text('Quit Completely'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -504,6 +538,32 @@ class _SettingsPageState extends State<SettingsPage> {
                     );
                   },
                 ),
+                if (PlatformChecker.isDesktop()) ...[
+                  const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Application',
+                    style: typo.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Closing the window or pressing ⌘Q keeps AtFix running in the background. Use this button if you need to shut down the process completely.',
+                    style: typo.bodyMedium.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AppButton(
+                    text: 'Quit AtFix Completely',
+                    icon: const Icon(Icons.power_settings_new, size: 20),
+                    color: colors.error,
+                    onPressed: () => _confirmQuitAtFix(context),
+                  ),
+                ],
+                const SizedBox(height: 32),
               ],
             ),
           );

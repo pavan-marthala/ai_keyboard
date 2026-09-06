@@ -20,6 +20,8 @@ func debugLog(_ message: String) {}
 
 @main
 class AppDelegate: FlutterAppDelegate {
+  private var isRealQuitRequested = false
+
   override func applicationDidFinishLaunching(_ notification: Notification) {
 
     NSLog("[AppDelegate] applicationDidFinishLaunching CALLED")
@@ -27,13 +29,20 @@ class AppDelegate: FlutterAppDelegate {
     CommandShortcutManager.shared.start()
     let controller = mainFlutterWindow?.contentViewController as? FlutterViewController
     if let messenger = controller?.engine.binaryMessenger {
-      let channel = FlutterMethodChannel(
-        name: "com.pk.atfix/desktop",
-        binaryMessenger: messenger
-      )
-      channel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
-        switch call.method {
-        case "isAccessibilityGranted":
+      for desktopChannelName in ["com.pk.atfix/desktop", "com.pk.ai_keyboard/desktop"] {
+        let channel = FlutterMethodChannel(
+          name: desktopChannelName,
+          binaryMessenger: messenger
+        )
+        channel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
+          guard let self = self else { return }
+          switch call.method {
+          case "quitAtFixCompletely":
+            debugLog("[NATIVE] quitAtFixCompletely requested from Flutter UI")
+            self.isRealQuitRequested = true
+            NSApp.terminate(nil)
+            result(true)
+          case "isAccessibilityGranted":
           let trusted = AXIsProcessTrusted()
           debugLog("[NATIVE] Accessibility (AXIsProcessTrusted) = \(trusted)")
           result(trusted)
@@ -91,8 +100,9 @@ class AppDelegate: FlutterAppDelegate {
           result(FlutterMethodNotImplemented)
         }
       }
+    }
 
-      let credentialsChannel = FlutterMethodChannel(
+    let credentialsChannel = FlutterMethodChannel(
         name: "com.pk.atfix/credentials",
         binaryMessenger: messenger
       )
@@ -191,6 +201,15 @@ class AppDelegate: FlutterAppDelegate {
     }
     NSApp.activate(ignoringOtherApps: true)
     return true
+  }
+
+  override func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+    NSLog("[AppDelegate] applicationShouldTerminate CALLED, isRealQuitRequested=\(isRealQuitRequested)")
+    if isRealQuitRequested {
+      return .terminateNow
+    }
+    mainFlutterWindow?.orderOut(nil)
+    return .terminateCancel
   }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

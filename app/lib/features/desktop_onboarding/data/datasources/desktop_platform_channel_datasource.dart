@@ -71,4 +71,11 @@ class DesktopPlatformChannelDataSource {
       await _channel.invokeMethod('openInputMonitoringSettings');
     } catch (_) {}
   }
+
+  Future<void> quitAtFixCompletely() async {
+    if (!Platform.isMacOS) return;
+    try {
+      await _channel.invokeMethod('quitAtFixCompletely');
+    } catch (_) {}
+  }
 }
