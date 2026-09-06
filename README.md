@@ -35,12 +35,14 @@ AtFix is an open-source, multi-platform AI writing assistant and keyboard availa
 ## Workflows & Capabilities
 
 ### macOS Desktop Assistant
+
 - **Global Hotkey:** Triggered from any macOS application via <kbd>Control</kbd> + <kbd>Option</kbd> + <kbd>Space</kbd>.
 - **Active Context Acquisition:** Utilizes macOS Accessibility APIs (`AXUIElement`) to detect the active window, focused UI element, and selected text across native applications (TextEdit, Mail, Safari, Slack, Notes, Chrome).
 - **Floating Command Panel:** Displays a cursor-anchored native panel presenting quick-action command chips (`@fix`, `@rewrite`, `@short`, `@expand`), active selection preview, and live progress indicators.
 - **In-Place Replacement:** Reactivates the originating application and executes synthetic text replacement directly into the active field.
 
 ### Android Native Keyboard (`InputMethodService`)
+
 - Custom Android View hierarchy (`LinearLayout`, custom key views, `keyboard_view.xml`).
 - Standard QWERTY layout with symbol layers, adjustable height, and optional number row.
 - Word suggestions powered by native C++ LatinIME engine compiled via CMake and JNI.
@@ -50,6 +52,7 @@ AtFix is an open-source, multi-platform AI writing assistant and keyboard availa
 - Voice dictation via Android `SpeechRecognizer` (`VoiceInputController`).
 
 ### iOS Native Keyboard (`UIInputViewController`)
+
 - Native UIKit keyboard extension (`KeyboardView`, `KeyboardKeyButton`).
 - Standard layout with shift and caps lock state management.
 - Native AI text transformations using iOS `URLSession`.
