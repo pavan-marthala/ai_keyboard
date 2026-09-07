@@ -485,41 +485,49 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 16),
-                Text(
-                  'Keyboard Settings',
-                  style: typo.titleMedium.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Configure native keyboard layout and preferences.',
-                  style: typo.bodyMedium.copyWith(color: colors.textSecondary),
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Use Numbers',
+                if (PlatformChecker.isAndroid() || PlatformChecker.isIOS()) ...[
+                  const SizedBox(height: 16),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Keyboard Settings',
                     style: typo.titleMedium.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: Text(
-                    'Show a dedicated number row above QWERTY letters',
-                    style: typo.bodySmall.copyWith(color: colors.textSecondary),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Configure native keyboard layout and preferences.',
+                    style: typo.bodyMedium.copyWith(
+                      color: colors.textSecondary,
+                    ),
                   ),
-                  value: state.settings.useNumbersEnabled,
-                  onChanged: (bool value) {
-                    final updated = state.settings.copyWith(
-                      useNumbersEnabled: value,
-                    );
-                    context.read<SettingsBloc>().add(
-                      SettingsEvent.updateSettings(updated),
-                    );
-                  },
-                ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Use Numbers',
+                      style: typo.titleMedium.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Show a dedicated number row above QWERTY letters',
+                      style: typo.bodySmall.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                    value: state.settings.useNumbersEnabled,
+                    onChanged: (bool value) {
+                      final updated = state.settings.copyWith(
+                        useNumbersEnabled: value,
+                      );
+                      context.read<SettingsBloc>().add(
+                        SettingsEvent.updateSettings(updated),
+                      );
+                    },
+                  ),
+                ],
                 const SizedBox(height: 32),
                 const Divider(),
                 const SizedBox(height: 16),
