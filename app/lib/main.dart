@@ -1,7 +1,8 @@
+import 'dart:io' show Platform;
+
 import 'package:atfix/core/di/injection.dart';
 import 'package:atfix/core/theme/app_theme.dart';
 import 'package:atfix/core/utils/app_routes.dart';
-import 'package:atfix/core/utils/app_utils.dart';
 import 'package:atfix/features/app_shell/presentation/screens/app_shell_screen.dart';
 import 'package:atfix/features/commands/presentation/bloc/command_bloc.dart';
 import 'package:atfix/features/commands/presentation/bloc/command_event.dart';
@@ -92,11 +93,9 @@ void main() async {
   final appName = packageInfo.appName.isNotEmpty
       ? packageInfo.appName
       : 'AtFix';
-  final appPath = resolveApplicationPath(appName: appName);
-
   OpenAtLogin.instance.initialize(
     appName: appName,
-    appPath: appPath,
+    appPath: Platform.resolvedExecutable,
     args: const ['--background'],
   );
 

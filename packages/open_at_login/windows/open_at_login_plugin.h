@@ -1,6 +1,7 @@
 #ifndef FLUTTER_PLUGIN_OPEN_AT_LOGIN_PLUGIN_H_
 #define FLUTTER_PLUGIN_OPEN_AT_LOGIN_PLUGIN_H_
 
+#include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <windows.h>
@@ -37,11 +38,11 @@ class OpenAtLoginPlugin : public flutter::Plugin {
 
  private:
   void IsOpenAtLoginEnabled(
-      const flutter::EncodableMap* arguments,
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   void SetOpenAtLoginEnabled(
-      const flutter::EncodableMap* arguments,
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 };
 

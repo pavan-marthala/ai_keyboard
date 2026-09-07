@@ -1,5 +1,6 @@
 #include "open_at_login_plugin.h"
 
+#include <flutter/encodable_value.h>
 #include <flutter/method_channel.h>
 #include <flutter/plugin_registrar_windows.h>
 #include <flutter/standard_method_codec.h>
@@ -10,6 +11,21 @@
 #include <vector>
 
 namespace open_at_login {
+
+namespace {
+
+// Helper to look up an argument by string key in an EncodableMap.
+const flutter::EncodableValue* FindArgument(
+    const flutter::EncodableMap& map,
+    const std::string& key) {
+  auto it = map.find(flutter::EncodableValue(key));
+  if (it != map.end()) {
+    return &(it->second);
+  }
+  return nullptr;
+}
+
+}  // namespace
 
 // static
 void OpenAtLoginPlugin::RegisterWithRegistrar(
@@ -37,13 +53,9 @@ void OpenAtLoginPlugin::HandleMethodCall(
     const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
   if (method_call.method_name().compare("isOpenAtLoginEnabled") == 0) {
-    const auto* arguments =
-        std::get_if<flutter::EncodableMap>(method_call.arguments());
-    IsOpenAtLoginEnabled(arguments, std::move(result));
+    IsOpenAtLoginEnabled(method_call, std::move(result));
   } else if (method_call.method_name().compare("setOpenAtLoginEnabled") == 0) {
-    const auto* arguments =
-        std::get_if<flutter::EncodableMap>(method_call.arguments());
-    SetOpenAtLoginEnabled(arguments, std::move(result));
+    SetOpenAtLoginEnabled(method_call, std::move(result));
   } else {
     result->NotImplemented();
   }
@@ -160,31 +172,40 @@ std::string OpenAtLoginPlugin::GetErrorMessage(DWORD error_code) {
 }
 
 void OpenAtLoginPlugin::IsOpenAtLoginEnabled(
-    const flutter::EncodableMap* arguments,
+    const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (!arguments) {
-    result->Error("INVALID_ARGUMENTS", "Arguments map is null");
+  const auto* args_val = method_call.arguments();
+  if (!args_val || args_val->IsNull()) {
+    result->Error("INVALID_ARGUMENTS", "Method arguments cannot be null.");
     return;
   }
 
-  auto app_name_it = arguments->find(flutter::EncodableValue("appName"));
-  if (app_name_it == arguments->end() ||
-      !std::holds_alternative<std::string>(app_name_it->second)) {
-    result->Error("INVALID_ARGUMENTS", "appName is required");
+  const auto* args_map = std::get_if<flutter::EncodableMap>(args_val);
+  if (!args_map) {
+    result->Error("INVALID_ARGUMENTS", "Expected argument map.");
     return;
   }
 
-  std::string app_name = std::get<std::string>(app_name_it->second);
+  const auto* app_name_val = FindArgument(*args_map, "appName");
+  if (!app_name_val || !std::holds_alternative<std::string>(*app_name_val)) {
+    result->Error("INVALID_ARGUMENTS", "appName must be a non-null string.");
+    return;
+  }
+
+  std::string app_name = std::get<std::string>(*app_name_val);
   if (app_name.empty()) {
     result->Success(flutter::EncodableValue(false));
     return;
   }
 
   std::string app_path;
-  auto app_path_it = arguments->find(flutter::EncodableValue("appPath"));
-  if (app_path_it != arguments->end() &&
-      std::holds_alternative<std::string>(app_path_it->second)) {
-    app_path = std::get<std::string>(app_path_it->second);
+  const auto* app_path_val = FindArgument(*args_map, "appPath");
+  if (app_path_val) {
+    if (!std::holds_alternative<std::string>(*app_path_val)) {
+      result->Error("INVALID_ARGUMENTS", "appPath must be a string.");
+      return;
+    }
+    app_path = std::get<std::string>(*app_path_val);
   }
 
   HKEY hKey = nullptr;
@@ -259,55 +280,61 @@ void OpenAtLoginPlugin::IsOpenAtLoginEnabled(
 }
 
 void OpenAtLoginPlugin::SetOpenAtLoginEnabled(
-    const flutter::EncodableMap* arguments,
+    const flutter::MethodCall<flutter::EncodableValue>& method_call,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
-  if (!arguments) {
-    result->Error("INVALID_ARGUMENTS", "Arguments map is null");
+  const auto* args_val = method_call.arguments();
+  if (!args_val || args_val->IsNull()) {
+    result->Error("INVALID_ARGUMENTS", "Method arguments cannot be null.");
     return;
   }
 
-  auto enabled_it = arguments->find(flutter::EncodableValue("enabled"));
-  if (enabled_it == arguments->end() ||
-      !std::holds_alternative<bool>(enabled_it->second)) {
-    result->Error("INVALID_ARGUMENTS", "enabled boolean is required");
+  const auto* args_map = std::get_if<flutter::EncodableMap>(args_val);
+  if (!args_map) {
+    result->Error("INVALID_ARGUMENTS", "Expected argument map.");
     return;
   }
-  bool enabled = std::get<bool>(enabled_it->second);
 
-  auto app_name_it = arguments->find(flutter::EncodableValue("appName"));
-  if (app_name_it == arguments->end() ||
-      !std::holds_alternative<std::string>(app_name_it->second)) {
-    result->Error("INVALID_ARGUMENTS", "appName is required");
+  const auto* enabled_val = FindArgument(*args_map, "enabled");
+  if (!enabled_val || !std::holds_alternative<bool>(*enabled_val)) {
+    result->Error("INVALID_ARGUMENTS", "enabled boolean is required.");
     return;
   }
-  std::string app_name = std::get<std::string>(app_name_it->second);
+  bool enabled = std::get<bool>(*enabled_val);
+
+  const auto* app_name_val = FindArgument(*args_map, "appName");
+  if (!app_name_val || !std::holds_alternative<std::string>(*app_name_val)) {
+    result->Error("INVALID_ARGUMENTS", "appName must be a non-null string.");
+    return;
+  }
+  std::string app_name = std::get<std::string>(*app_name_val);
   if (app_name.empty()) {
-    result->Error("INVALID_ARGUMENTS", "appName cannot be empty");
+    result->Error("INVALID_ARGUMENTS", "appName cannot be empty.");
     return;
   }
 
   std::wstring wide_app_name = Utf8ToWide(app_name);
 
   if (enabled) {
-    auto app_path_it = arguments->find(flutter::EncodableValue("appPath"));
-    if (app_path_it == arguments->end() ||
-        !std::holds_alternative<std::string>(app_path_it->second)) {
-      result->Error("INVALID_ARGUMENTS", "appPath is required when enabled is true");
+    const auto* app_path_val = FindArgument(*args_map, "appPath");
+    if (!app_path_val || !std::holds_alternative<std::string>(*app_path_val)) {
+      result->Error(
+          "INVALID_ARGUMENTS",
+          "appPath must be a non-null string when enabled is true.");
       return;
     }
-    std::string app_path = std::get<std::string>(app_path_it->second);
+    std::string app_path = std::get<std::string>(*app_path_val);
     if (app_path.empty()) {
       result->Error(
           "INVALID_ARGUMENTS",
-          "appPath cannot be empty when enabled is true");
+          "appPath cannot be empty when enabled is true.");
       return;
     }
 
     std::vector<std::wstring> wide_args;
-    auto args_it = arguments->find(flutter::EncodableValue("args"));
-    if (args_it != arguments->end() &&
-        std::holds_alternative<flutter::EncodableList>(args_it->second)) {
-      const auto& args_list = std::get<flutter::EncodableList>(args_it->second);
+    const auto* args_list_val = FindArgument(*args_map, "args");
+    if (args_list_val &&
+        std::holds_alternative<flutter::EncodableList>(*args_list_val)) {
+      const auto& args_list = std::get<flutter::EncodableList>(*args_list_val);
       for (const auto& item : args_list) {
         if (std::holds_alternative<std::string>(item)) {
           wide_args.push_back(Utf8ToWide(std::get<std::string>(item)));
@@ -392,4 +419,3 @@ void OpenAtLoginPlugin::SetOpenAtLoginEnabled(
 }
 
 }  // namespace open_at_login
-
