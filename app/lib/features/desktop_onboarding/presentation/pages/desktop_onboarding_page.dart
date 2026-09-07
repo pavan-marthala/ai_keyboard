@@ -104,21 +104,27 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
               constraints: const BoxConstraints(maxWidth: 680),
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
-                  OnboardingPageIndicator(
-                    currentPage: _currentPage,
-                    pageCount: 2,
-                  ),
+                  if (!PlatformChecker.isWindows()) ...[
+                    const SizedBox(height: 24),
+                    OnboardingPageIndicator(
+                      currentPage: _currentPage,
+                      pageCount: 2,
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Expanded(
                     child: PageView(
                       controller: _pageController,
+                      physics: PlatformChecker.isWindows()
+                          ? const NeverScrollableScrollPhysics()
+                          : null,
                       onPageChanged: (index) {
                         setState(() => _currentPage = index);
                       },
                       children: [
                         _buildIntroductionPage(context),
-                        _buildEnableAccessPage(context),
+                        if (!PlatformChecker.isWindows())
+                          _buildEnableAccessPage(context),
                       ],
                     ),
                   ),
@@ -189,10 +195,17 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
           const DesktopCommandPreviewCard(),
           const SizedBox(height: 36),
           AppButton(
-            text: 'Continue',
+            text: PlatformChecker.isWindows() ? 'Get Started' : 'Continue',
             width: double.infinity,
-            onPressed: _nextPage,
-            icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+            onPressed: PlatformChecker.isWindows()
+                ? _finishOnboarding
+                : _nextPage,
+            icon: Icon(
+              PlatformChecker.isWindows()
+                  ? Icons.check_rounded
+                  : Icons.arrow_forward_rounded,
+              size: 20,
+            ),
           ),
           const SizedBox(height: 16),
         ],

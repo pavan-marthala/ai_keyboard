@@ -43,22 +43,8 @@ class DesktopCapabilityRepositoryImpl implements DesktopCapabilityRepository {
         ),
       ];
     } else if (PlatformChecker.isWindows()) {
-      return const [
-        DesktopCapability(
-          type: DesktopCapabilityType.windowsKeyboardIntegration,
-          title: 'Keyboard Integration',
-          description: 'Detects typing commands in active desktop windows.',
-          status: DesktopCapabilityStatus.notConfigured,
-          isRequired: true,
-        ),
-        DesktopCapability(
-          type: DesktopCapabilityType.windowsTextAccess,
-          title: 'Desktop Text Access',
-          description: 'Reads context and replaces content in supported Windows text fields.',
-          status: DesktopCapabilityStatus.notConfigured,
-          isRequired: true,
-        ),
-      ];
+      // Windows requires zero OS permissions (no Accessibility or Input Monitoring TCC gates)
+      return const [];
     }
 
     return [];

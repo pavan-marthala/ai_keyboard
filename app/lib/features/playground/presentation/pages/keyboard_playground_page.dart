@@ -55,7 +55,15 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
 
   Future<void> _checkKeyboardStatus() async {
     setState(() => _isCheckingStatus = true);
-    if (PlatformChecker.isDesktop()) {
+    if (PlatformChecker.isWindows()) {
+      if (mounted) {
+        setState(() {
+          _desktopCapabilities = const [];
+          _isKeyboardActive = true;
+          _isCheckingStatus = false;
+        });
+      }
+    } else if (PlatformChecker.isDesktop()) {
       final capabilities = await _desktopCapabilityRepository.getCapabilities();
       if (mounted) {
         final allEnabled =
@@ -394,7 +402,9 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               ),
               const SizedBox(height: 8),
               Text(
-                _isKeyboardActive
+                PlatformChecker.isWindows()
+                    ? 'AtFix is ready. Select text in any application and press Ctrl + Alt + Space to invoke AI commands.'
+                    : _isKeyboardActive
                     ? 'AtFix has the necessary system permissions to detect commands and transform text.'
                     : 'AtFix requires system permissions to detect commands and interact with active text fields.',
                 style: typo.bodyMedium.copyWith(

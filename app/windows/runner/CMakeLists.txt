@@ -7,6 +7,16 @@ project(runner LANGUAGES CXX)
 #
 # Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME} WIN32
+  "credential_store.cpp"
+  "configuration_store.cpp"
+  "prompt_repository.cpp"
+  "open_ai_compatible_provider.cpp"
+  "ai_transformer.cpp"
+  "command_dispatcher.cpp"
+  "command_prompt_window.cpp"
+  "command_shortcut_manager.cpp"
+  "windows_accessibility_service.cpp"
+  "windows_text_replacement_service.cpp"
   "flutter_window.cpp"
   "main.cpp"
   "utils.cpp"
@@ -33,7 +43,17 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 # Add dependency libraries and include directories. Add any application-specific
 # dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter flutter_wrapper_app)
-target_link_libraries(${BINARY_NAME} PRIVATE "dwmapi.lib")
+target_link_libraries(${BINARY_NAME} PRIVATE
+  "dwmapi.lib"
+  "gdiplus.lib"
+  "ole32.lib"
+  "oleaut32.lib"
+  "uiautomationcore.lib"
+  "winhttp.lib"
+  "advapi32.lib"
+  "credui.lib"
+  "rpcrt4.lib"
+)
 target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
