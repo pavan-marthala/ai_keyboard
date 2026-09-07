@@ -28,17 +28,18 @@
 		33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = 33CC10F42044A3C60003C045 /* MainMenu.xib */; };
 		33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11122044BFA00003C045 /* MainFlutterWindow.swift */; };
 		33CC11332044C79F0003C045 /* CommandShortcutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11322044C79F0003C045 /* CommandShortcutManager.swift */; };
-		33CC11412044C79F0003C045 /* AccessibilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11402044C79F0003C045 /* AccessibilityService.swift */; };
-		33CC11432044C79F0003C045 /* TextReplacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11422044C79F0003C045 /* TextReplacementService.swift */; };
-		33CC11452044C79F0003C045 /* CommandPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11442044C79F0003C045 /* CommandPrompt.swift */; };
-		33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* CommandDispatcher.swift */; };
 		33CC11352044C79F0003C045 /* KeychainCredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */; };
 		33CC11372044C79F0003C045 /* ConfigurationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11362044C79F0003C045 /* ConfigurationStore.swift */; };
 		33CC11392044C79F0003C045 /* AiProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11382044C79F0003C045 /* AiProvider.swift */; };
 		33CC113B2044C79F0003C045 /* OpenAiCompatibleProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113A2044C79F0003C045 /* OpenAiCompatibleProvider.swift */; };
 		33CC113D2044C79F0003C045 /* AiProviderFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113C2044C79F0003C045 /* AiProviderFactory.swift */; };
 		33CC113F2044C79F0003C045 /* AiTransformer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC113E2044C79F0003C045 /* AiTransformer.swift */; };
+		33CC11412044C79F0003C045 /* AccessibilityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11402044C79F0003C045 /* AccessibilityService.swift */; };
+		33CC11432044C79F0003C045 /* TextReplacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11422044C79F0003C045 /* TextReplacementService.swift */; };
+		33CC11452044C79F0003C045 /* CommandPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11442044C79F0003C045 /* CommandPrompt.swift */; };
+		33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* CommandDispatcher.swift */; };
 		35CE073D304B10F500D074C6 /* atfix.icon in Resources */ = {isa = PBXBuildFile; fileRef = 35CE073C304B10F500D074C6 /* atfix.icon */; };
+		35CE0758304E931500D074C6 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 35CE0757304E931500D074C6 /* LaunchAtLogin */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 /* End PBXBuildFile section */
 
@@ -84,16 +85,16 @@
 		33CC10F72044A3C60003C045 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = Runner/Info.plist; sourceTree = "<group>"; };
 		33CC11122044BFA00003C045 /* MainFlutterWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainFlutterWindow.swift; sourceTree = "<group>"; };
 		33CC11322044C79F0003C045 /* CommandShortcutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandShortcutManager.swift; sourceTree = "<group>"; };
-		33CC11402044C79F0003C045 /* AccessibilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityService.swift; sourceTree = "<group>"; };
-		33CC11422044C79F0003C045 /* TextReplacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextReplacementService.swift; sourceTree = "<group>"; };
-		33CC11442044C79F0003C045 /* CommandPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPrompt.swift; sourceTree = "<group>"; };
-		33CC11462044C79F0003C045 /* CommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDispatcher.swift; sourceTree = "<group>"; };
 		33CC11342044C79F0003C045 /* KeychainCredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainCredentialStore.swift; sourceTree = "<group>"; };
 		33CC11362044C79F0003C045 /* ConfigurationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationStore.swift; sourceTree = "<group>"; };
 		33CC11382044C79F0003C045 /* AiProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiProvider.swift; sourceTree = "<group>"; };
 		33CC113A2044C79F0003C045 /* OpenAiCompatibleProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAiCompatibleProvider.swift; sourceTree = "<group>"; };
 		33CC113C2044C79F0003C045 /* AiProviderFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiProviderFactory.swift; sourceTree = "<group>"; };
 		33CC113E2044C79F0003C045 /* AiTransformer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AiTransformer.swift; sourceTree = "<group>"; };
+		33CC11402044C79F0003C045 /* AccessibilityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityService.swift; sourceTree = "<group>"; };
+		33CC11422044C79F0003C045 /* TextReplacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextReplacementService.swift; sourceTree = "<group>"; };
+		33CC11442044C79F0003C045 /* CommandPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPrompt.swift; sourceTree = "<group>"; };
+		33CC11462044C79F0003C045 /* CommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDispatcher.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -118,6 +119,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				35CE0758304E931500D074C6 /* LaunchAtLogin in Frameworks */,
 				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -175,18 +177,6 @@
 			path = ..;
 			sourceTree = "<group>";
 		};
-		33CEB47122A05771004F2AC0 /* Flutter */ = {
-			isa = PBXGroup;
-			children = (
-				78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */,
-				335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */,
-				33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */,
-				33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */,
-				33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */,
-			);
-			path = Flutter;
-			sourceTree = "<group>";
-		};
 		33CC11502044C79F0003C045 /* Command */ = {
 			isa = PBXGroup;
 			children = (
@@ -217,6 +207,18 @@
 				33CC11362044C79F0003C045 /* ConfigurationStore.swift */,
 			);
 			path = Security;
+			sourceTree = "<group>";
+		};
+		33CEB47122A05771004F2AC0 /* Flutter */ = {
+			isa = PBXGroup;
+			children = (
+				78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */,
+				335BBD1A22A9A15E00E9071D /* GeneratedPluginRegistrant.swift */,
+				33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */,
+				33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */,
+				33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */,
+			);
+			path = Flutter;
 			sourceTree = "<group>";
 		};
 		33FAB671232836740065AC1E /* Runner */ = {
@@ -282,6 +284,7 @@
 			name = Runner;
 			packageProductDependencies = (
 				78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */,
+				35CE0757304E931500D074C6 /* LaunchAtLogin */,
 			);
 			productName = Runner;
 			productReference = 33CC10ED2044A3C60003C045 /* atfix.app */;
@@ -329,6 +332,7 @@
 			mainGroup = 33CC10E42044A3C60003C045;
 			packageReferences = (
 				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
+				35CE0756304E931500D074C6 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 			);
 			productRefGroup = 33CC10EE2044A3C60003C045 /* Products */;
 			projectDirPath = "";
@@ -573,11 +577,12 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
+				INFOPLIST_KEY_CFBundleDisplayName = AtFix;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
@@ -724,11 +729,12 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
+				INFOPLIST_KEY_CFBundleDisplayName = AtFix;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
@@ -763,11 +769,12 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AtFix";
+				INFOPLIST_KEY_CFBundleDisplayName = AtFix;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
@@ -847,7 +854,23 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		35CE0756304E931500D074C6 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		35CE0757304E931500D074C6 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 35CE0756304E931500D074C6 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			productName = LaunchAtLogin;
+		};
 		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FlutterGeneratedPluginSwiftPackage;
