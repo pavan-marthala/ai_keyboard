@@ -19,7 +19,7 @@ A Flutter package for controlling whether a macOS Flutter application launches a
 > **Platform Support:**
 >
 > - **macOS:** Fully supported via `LaunchAtLogin-Modern` (`SMAppService.mainApp`, macOS 13+).
-> - **Windows:** Fully supported via native C++ plugin using the Win32 Registry (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`). Automatically registered via Flutter's Windows plugin tooling.
+> - **Windows:** Fully supported for both unpackaged EXE (via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) and MSIX packaged applications (via `Windows.ApplicationModel.StartupTask`). Automatic runtime package detection and internal routing.
 > - **Other platforms (Linux, Android, iOS, Web):** Safely handled as graceful no-ops (`isEnabled()` returns `false`, `setEnabled(...)` does nothing). Consumers do not need platform guards.
 
 ---
@@ -179,10 +179,13 @@ class AppDelegate: FlutterAppDelegate {
 
 ## Windows Native Integration
 
-On Windows, `open_at_login` operates as a standard Flutter native C++ plugin.
+On Windows, `open_at_login` operates as a standard Flutter native C++ plugin that supports both **unpackaged desktop executables** and **MSIX packaged applications**. The plugin automatically detects the execution environment at runtime using `GetCurrentPackageFamilyName` and selects the appropriate native backend:
 
-- **Automatic Registration:** The plugin registers itself automatically with the Windows engine via `open_at_login_plugin_c_api.h` and Flutter's generated plugin registrant (`flutter run windows` / `flutter build windows`). No manual C++ code editing is required by consumers.
-- **Mechanism:** Interacts with the user's startup registry key:
+### 1. Unpackaged Applications (Win32 Registry Run Key)
+
+For standard standalone `.exe` distributions:
+
+- **Registry Key:** Interacts with the current user's startup registry key:
 
   ```text
   HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
@@ -190,6 +193,43 @@ On Windows, `open_at_login` operates as a standard Flutter native C++ plugin.
 
 - **Privileges:** Runs purely in user mode (`HKCU`). No administrator rights or UAC elevation prompts are required.
 - **Command Line Escaping:** Automatically quotes executable paths and formats command line arguments according to Microsoft's standard `CommandLineToArgvW` escaping rules.
+
+### 2. MSIX Packaged Applications (Windows.ApplicationModel.StartupTask)
+
+For applications packaged and distributed as MSIX:
+
+- **API Mechanism:** Uses the Windows Runtime `Windows.ApplicationModel.StartupTask` API.
+- **Manifest Declaration:** The package manifest (`AppxManifest.xml`) must declare a `windows.startupTask` extension:
+
+  ```xml
+  <Package ...
+    xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+    xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+    IgnorableNamespaces="... desktop uap10">
+    ...
+    <Applications>
+      <Application Id="App" Executable="YourApp.exe" EntryPoint="Windows.FullTrustApplication">
+        <Extensions>
+          <desktop:Extension Category="windows.startupTask" uap10:Parameters="--background">
+            <desktop:StartupTask TaskId="AtFixStartupTask"
+                                 Enabled="true"
+                                 DisplayName="AtFix" />
+          </desktop:Extension>
+        </Extensions>
+      </Application>
+    </Applications>
+  </Package>
+  ```
+
+- **TaskId Matching:** The plugin automatically resolves candidate Task IDs based on the `appName` passed to `initialize()`:
+  - Exact `appName` (e.g. `AtFix`)
+  - `appName + "StartupTask"` (e.g. `AtFixStartupTask`)
+  - Sanitized alphanumeric variants (e.g. `MyApp` or `MyAppStartupTask` for `My App`)
+- **Startup Arguments (`--background`):**
+  - In Windows 10 (2004+) and Windows 11, pass arguments via the `uap10:Parameters` attribute on the startup task `<desktop:Extension>`.
+  - When using the `msix` Flutter packaging tool (`pub.dev/packages/msix`), configure `startup_task: parameters: --background` in your `pubspec.yaml`.
+  - At runtime, packaged applications can also detect startup task activation by inspecting `AppInstance.GetActivatedEventArgs().Kind == ActivationKind.StartupTask`.
+- **User Settings Policy:** If the user has disabled the application's startup task in Windows Settings (`Settings > Apps > Startup`) or Task Manager, Windows policy prevents applications from programmatically overriding the setting. The plugin detects `DisabledByUser` and throws a descriptive `PlatformException` informing the user.
 
 ---
 

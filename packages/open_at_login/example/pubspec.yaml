@@ -40,13 +40,18 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  msix: ^3.18.0
+
+msix_config:
+  display_name: OpenAtLogin Example
+  publisher_display_name: OpenAtLogin
+  identity_name: com.openatlogin.example
+  msix_version: 1.0.0.0
+  startup_task:
+    task_id: OpenAtLoginExampleStartupTask
+    enabled: true
+    parameters: --background
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

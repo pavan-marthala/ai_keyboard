@@ -335,6 +335,44 @@ void main() {
       );
     });
 
+    test(
+      'Windows propagates native PlatformException with code and message',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        OpenAtLogin.instance.initialize(
+          appName: 'AtFix',
+          appPath: r'C:\Program Files\AtFix\atfix.exe',
+        );
+        shouldThrowPlatformException = true;
+
+        expect(
+          () => OpenAtLogin.instance.isEnabled(),
+          throwsA(
+            isA<PlatformException>()
+                .having((e) => e.code, 'code', 'UNEXPECTED_ERROR')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'Something went wrong natively',
+                ),
+          ),
+        );
+
+        expect(
+          () => OpenAtLogin.instance.setEnabled(true),
+          throwsA(
+            isA<PlatformException>()
+                .having((e) => e.code, 'code', 'UNEXPECTED_ERROR')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  'Something went wrong natively',
+                ),
+          ),
+        );
+      },
+    );
+
     test('macOS throws StateError when native method returns null', () async {
       debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       OpenAtLogin.instance.initialize(

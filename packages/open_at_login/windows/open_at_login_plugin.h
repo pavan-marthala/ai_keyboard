@@ -36,12 +36,33 @@ class OpenAtLoginPlugin : public flutter::Plugin {
   static std::string WideToUtf8(const std::wstring& wide_str);
   static std::string GetErrorMessage(DWORD error_code);
 
+  // Returns true if running as an MSIX / AppX packaged application with package identity.
+  static bool IsPackaged();
+
  private:
   void IsOpenAtLoginEnabled(
       const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 
   void SetOpenAtLoginEnabled(
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  // Unpackaged Win32 EXE implementation (Registry Run key)
+  void IsOpenAtLoginEnabledRegistry(
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  void SetOpenAtLoginEnabledRegistry(
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  // Packaged MSIX implementation (Windows.ApplicationModel.StartupTask)
+  void IsOpenAtLoginEnabledMsix(
+      const flutter::MethodCall<flutter::EncodableValue>& method_call,
+      std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
+
+  void SetOpenAtLoginEnabledMsix(
       const flutter::MethodCall<flutter::EncodableValue>& method_call,
       std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result);
 };
