@@ -184,21 +184,29 @@ std::wstring CommandPromptWindow::ActionLabelForCommand(const std::wstring& comm
 }
 
 void CommandPromptWindow::UpdateLayout() {
-  panel_height_ = is_expanded_ ? expanded_panel_height_ : compact_panel_height_;
+  title_y_ = kVerticalPadding;
+  preview_y_ = title_y_ + kHeaderHeight + kGapAfterHeader;
+
+  if (is_expanded_) {
+    status_y_ = preview_y_ + kPreviewHeight + kGapAfterPreviewExpanded;
+    chip_y_ = status_y_ + kStatusAreaHeight + kGapAfterStatusExpanded;
+  } else {
+    status_y_ = 0;
+    chip_y_ = preview_y_ + kPreviewHeight + kGapPreviewToChipsCompact;
+  }
+
+  panel_height_ = chip_y_ + kChipHeight + kVerticalPadding;
 
   // Compute chips layout
   int current_x = kHorizontalPadding;
-  int chip_y = panel_height_ - kVerticalPadding - kChipHeight;
-
-  // Approximate chip width based on command text length
   for (size_t i = 0; i < chips_.size(); ++i) {
     int text_width = static_cast<int>(chips_[i].command.length() * 9);
     int width = std::max(64, text_width + kChipHorizontalPadding * 2);
 
     chips_[i].rect.left = current_x;
-    chips_[i].rect.top = chip_y;
+    chips_[i].rect.top = chip_y_;
     chips_[i].rect.right = current_x + width;
-    chips_[i].rect.bottom = chip_y + kChipHeight;
+    chips_[i].rect.bottom = chip_y_ + kChipHeight;
 
     current_x += width + kChipSpacing;
   }
@@ -450,7 +458,7 @@ void CommandPromptWindow::OnPaint() {
   Color primary_hover_color(255, 124, 58, 237); // #7C3AED
 
   // 1. Title: "What do you want to do?"
-  PointF title_pos(static_cast<REAL>(kHorizontalPadding), static_cast<REAL>(kVerticalPadding));
+  PointF title_pos(static_cast<REAL>(kHorizontalPadding), static_cast<REAL>(title_y_));
   g.DrawString(L"What do you want to do?", -1, &title_font, title_pos, &text_primary_brush);
 
   // 2. Close button: "×"
@@ -469,18 +477,17 @@ void CommandPromptWindow::OnPaint() {
   g.DrawString(L"×", -1, &close_font, close_rect_f, &center_format, &text_secondary_brush);
 
   // 3. Selected Text Preview
-  PointF preview_pos(static_cast<REAL>(kHorizontalPadding),
-                     static_cast<REAL>(kVerticalPadding + kHeaderHeight + 2));
+  PointF preview_pos(static_cast<REAL>(kHorizontalPadding), static_cast<REAL>(preview_y_));
   g.DrawString(truncated_preview_.c_str(), -1, &preview_font, preview_pos, &text_secondary_brush);
 
   // 4. Status Row (Loading / Error)
   if (is_expanded_) {
-    REAL status_y = static_cast<REAL>(kVerticalPadding + kHeaderHeight + kPreviewHeight + 6);
+    REAL status_y = static_cast<REAL>(status_y_);
 
     if (is_loading_) {
       // Draw spinning indicator
       REAL cx = static_cast<REAL>(kHorizontalPadding + 7);
-      REAL cy = status_y + 7;
+      REAL cy = status_y + 8;
       REAL radius = 6.0f;
       Pen spinner_pen(primary_color, 2.0f);
       g.DrawArc(&spinner_pen, cx - radius, cy - radius, radius * 2, radius * 2,

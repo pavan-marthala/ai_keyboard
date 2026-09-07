@@ -223,6 +223,14 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // Prevent Alt + Space from opening the system menu (which triggers interactive window sizing/moving mode)
+  if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SC_KEYMENU) {
+    return 0;
+  }
+  if (message == WM_SYSKEYDOWN && wparam == VK_SPACE) {
+    return 0;
+  }
+
   if (message == WM_HOTKEY) {
     if (CommandShortcutManager::GetInstance().HandleHotKey(wparam, lparam)) {
       return 0;

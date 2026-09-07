@@ -97,20 +97,26 @@ class CommandPromptWindow {
   // Layout metrics (matching macOS CommandPrompt.swift)
   static constexpr int kHorizontalPadding = 20;
   static constexpr int kVerticalPadding = 18;
+  static constexpr int kHeaderHeight = 22;
+  static constexpr int kGapAfterHeader = 4;
+  static constexpr int kPreviewHeight = 18;
+  static constexpr int kGapPreviewToChipsCompact = 16;
+  static constexpr int kGapAfterPreviewExpanded = 12;
+  static constexpr int kStatusAreaHeight = 22;
+  static constexpr int kGapAfterStatusExpanded = 14;
   static constexpr int kChipHeight = 32;
   static constexpr int kChipSpacing = 8;
   static constexpr int kChipHorizontalPadding = 16;
   static constexpr int kCornerRadius = 18;
   static constexpr int kCloseButtonSize = 22;
   static constexpr int kMinPanelWidth = 380;
-  static constexpr int kHeaderHeight = 22;
-  static constexpr int kPreviewHeight = 18;
-  static constexpr int kStatusAreaHeight = 22;
 
   int panel_width_ = kMinPanelWidth;
-  int panel_height_ = 114;
-  int compact_panel_height_ = 114;
-  int expanded_panel_height_ = 144;
+  int panel_height_ = 128;
+  int title_y_ = kVerticalPadding;
+  int preview_y_ = kVerticalPadding + kHeaderHeight + kGapAfterHeader;
+  int status_y_ = 0;
+  int chip_y_ = 0;
 
   static bool gdiplus_initialized_;
   static ULONG_PTR gdiplus_token_;

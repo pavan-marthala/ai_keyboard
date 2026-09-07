@@ -60,7 +60,9 @@ bool WindowsTextReplacementService::ReactivateTarget(HWND target_hwnd, DWORD tim
     ::AttachThreadInput(current_thread_id, target_thread_id, TRUE);
   }
 
-  ::ShowWindow(target_hwnd, SW_RESTORE);
+  if (::IsIconic(target_hwnd)) {
+    ::ShowWindow(target_hwnd, SW_RESTORE);
+  }
   ::SetForegroundWindow(target_hwnd);
   ::BringWindowToTop(target_hwnd);
   ::SetFocus(target_hwnd);

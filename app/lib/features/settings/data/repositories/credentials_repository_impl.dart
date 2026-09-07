@@ -2,6 +2,7 @@ import 'package:atfix/core/errors/failures.dart';
 import 'package:atfix/core/errors/result.dart';
 import 'package:atfix/features/settings/domain/entities/ai_provider_type.dart';
 import 'package:atfix/features/settings/domain/repositories/credentials_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:injectable/injectable.dart';
@@ -48,7 +49,7 @@ class CredentialsRepositoryImpl implements CredentialsRepository {
       );
       return const Success(null);
     } catch (e) {
-      print('Error saving API key: $e');
+      debugPrint('Error saving API key: $e');
       return FailureResult(Failure.cache(message: e.toString()));
     }
   }

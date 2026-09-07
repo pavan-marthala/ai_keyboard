@@ -120,14 +120,18 @@ std::wstring WindowsAccessibilityService::GetSelectedTextViaUia(HWND target_hwnd
 }
 
 std::wstring WindowsAccessibilityService::GetSelectedTextViaClipboard(HWND target_hwnd) {
-  // Backup existing clipboard text
+  if (!target_hwnd) return L"";
+
+  // 1. Backup existing clipboard text
   std::wstring old_clipboard_text;
+  bool had_old_text = false;
   if (::OpenClipboard(nullptr)) {
     HANDLE h_data = ::GetClipboardData(CF_UNICODETEXT);
     if (h_data) {
       wchar_t* p_text = static_cast<wchar_t*>(::GlobalLock(h_data));
       if (p_text) {
         old_clipboard_text = p_text;
+        had_old_text = true;
         ::GlobalUnlock(h_data);
       }
     }
@@ -136,45 +140,82 @@ std::wstring WindowsAccessibilityService::GetSelectedTextViaClipboard(HWND targe
 
   DWORD initial_seq = ::GetClipboardSequenceNumber();
 
-  // Send Ctrl + C
-  INPUT inputs[4] = {};
-  inputs[0].type = INPUT_KEYBOARD;
-  inputs[0].ki.wVk = VK_CONTROL;
+  // 2. Synthetically release Alt, Space, Shift, and Win keys so the target
+  // application receives a clean Ctrl + C without modifier interference
+  INPUT prep_inputs[4] = {};
+  prep_inputs[0].type = INPUT_KEYBOARD;
+  prep_inputs[0].ki.wVk = VK_MENU;
+  prep_inputs[0].ki.dwFlags = KEYEVENTF_KEYUP;
 
-  inputs[1].type = INPUT_KEYBOARD;
-  inputs[1].ki.wVk = 'C';
+  prep_inputs[1].type = INPUT_KEYBOARD;
+  prep_inputs[1].ki.wVk = VK_SPACE;
+  prep_inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
 
-  inputs[2].type = INPUT_KEYBOARD;
-  inputs[2].ki.wVk = 'C';
-  inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
+  prep_inputs[2].type = INPUT_KEYBOARD;
+  prep_inputs[2].ki.wVk = VK_SHIFT;
+  prep_inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
 
-  inputs[3].type = INPUT_KEYBOARD;
-  inputs[3].ki.wVk = VK_CONTROL;
-  inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
+  prep_inputs[3].type = INPUT_KEYBOARD;
+  prep_inputs[3].ki.wVk = VK_LWIN;
+  prep_inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
 
-  ::SendInput(4, inputs, sizeof(INPUT));
+  ::SendInput(4, prep_inputs, sizeof(INPUT));
+  ::Sleep(20);
 
-  // Wait for clipboard update up to 100ms
-  std::wstring new_text;
-  for (int i = 0; i < 10; ++i) {
+  // 3. Send Ctrl + C
+  INPUT copy_inputs[4] = {};
+  copy_inputs[0].type = INPUT_KEYBOARD;
+  copy_inputs[0].ki.wVk = VK_CONTROL;
+
+  copy_inputs[1].type = INPUT_KEYBOARD;
+  copy_inputs[1].ki.wVk = 'C';
+
+  copy_inputs[2].type = INPUT_KEYBOARD;
+  copy_inputs[2].ki.wVk = 'C';
+  copy_inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
+
+  copy_inputs[3].type = INPUT_KEYBOARD;
+  copy_inputs[3].ki.wVk = VK_CONTROL;
+  copy_inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
+
+  ::SendInput(4, copy_inputs, sizeof(INPUT));
+
+  // 4. Wait for clipboard update (up to 150ms)
+  bool updated = false;
+  for (int i = 0; i < 15; ++i) {
     ::Sleep(10);
     if (::GetClipboardSequenceNumber() != initial_seq) {
+      updated = true;
       break;
     }
   }
 
-  if (::OpenClipboard(nullptr)) {
+  std::wstring selected_text;
+  if (updated && ::OpenClipboard(nullptr)) {
     HANDLE h_data = ::GetClipboardData(CF_UNICODETEXT);
     if (h_data) {
       wchar_t* p_text = static_cast<wchar_t*>(::GlobalLock(h_data));
       if (p_text) {
-        new_text = p_text;
+        selected_text = p_text;
         ::GlobalUnlock(h_data);
       }
     }
     ::CloseClipboard();
+
+    // 5. Restore original clipboard content so user's clipboard is preserved
+    if (had_old_text && ::OpenClipboard(nullptr)) {
+      ::EmptyClipboard();
+      size_t bytes = (old_clipboard_text.size() + 1) * sizeof(wchar_t);
+      HGLOBAL h_mem = ::GlobalAlloc(GMEM_MOVEABLE, bytes);
+      if (h_mem) {
+        memcpy(::GlobalLock(h_mem), old_clipboard_text.c_str(), bytes);
+        ::GlobalUnlock(h_mem);
+        ::SetClipboardData(CF_UNICODETEXT, h_mem);
+      }
+      ::CloseClipboard();
+    }
   }
 
-  return new_text;
+  return selected_text;
 }
 
