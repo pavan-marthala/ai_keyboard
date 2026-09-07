@@ -595,7 +595,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (PlatformChecker.isMacOS()) ...[
+                  if (PlatformChecker.isMacOS() ||
+                      PlatformChecker.isWindows()) ...[
                     const SizedBox(height: 12),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,

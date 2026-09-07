@@ -98,6 +98,7 @@ void main() async {
     appPath: Platform.resolvedExecutable,
     args: const ['--background'],
   );
+  OpenAtLogin.instance.setEnabled(true);
 
   runApp(const AtFixApp());
 }
