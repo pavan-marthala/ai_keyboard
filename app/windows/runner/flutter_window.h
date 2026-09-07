@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 
+#include <shellapi.h>
 #include "win32_window.h"
 
 // A window that hosts a Flutter view and bridges desktop method channels.
@@ -29,9 +30,14 @@ class FlutterWindow : public Win32Window {
 
  private:
   void SetupMethodChannels();
+  void SetupTrayIcon(HWND hwnd);
+  void RemoveTrayIcon();
 
   flutter::DartProject project_;
   bool is_background_ = false;
+
+  NOTIFYICONDATAW nid_ = {};
+  bool tray_icon_created_ = false;
 
   std::unique_ptr<flutter::FlutterViewController> flutter_controller_;
 

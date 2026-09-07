@@ -10,6 +10,9 @@
 #include "command_dispatcher.h"
 #include "credential_store.h"
 #include "configuration_store.h"
+#include "resource.h"
+
+#define WM_TRAY_ICON (WM_APP + 101)
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project, bool is_background)
     : project_(project), is_background_(is_background) {}
@@ -38,6 +41,9 @@ bool FlutterWindow::OnCreate() {
   atfix::CommandDispatcher::GetInstance().SetPromptWindow(
       &CommandShortcutManager::GetInstance().GetPromptWindow());
 
+  // Setup system tray icon for background running and quick access
+  SetupTrayIcon(GetHandle());
+
   if (!is_background_) {
     flutter_controller_->engine()->SetNextFrameCallback([&]() {
       this->Show();
@@ -58,8 +64,8 @@ void FlutterWindow::SetupMethodChannels() {
         messenger, name, codec);
 
     desktop_channel_->SetMethodCallHandler(
-        [](const flutter::MethodCall<flutter::EncodableValue>& call,
-           std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+               std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
           const std::string& method = call.method_name();
           if (method == "isAccessibilityGranted") {
             result->Success(flutter::EncodableValue(true));
@@ -76,6 +82,7 @@ void FlutterWindow::SetupMethodChannels() {
           } else if (method == "openInputMonitoringSettings") {
             result->Success(flutter::EncodableValue(true));
           } else if (method == "quitAtFixCompletely") {
+            RemoveTrayIcon();
             ::PostQuitMessage(0);
             result->Success(flutter::EncodableValue(true));
           } else {
@@ -207,7 +214,32 @@ void FlutterWindow::SetupMethodChannels() {
       });
 }
 
+void FlutterWindow::SetupTrayIcon(HWND hwnd) {
+  if (tray_icon_created_) return;
+
+  std::memset(&nid_, 0, sizeof(NOTIFYICONDATAW));
+  nid_.cbSize = sizeof(NOTIFYICONDATAW);
+  nid_.hWnd = hwnd;
+  nid_.uID = 1;
+  nid_.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+  nid_.uCallbackMessage = WM_TRAY_ICON;
+  nid_.hIcon = ::LoadIcon(::GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_APP_ICON));
+  wcscpy_s(nid_.szTip, L"AtFix - AI Input Assistant");
+
+  if (::Shell_NotifyIconW(NIM_ADD, &nid_)) {
+    tray_icon_created_ = true;
+  }
+}
+
+void FlutterWindow::RemoveTrayIcon() {
+  if (tray_icon_created_) {
+    ::Shell_NotifyIconW(NIM_DELETE, &nid_);
+    tray_icon_created_ = false;
+  }
+}
+
 void FlutterWindow::OnDestroy() {
+  RemoveTrayIcon();
   CommandShortcutManager::GetInstance().Stop();
   desktop_channel_ = nullptr;
   credentials_channel_ = nullptr;
@@ -223,6 +255,53 @@ LRESULT
 FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
                               WPARAM const wparam,
                               LPARAM const lparam) noexcept {
+  // Single-instance restore signal
+  static const UINT WM_SHOW_ATFIX = ::RegisterWindowMessageW(L"WM_SHOW_ATFIX_SINGLE_INSTANCE");
+  if (message == WM_SHOW_ATFIX) {
+    ::ShowWindow(hwnd, SW_SHOW);
+    ::ShowWindow(hwnd, SW_RESTORE);
+    ::SetForegroundWindow(hwnd);
+    return 0;
+  }
+
+  // Intercept window close to run in background (mirroring macOS AppDelegate orderOut)
+  if (message == WM_CLOSE) {
+    ::ShowWindow(hwnd, SW_HIDE);
+    return 0;
+  }
+
+  // System Tray events
+  if (message == WM_TRAY_ICON) {
+    if (lparam == WM_LBUTTONDBLCLK || lparam == WM_LBUTTONUP) {
+      ::ShowWindow(hwnd, SW_SHOW);
+      ::ShowWindow(hwnd, SW_RESTORE);
+      ::SetForegroundWindow(hwnd);
+      return 0;
+    } else if (lparam == WM_RBUTTONUP) {
+      POINT pt;
+      ::GetCursorPos(&pt);
+      HMENU menu = ::CreatePopupMenu();
+      ::InsertMenuW(menu, 0, MF_BYPOSITION | MF_STRING, 1001, L"Open AtFix");
+      ::InsertMenuW(menu, 1, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
+      ::InsertMenuW(menu, 2, MF_BYPOSITION | MF_STRING, 1002, L"Quit AtFix Completely");
+
+      ::SetForegroundWindow(hwnd);
+      int cmd = ::TrackPopupMenu(menu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON,
+                                 pt.x, pt.y, 0, hwnd, nullptr);
+      ::DestroyMenu(menu);
+
+      if (cmd == 1001) {
+        ::ShowWindow(hwnd, SW_SHOW);
+        ::ShowWindow(hwnd, SW_RESTORE);
+        ::SetForegroundWindow(hwnd);
+      } else if (cmd == 1002) {
+        RemoveTrayIcon();
+        ::PostQuitMessage(0);
+      }
+      return 0;
+    }
+  }
+
   // Prevent Alt + Space from opening the system menu (which triggers interactive window sizing/moving mode)
   if (message == WM_SYSCOMMAND && (wparam & 0xFFF0) == SC_KEYMENU) {
     return 0;

@@ -94,6 +94,7 @@ void CommandPromptWindow::Show(const std::wstring& selected_text, HWND target_hw
   ::DwmSetWindowAttribute(hwnd_, DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(preference));
 
   RepositionNearCursor(panel_width_, panel_height_);
+  UpdateWindowRegion();
 
   ::ShowWindow(hwnd_, SW_SHOW);
   ::SetForegroundWindow(hwnd_);
@@ -151,6 +152,7 @@ void CommandPromptWindow::UpdateLoadingState(const std::vector<std::wstring>& ru
   if (hwnd_) {
     ::SetWindowPos(hwnd_, nullptr, 0, 0, panel_width_, panel_height_,
                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    UpdateWindowRegion();
     ::InvalidateRect(hwnd_, nullptr, TRUE);
   }
 }
@@ -169,6 +171,7 @@ void CommandPromptWindow::ShowError(const std::wstring& command, const std::wstr
   if (hwnd_) {
     ::SetWindowPos(hwnd_, nullptr, 0, 0, panel_width_, panel_height_,
                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    UpdateWindowRegion();
     ::InvalidateRect(hwnd_, nullptr, TRUE);
   }
 }
@@ -402,13 +405,20 @@ void CommandPromptWindow::TriggerSelectedCommand() {
   }
 }
 
-static GraphicsPath* CreateRoundRectPath(int x, int y, int width, int height, int radius) {
+void CommandPromptWindow::UpdateWindowRegion() {
+  if (hwnd_) {
+    HRGN rgn = ::CreateRoundRectRgn(0, 0, panel_width_ + 1, panel_height_ + 1, kCornerRadius * 2, kCornerRadius * 2);
+    ::SetWindowRgn(hwnd_, rgn, TRUE);
+  }
+}
+
+static GraphicsPath* CreateRoundRectPath(REAL x, REAL y, REAL width, REAL height, REAL radius) {
   GraphicsPath* path = new GraphicsPath();
-  int d = radius * 2;
-  path->AddArc(x, y, d, d, 180, 90);
-  path->AddArc(x + width - d, y, d, d, 270, 90);
-  path->AddArc(x + width - d, y + height - d, d, d, 0, 90);
-  path->AddArc(x, y + height - d, d, d, 90, 90);
+  REAL d = radius * 2.0f;
+  path->AddArc(x, y, d, d, 180.0f, 90.0f);
+  path->AddArc(x + width - d, y, d, d, 270.0f, 90.0f);
+  path->AddArc(x + width - d, y + height - d, d, d, 0.0f, 90.0f);
+  path->AddArc(x, y + height - d, d, d, 90.0f, 90.0f);
   path->CloseFigure();
   return path;
 }
@@ -430,17 +440,17 @@ void CommandPromptWindow::OnPaint() {
 
   // Background Surface Color (#131318)
   Color surface_color(255, 19, 19, 24);
-  SolidBrush bg_brush(surface_color);
-  g.Clear(Color(0, 0, 0, 0));
+  g.Clear(surface_color);
 
-  // Rounded Card Background
-  GraphicsPath* card_path = CreateRoundRectPath(0, 0, w - 1, h - 1, kCornerRadius);
-  g.FillPath(&bg_brush, card_path);
-
-  // Subtle Border (#FFFFFF1F)
-  Pen border_pen(Color(31, 255, 255, 255), 1.0f);
-  g.DrawPath(&border_pen, card_path);
-  delete card_path;
+  // Crisp, defined border (#55556A)
+  // Inset by 0.5f so 1.0f pen stroke sits exactly on pixel coordinates [0, 1] without clipping
+  GraphicsPath* border_path = CreateRoundRectPath(
+      0.5f, 0.5f,
+      static_cast<REAL>(w - 1), static_cast<REAL>(h - 1),
+      static_cast<REAL>(kCornerRadius - 0.5f));
+  Pen border_pen(Color(255, 85, 85, 106), 1.0f);
+  g.DrawPath(&border_pen, border_path);
+  delete border_path;
 
   // Fonts
   FontFamily font_family(L"Segoe UI");
@@ -448,7 +458,6 @@ void CommandPromptWindow::OnPaint() {
   Gdiplus::Font preview_font(&font_family, 9.0f, FontStyleRegular, UnitPoint);
   Gdiplus::Font chip_font(&font_family, 9.5f, FontStyleBold, UnitPoint);
   Gdiplus::Font status_font(&font_family, 9.0f, FontStyleRegular, UnitPoint);
-  Gdiplus::Font close_font(&font_family, 10.0f, FontStyleRegular, UnitPoint);
 
   // Colors
   SolidBrush text_primary_brush(Color(255, 245, 245, 247));
@@ -461,20 +470,23 @@ void CommandPromptWindow::OnPaint() {
   PointF title_pos(static_cast<REAL>(kHorizontalPadding), static_cast<REAL>(title_y_));
   g.DrawString(L"What do you want to do?", -1, &title_font, title_pos, &text_primary_brush);
 
-  // 2. Close button: "×"
+  // 2. Close button
   if (is_close_hovered_) {
     SolidBrush close_bg_brush(Color(255, 36, 36, 45));
     g.FillEllipse(&close_bg_brush, close_button_rect_.left, close_button_rect_.top,
                   kCloseButtonSize, kCloseButtonSize);
   }
-  StringFormat center_format;
-  center_format.SetAlignment(StringAlignmentCenter);
-  center_format.SetLineAlignment(StringAlignmentCenter);
-  RectF close_rect_f(static_cast<REAL>(close_button_rect_.left),
-                     static_cast<REAL>(close_button_rect_.top),
-                     static_cast<REAL>(kCloseButtonSize),
-                     static_cast<REAL>(kCloseButtonSize));
-  g.DrawString(L"×", -1, &close_font, close_rect_f, &center_format, &text_secondary_brush);
+  // Draw crisp vector '×' close icon (pure geometry, zero font/codepage dependencies)
+  float cx = static_cast<float>(close_button_rect_.left) + static_cast<float>(kCloseButtonSize) / 2.0f;
+  float cy = static_cast<float>(close_button_rect_.top) + static_cast<float>(kCloseButtonSize) / 2.0f;
+  float arm = 3.5f;
+
+  Color cross_color = is_close_hovered_ ? Color(255, 245, 245, 247) : Color(255, 152, 152, 159);
+  Pen cross_pen(cross_color, 1.5f);
+  cross_pen.SetStartCap(LineCapRound);
+  cross_pen.SetEndCap(LineCapRound);
+  g.DrawLine(&cross_pen, cx - arm, cy - arm, cx + arm, cy + arm);
+  g.DrawLine(&cross_pen, cx + arm, cy - arm, cx - arm, cy + arm);
 
   // 3. Selected Text Preview
   PointF preview_pos(static_cast<REAL>(kHorizontalPadding), static_cast<REAL>(preview_y_));
@@ -486,11 +498,11 @@ void CommandPromptWindow::OnPaint() {
 
     if (is_loading_) {
       // Draw spinning indicator
-      REAL cx = static_cast<REAL>(kHorizontalPadding + 7);
-      REAL cy = status_y + 8;
+      REAL cx_spin = static_cast<REAL>(kHorizontalPadding + 7);
+      REAL cy_spin = status_y + 8;
       REAL radius = 6.0f;
       Pen spinner_pen(primary_color, 2.0f);
-      g.DrawArc(&spinner_pen, cx - radius, cy - radius, radius * 2, radius * 2,
+      g.DrawArc(&spinner_pen, cx_spin - radius, cy_spin - radius, radius * 2, radius * 2,
                 static_cast<REAL>(spinner_angle_), 270.0f);
 
       PointF status_pos(static_cast<REAL>(kHorizontalPadding + 20), status_y);
@@ -502,13 +514,21 @@ void CommandPromptWindow::OnPaint() {
   }
 
   // 5. Command Chips (Bottom row)
+  StringFormat center_format;
+  center_format.SetAlignment(StringAlignmentCenter);
+  center_format.SetLineAlignment(StringAlignmentCenter);
+
   for (size_t i = 0; i < chips_.size(); ++i) {
     const auto& chip = chips_[i];
     int chip_w = chip.rect.right - chip.rect.left;
     int chip_h = chip.rect.bottom - chip.rect.top;
 
-    GraphicsPath* chip_path = CreateRoundRectPath(chip.rect.left, chip.rect.top,
-                                                  chip_w, chip_h, chip_h / 2);
+    GraphicsPath* chip_path = CreateRoundRectPath(
+        static_cast<REAL>(chip.rect.left),
+        static_cast<REAL>(chip.rect.top),
+        static_cast<REAL>(chip_w),
+        static_cast<REAL>(chip_h),
+        static_cast<REAL>(chip_h) / 2.0f);
 
     Color bg = (chip.is_hovered || chip.is_focused) ? primary_hover_color : primary_color;
     SolidBrush chip_bg_brush(bg);

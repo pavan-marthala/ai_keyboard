@@ -62,6 +62,7 @@ class CommandPromptWindow {
 
   void RegisterWindowClass();
   void UpdateLayout();
+  void UpdateWindowRegion();
   void RepositionNearCursor(int width, int height);
   void OnPaint();
   void OnMouseMove(int x, int y);
