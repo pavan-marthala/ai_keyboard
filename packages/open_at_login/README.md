@@ -3,6 +3,7 @@
 A Flutter package for controlling whether desktop Flutter applications (macOS and Windows) launch automatically when the user logs in.
 
 `open_at_login` provides a unified, production-ready Flutter API to query, enable, and disable launch-at-login behavior on:
+
 - **macOS:** Apple's modern Service Management login-item APIs via [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) (`SMAppService.mainApp`).
 - **Windows:** Both unpackaged Win32 applications (via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) and MSIX packaged applications (via `Windows.ApplicationModel.StartupTask`), automatically detected and routed at runtime.
 
@@ -459,4 +460,3 @@ It demonstrates initialization, status checking, and toggling the launch-at-logi
 
 - **Repository:** [GitHub](https://github.com/pavan-marthala/ai_keyboard/tree/master/packages/open_at_login)
 - **License:** Released under the [MIT License](LICENSE). Copyright (c) 2026 Pavan Kalyan.
-
