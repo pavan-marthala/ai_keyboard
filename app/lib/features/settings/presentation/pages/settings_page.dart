@@ -17,6 +17,7 @@ import 'package:atfix/features/settings/presentation/bloc/settings_event.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_state.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:open_at_login/open_at_login.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -29,6 +30,54 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _apiKeyController = TextEditingController();
   bool _obscureApiKey = true;
+  bool _openAtLoginEnabled = false;
+  bool _isLoadingOpenAtLogin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (PlatformChecker.isMacOS()) {
+      _loadOpenAtLoginStatus();
+    }
+  }
+
+  Future<void> _loadOpenAtLoginStatus() async {
+    try {
+      final enabled = await OpenAtLogin.instance.isEnabled();
+      if (mounted) {
+        setState(() {
+          _openAtLoginEnabled = enabled;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load open at login status: $e');
+    }
+  }
+
+  Future<void> _toggleOpenAtLogin(bool value) async {
+    setState(() {
+      _isLoadingOpenAtLogin = true;
+    });
+    try {
+      await OpenAtLogin.instance.setEnabled(value);
+      if (mounted) {
+        setState(() {
+          _openAtLoginEnabled = value;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        showErrorToast(message: 'Failed to update Launch at Login: $e');
+        _loadOpenAtLoginStatus();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingOpenAtLogin = false;
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -548,7 +597,30 @@ class _SettingsPageState extends State<SettingsPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  if (PlatformChecker.isMacOS()) ...[
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        'Launch AtFix at Login',
+                        style: typo.titleMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Start AtFix automatically in the background when you log into your Mac.',
+                        style: typo.bodySmall.copyWith(
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                      value: _openAtLoginEnabled,
+                      onChanged:
+                          _isLoadingOpenAtLogin ? null : _toggleOpenAtLogin,
+                    ),
+                    const SizedBox(height: 16),
+                    const Divider(),
+                  ],
+                  const SizedBox(height: 16),
                   Text(
                     'Closing the window or pressing ⌘Q keeps AtFix running in the background. Use this button if you need to shut down the process completely.',
                     style: typo.bodyMedium.copyWith(

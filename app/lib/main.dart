@@ -1,6 +1,7 @@
 import 'package:atfix/core/di/injection.dart';
 import 'package:atfix/core/theme/app_theme.dart';
 import 'package:atfix/core/utils/app_routes.dart';
+import 'package:atfix/core/utils/app_utils.dart';
 import 'package:atfix/features/app_shell/presentation/screens%20/app_shell_screen.dart';
 import 'package:atfix/features/commands/presentation/bloc/command_bloc.dart';
 import 'package:atfix/features/commands/presentation/bloc/command_event.dart';
@@ -14,6 +15,8 @@ import 'package:atfix/features/desktop_onboarding/presentation/pages/desktop_onb
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_at_login/open_at_login.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>(
   debugLabel: 'root',
@@ -84,6 +87,19 @@ final GoRouter _appRouter = GoRouter(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await configureDependencies();
+
+  final packageInfo = await PackageInfo.fromPlatform();
+  final appName = packageInfo.appName.isNotEmpty
+      ? packageInfo.appName
+      : 'AtFix';
+  final appPath = resolveApplicationPath(appName: appName);
+
+  OpenAtLogin.instance.initialize(
+    appName: appName,
+    appPath: appPath,
+    args: const ['--background'],
+  );
+
   runApp(const AtFixApp());
 }
 

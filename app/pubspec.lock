@@ -725,6 +725,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "9.5.0"
+  open_at_login:
+    dependency: "direct main"
+    description:
+      path: "../packages/open_at_login"
+      relative: true
+    source: path
+    version: "0.0.1"
   package_config:
     dependency: transitive
     description:

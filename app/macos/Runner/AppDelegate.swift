@@ -1,6 +1,7 @@
 import Cocoa
 import FlutterMacOS
 import ApplicationServices
+import LaunchAtLogin
 
 // kIOHIDRequestTypePostEvent = 0, kIOHIDRequestTypeListenEvent = 1
 // kIOHIDAccessTypeGranted = 0, kIOHIDAccessTypeDenied = 1, kIOHIDAccessTypeUnknown = 2
@@ -170,6 +171,38 @@ class AppDelegate: FlutterAppDelegate {
           ConfigurationStore.shared.saveDisabledCommands(Set(list))
           NSLog("[CredentialsChannel] saveDisabledCommands count=\(list.count)")
           result(true)
+
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
+
+      let openAtLoginChannel = FlutterMethodChannel(
+        name: "open_at_login",
+        binaryMessenger: messenger
+      )
+      openAtLoginChannel.setMethodCallHandler { (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        switch call.method {
+        case "isOpenAtLoginEnabled":
+          let isEnabled = LaunchAtLogin.isEnabled
+          NSLog("[AppDelegate] isOpenAtLoginEnabled: \(isEnabled)")
+          result(isEnabled)
+
+        case "setOpenAtLoginEnabled":
+          guard let args = call.arguments as? [String: Any],
+                let enabled = args["enabled"] as? Bool else {
+            result(
+              FlutterError(
+                code: "INVALID_ARGUMENT",
+                message: "Expected 'enabled' as a Boolean.",
+                details: nil
+              )
+            )
+            return
+          }
+          LaunchAtLogin.isEnabled = enabled
+          NSLog("[AppDelegate] setOpenAtLoginEnabled: \(enabled), verified isEnabled=\(LaunchAtLogin.isEnabled)")
+          result(nil)
 
         default:
           result(FlutterMethodNotImplemented)
