@@ -209,33 +209,93 @@ void main() {
     });
   });
 
-  group('Requirement 9: Windows Implementation Slot', () {
+  group('Requirement 9: Windows Implementation', () {
+    setUp(() {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      OpenAtLogin.instance.initialize(
+        appName: 'AtFix',
+        appPath: r'C:\Program Files\AtFix\atfix.exe',
+        args: ['--background'],
+      );
+    });
+
+    test('9. Windows selects WindowsAppLauncher and passes correct config', () {
+      expect(OpenAtLogin.instance.isInitialized, isTrue);
+      expect(OpenAtLogin.instance.launcher, isA<WindowsAppLauncher>());
+      expect(OpenAtLogin.instance.launcher.appName, equals('AtFix'));
+      expect(
+        OpenAtLogin.instance.launcher.appPath,
+        equals(r'C:\Program Files\AtFix\atfix.exe'),
+      );
+      expect(OpenAtLogin.instance.launcher.args, equals(['--background']));
+    });
+
+    test('Windows isEnabled() communicates via MethodChannel', () async {
+      mockIsEnabledValue = true;
+      final enabled = await OpenAtLogin.instance.isEnabled();
+
+      expect(enabled, isTrue);
+      expect(log, hasLength(1));
+      expect(log.first.method, equals('isOpenAtLoginEnabled'));
+      expect(
+        log.first.arguments,
+        equals({
+          'appName': 'AtFix',
+          'appPath': r'C:\Program Files\AtFix\atfix.exe',
+        }),
+      );
+    });
+
     test(
-      '9. Windows selects WindowsAppLauncher slot and behaves safely',
+      'Windows setEnabled() communicates via MethodChannel with args',
       () async {
-        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-        OpenAtLogin.instance.initialize(
-          appName: 'AtFix',
-          appPath: r'C:\Program Files\AtFix\atfix.exe',
-          args: ['--background'],
-        );
+        await OpenAtLogin.instance.setEnabled(true);
 
-        expect(OpenAtLogin.instance.isInitialized, isTrue);
-        expect(OpenAtLogin.instance.launcher, isA<WindowsAppLauncher>());
-        expect(OpenAtLogin.instance.launcher.appName, equals('AtFix'));
+        expect(log, hasLength(1));
+        expect(log.first.method, equals('setOpenAtLoginEnabled'));
         expect(
-          OpenAtLogin.instance.launcher.appPath,
-          equals(r'C:\Program Files\AtFix\atfix.exe'),
+          log.first.arguments,
+          equals({
+            'enabled': true,
+            'appName': 'AtFix',
+            'appPath': r'C:\Program Files\AtFix\atfix.exe',
+            'args': ['--background'],
+          }),
         );
-        expect(OpenAtLogin.instance.launcher.args, equals(['--background']));
+        expect(mockIsEnabledValue, isTrue);
 
-        // Pending native implementation, returns false and safely completes without channel calls
-        final enabled = await OpenAtLogin.instance.isEnabled();
-        expect(enabled, isFalse);
-        await expectLater(OpenAtLogin.instance.setEnabled(true), completes);
-        expect(log, isEmpty);
+        await OpenAtLogin.instance.setEnabled(false);
+        expect(log, hasLength(2));
+        expect(log.last.method, equals('setOpenAtLoginEnabled'));
+        expect(
+          log.last.arguments,
+          equals({
+            'enabled': false,
+            'appName': 'AtFix',
+            'appPath': r'C:\Program Files\AtFix\atfix.exe',
+            'args': ['--background'],
+          }),
+        );
+        expect(mockIsEnabledValue, isFalse);
       },
     );
+
+    test('Windows throws ArgumentError when appName or appPath is empty on setEnabled(true)', () async {
+      final launcherEmptyName = WindowsAppLauncher(
+        appName: '',
+        appPath: r'C:\app.exe',
+      );
+      expect(
+        () => launcherEmptyName.setEnabled(true),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      final launcherEmptyPath = WindowsAppLauncher(appName: 'App', appPath: '');
+      expect(
+        () => launcherEmptyPath.setEnabled(true),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
   });
 
   group('Requirement 10: Error Handling', () {

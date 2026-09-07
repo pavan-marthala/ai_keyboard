@@ -19,7 +19,7 @@ A Flutter package for controlling whether a macOS Flutter application launches a
 > **Platform Support:**
 >
 > - **macOS:** Fully supported via `LaunchAtLogin-Modern` (`SMAppService.mainApp`, macOS 13+).
-> - **Windows:** Architecture slot prepared; native Windows support is planned/in progress.
+> - **Windows:** Fully supported via native C++ plugin using the Win32 Registry (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`). Automatically registered via Flutter's Windows plugin tooling.
 > - **Other platforms (Linux, Android, iOS, Web):** Safely handled as graceful no-ops (`isEnabled()` returns `false`, `setEnabled(...)` does nothing). Consumers do not need platform guards.
 
 ---
@@ -177,7 +177,21 @@ class AppDelegate: FlutterAppDelegate {
 
 ---
 
-## Flutter Usage
+## Windows Native Integration
+
+On Windows, `open_at_login` operates as a standard Flutter native C++ plugin.
+
+- **Automatic Registration:** The plugin registers itself automatically with the Windows engine via `open_at_login_plugin_c_api.h` and Flutter's generated plugin registrant (`flutter run windows` / `flutter build windows`). No manual C++ code editing is required by consumers.
+- **Mechanism:** Interacts with the user's startup registry key:
+
+  ```text
+  HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+  ```
+
+- **Privileges:** Runs purely in user mode (`HKCU`). No administrator rights or UAC elevation prompts are required.
+- **Command Line Escaping:** Automatically quotes executable paths and formats command line arguments according to Microsoft's standard `CommandLineToArgvW` escaping rules.
+
+---
 
 ### 1. Import the Package
 

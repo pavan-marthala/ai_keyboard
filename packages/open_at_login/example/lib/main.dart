@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:open_at_login/open_at_login.dart';
 
@@ -6,7 +8,7 @@ void main() {
   final OpenAtLogin openAtLogin = OpenAtLogin.instance;
   openAtLogin.initialize(
     appName: 'OpenAtLogin Example',
-    appPath: '/Applications/OpenAtLogin Example.app',
+    appPath: Platform.resolvedExecutable,
   );
   openAtLogin.setEnabled(true);
   runApp(const MyApp());

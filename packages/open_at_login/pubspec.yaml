@@ -1,5 +1,5 @@
 name: open_at_login
-description: A Flutter package to enable or disable launching a macOS application automatically at user login.
+description: A Flutter package to enable or disable launching a desktop application automatically at user login.
 version: 0.0.1
 homepage: https://github.com/pavan-marthala/ai_keyboard/tree/master/packages/open_at_login
 repository: https://github.com/pavan-marthala/ai_keyboard/tree/master/packages/open_at_login
@@ -14,6 +14,7 @@ topics:
 
 platforms:
   macos:
+  windows:
 
 environment:
   sdk: ^3.13.2
@@ -33,6 +34,10 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  plugin:
+    platforms:
+      windows:
+        pluginClass: OpenAtLoginPluginCApi
 
   # To add assets to your package, add an assets section, like this:
   # assets:
