@@ -12,9 +12,15 @@ A Flutter package for controlling whether a macOS Flutter application launches a
 - **Enable launch at login:** Register the application to start automatically upon user login.
 - **Disable launch at login:** Unregister the application from launching at login.
 - **Modern macOS integration:** Uses Apple's modern macOS 13+ login-item mechanism via `LaunchAtLogin-Modern` (`SMAppService.mainApp`).
+- **Cross-platform ready:** Single API for macOS and Windows.
+- **Graceful no-op on other platforms:** Mobile, Linux, and Web safely no-op without requiring consumer platform checks.
 - **Clean Flutter API:** Simple singleton interface communicating over a standard Flutter `MethodChannel`.
 
-> **Note:** This package currently supports **macOS only**. It does not support Windows or Linux.
+> **Platform Support:**
+>
+> - **macOS:** Fully supported via `LaunchAtLogin-Modern` (`SMAppService.mainApp`, macOS 13+).
+> - **Windows:** Architecture slot prepared; native Windows support is planned/in progress.
+> - **Other platforms (Linux, Android, iOS, Web):** Safely handled as graceful no-ops (`isEnabled()` returns `false`, `setEnabled(...)` does nothing). Consumers do not need platform guards.
 
 ---
 
@@ -301,13 +307,13 @@ void initialize({
 })
 ```
 
-- **Purpose:** Prepares the platform implementation. Must be invoked before `isEnabled()` or `setEnabled()`.
+- **Purpose:** Prepares the platform implementation. Should be called once during app startup.
 - **Parameters:**
   - `appName`: Display name of the application.
   - `appPath`: Executable or bundle path of the application.
-  - `args`: Optional arguments list.
+  - `args`: Optional arguments list passed when launched at login.
 - **Return Type:** `void`
-- **Behavior:** On macOS, initializes the macOS launcher implementation. On non-macOS platforms, throws `UnsupportedError`.
+- **Behavior:** On macOS, initializes the macOS launcher implementation. On Windows, initializes the Windows launcher slot. On other platforms, safely no-ops without throwing exceptions.
 
 ### `OpenAtLogin.isEnabled`
 
@@ -318,7 +324,7 @@ Future<bool> isEnabled()
 - **Purpose:** Checks whether the application is currently registered to launch at login.
 - **Parameters:** None.
 - **Return Type:** `Future<bool>`
-- **Behavior:** Calls the native `isOpenAtLoginEnabled` method and returns `true` if enabled, `false` otherwise. Throws an `Exception` on platform failure.
+- **Behavior:** Returns `true` if enabled, `false` otherwise. Returns `false` safely on unsupported platforms or if called prior to `initialize()`. Propagates `PlatformException` if a supported platform encounters a native failure.
 
 ### `OpenAtLogin.setEnabled`
 
@@ -330,7 +336,7 @@ Future<void> setEnabled(bool enabled)
 - **Parameters:**
   - `enabled`: `true` to register the application at login, `false` to unregister.
 - **Return Type:** `Future<void>`
-- **Behavior:** Calls native `setOpenAtLoginEnabled` with the target state. Throws an `Exception` on platform failure.
+- **Behavior:** Sets the launch at login state on supported platforms. Safely no-ops on unsupported platforms or if called prior to `initialize()`. Propagates `PlatformException` if a supported platform encounters a native failure.
 
 ---
 

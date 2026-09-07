@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:open_at_login/core/app_launcher_macos_impl.dart';
+import 'package:open_at_login/core/app_launcher_windows_impl.dart';
+import 'package:open_at_login/core/no_op_app_launcher.dart';
 import 'package:open_at_login/open_at_login.dart';
 
 void main() {
@@ -28,7 +30,8 @@ void main() {
           if (shouldThrowPlatformException) {
             throw PlatformException(
               code: 'UNEXPECTED_ERROR',
-              message: 'Something went wrong',
+              message: 'Something went wrong natively',
+              details: 'Details from native',
             );
           }
 
@@ -53,80 +56,135 @@ void main() {
     OpenAtLogin.instance.reset();
   });
 
-  group('OpenAtLogin Singleton & Lifecycle', () {
-    test('returns the identical singleton instance', () {
+  group('Requirement 1 & 2: Singleton, Safety & Lifecycle', () {
+    test('1. OpenAtLogin.instance exists and is identical', () {
       expect(identical(OpenAtLogin.instance, OpenAtLogin.instance), isTrue);
+      expect(OpenAtLogin.instance, isNotNull);
     });
 
-    test('isInitialized is false before initialize is called', () {
-      expect(OpenAtLogin.instance.isInitialized, isFalse);
-      expect(OpenAtLogin.instance.launcher, isNull);
-    });
-
-    test('calling isEnabled before initialize throws StateError', () async {
-      expect(
-        () => OpenAtLogin.instance.isEnabled(),
-        throwsA(isA<StateError>()),
-      );
-    });
-
-    test('calling setEnabled before initialize throws StateError', () async {
-      expect(
-        () => OpenAtLogin.instance.setEnabled(true),
-        throwsA(isA<StateError>()),
-      );
-    });
-
-    test('initialize configures launcher on macOS', () {
+    test('2. initialize() is safe across platforms', () {
+      // macOS
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       OpenAtLogin.instance.initialize(
         appName: 'TestApp',
         appPath: '/Applications/TestApp.app',
-        args: ['--hidden'],
+        args: ['--background'],
       );
-
       expect(OpenAtLogin.instance.isInitialized, isTrue);
-      expect(OpenAtLogin.instance.launcher, isNotNull);
-      expect(OpenAtLogin.instance.launcher, isA<AppLauncherMacOSImpl>());
-      expect(OpenAtLogin.instance.launcher!.appName, equals('TestApp'));
-      expect(
-        OpenAtLogin.instance.launcher!.appPath,
-        equals('/Applications/TestApp.app'),
-      );
-      expect(OpenAtLogin.instance.launcher!.args, equals(['--hidden']));
-    });
 
-    test('initialize throws UnsupportedError on unsupported platforms', () {
+      // Windows
+      OpenAtLogin.instance.reset();
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      OpenAtLogin.instance.initialize(
+        appName: 'TestApp',
+        appPath: r'C:\Program Files\TestApp\TestApp.exe',
+      );
+      expect(OpenAtLogin.instance.isInitialized, isTrue);
+
+      // Linux
+      OpenAtLogin.instance.reset();
       debugDefaultTargetPlatformOverride = TargetPlatform.linux;
-
-      expect(
-        () => OpenAtLogin.instance.initialize(
-          appName: 'TestApp',
-          appPath: '/usr/bin/testapp',
-        ),
-        throwsA(isA<UnsupportedError>()),
+      OpenAtLogin.instance.initialize(
+        appName: 'TestApp',
+        appPath: '/usr/bin/testapp',
       );
+      expect(OpenAtLogin.instance.isInitialized, isTrue);
     });
+
+    test(
+      '3. isEnabled() before initialization does not throw and returns false',
+      () async {
+        expect(OpenAtLogin.instance.isInitialized, isFalse);
+        expect(OpenAtLogin.instance.launcher, isA<NoOpAppLauncher>());
+
+        final enabled = await OpenAtLogin.instance.isEnabled();
+        expect(enabled, isFalse);
+        expect(log, isEmpty);
+      },
+    );
+
+    test(
+      '4. setEnabled() before initialization does not throw and safely no-ops',
+      () async {
+        expect(OpenAtLogin.instance.isInitialized, isFalse);
+        expect(OpenAtLogin.instance.launcher, isA<NoOpAppLauncher>());
+
+        await expectLater(OpenAtLogin.instance.setEnabled(true), completes);
+        await expectLater(OpenAtLogin.instance.setEnabled(false), completes);
+        expect(log, isEmpty);
+      },
+    );
   });
 
-  group('OpenAtLogin Platform Operations', () {
+  group('Requirement 5, 6, 7: Unsupported Platform Behavior', () {
+    for (final platform in [
+      TargetPlatform.linux,
+      TargetPlatform.android,
+      TargetPlatform.iOS,
+      TargetPlatform.fuchsia,
+    ]) {
+      test('5. $platform uses NoOpAppLauncher after initialize()', () {
+        debugDefaultTargetPlatformOverride = platform;
+        OpenAtLogin.instance.initialize(
+          appName: 'TestApp',
+          appPath: '/path/to/app',
+        );
+
+        expect(OpenAtLogin.instance.isInitialized, isTrue);
+        expect(OpenAtLogin.instance.launcher, isA<NoOpAppLauncher>());
+      });
+
+      test('6. $platform isEnabled() returns false', () async {
+        debugDefaultTargetPlatformOverride = platform;
+        OpenAtLogin.instance.initialize(
+          appName: 'TestApp',
+          appPath: '/path/to/app',
+        );
+
+        final result = await OpenAtLogin.instance.isEnabled();
+        expect(result, isFalse);
+        expect(log, isEmpty);
+      });
+
+      test(
+        '7. $platform setEnabled() does not invoke a MethodChannel',
+        () async {
+          debugDefaultTargetPlatformOverride = platform;
+          OpenAtLogin.instance.initialize(
+            appName: 'TestApp',
+            appPath: '/path/to/app',
+          );
+
+          await OpenAtLogin.instance.setEnabled(true);
+          await OpenAtLogin.instance.setEnabled(false);
+          expect(log, isEmpty);
+        },
+      );
+    }
+  });
+
+  group('Requirement 8: macOS Implementation', () {
     setUp(() {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
       OpenAtLogin.instance.initialize(
-        appName: 'TestApp',
-        appPath: '/Applications/TestApp.app',
+        appName: 'AtFix',
+        appPath: '/Applications/AtFix.app',
+        args: ['--background'],
       );
     });
 
-    test('isEnabled queries isOpenAtLoginEnabled and returns false', () async {
-      mockIsEnabledValue = false;
-      final enabled = await OpenAtLogin.instance.isEnabled();
-
-      expect(enabled, isFalse);
-      expect(log, hasLength(1));
-      expect(log.first.method, equals('isOpenAtLoginEnabled'));
-      expect(log.first.arguments, isNull);
+    test('8. macOS selects MacOSAppLauncher', () {
+      expect(OpenAtLogin.instance.isInitialized, isTrue);
+      expect(OpenAtLogin.instance.launcher, isA<MacOSAppLauncher>());
+      expect(OpenAtLogin.instance.launcher.appName, equals('AtFix'));
+      expect(
+        OpenAtLogin.instance.launcher.appPath,
+        equals('/Applications/AtFix.app'),
+      );
+      expect(OpenAtLogin.instance.launcher.args, equals(['--background']));
     });
 
-    test('isEnabled queries isOpenAtLoginEnabled and returns true', () async {
+    test('macOS isEnabled() communicates via MethodChannel', () async {
       mockIsEnabledValue = true;
       final enabled = await OpenAtLogin.instance.isEnabled();
 
@@ -135,45 +193,99 @@ void main() {
       expect(log.first.method, equals('isOpenAtLoginEnabled'));
     });
 
-    test('isEnabled throws StateError if native method returns null', () async {
-      returnNull = true;
-
-      expect(
-        () => OpenAtLogin.instance.isEnabled(),
-        throwsA(isA<StateError>()),
-      );
-    });
-
-    test('setEnabled(true) sends enabled: true to native channel', () async {
+    test('macOS setEnabled() communicates via MethodChannel', () async {
       await OpenAtLogin.instance.setEnabled(true);
 
       expect(log, hasLength(1));
       expect(log.first.method, equals('setOpenAtLoginEnabled'));
       expect(log.first.arguments, equals({'enabled': true}));
       expect(mockIsEnabledValue, isTrue);
-    });
 
-    test('setEnabled(false) sends enabled: false to native channel', () async {
-      mockIsEnabledValue = true;
       await OpenAtLogin.instance.setEnabled(false);
-
-      expect(log, hasLength(1));
-      expect(log.first.method, equals('setOpenAtLoginEnabled'));
-      expect(log.first.arguments, equals({'enabled': false}));
+      expect(log, hasLength(2));
+      expect(log.last.method, equals('setOpenAtLoginEnabled'));
+      expect(log.last.arguments, equals({'enabled': false}));
       expect(mockIsEnabledValue, isFalse);
     });
+  });
 
-    test('PlatformException is rethrown when channel fails', () async {
+  group('Requirement 9: Windows Implementation Slot', () {
+    test(
+      '9. Windows selects WindowsAppLauncher slot and behaves safely',
+      () async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+        OpenAtLogin.instance.initialize(
+          appName: 'AtFix',
+          appPath: r'C:\Program Files\AtFix\atfix.exe',
+          args: ['--background'],
+        );
+
+        expect(OpenAtLogin.instance.isInitialized, isTrue);
+        expect(OpenAtLogin.instance.launcher, isA<WindowsAppLauncher>());
+        expect(OpenAtLogin.instance.launcher.appName, equals('AtFix'));
+        expect(
+          OpenAtLogin.instance.launcher.appPath,
+          equals(r'C:\Program Files\AtFix\atfix.exe'),
+        );
+        expect(OpenAtLogin.instance.launcher.args, equals(['--background']));
+
+        // Pending native implementation, returns false and safely completes without channel calls
+        final enabled = await OpenAtLogin.instance.isEnabled();
+        expect(enabled, isFalse);
+        await expectLater(OpenAtLogin.instance.setEnabled(true), completes);
+        expect(log, isEmpty);
+      },
+    );
+  });
+
+  group('Requirement 10: Error Handling', () {
+    test('10. PlatformException is preserved and propagated with meaningful error details', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      OpenAtLogin.instance.initialize(
+        appName: 'AtFix',
+        appPath: '/Applications/AtFix.app',
+      );
       shouldThrowPlatformException = true;
 
       expect(
         () => OpenAtLogin.instance.isEnabled(),
-        throwsA(isA<PlatformException>()),
+        throwsA(
+          isA<PlatformException>()
+              .having((e) => e.code, 'code', 'UNEXPECTED_ERROR')
+              .having(
+                (e) => e.message,
+                'message',
+                'Something went wrong natively',
+              )
+              .having((e) => e.details, 'details', 'Details from native'),
+        ),
       );
 
       expect(
         () => OpenAtLogin.instance.setEnabled(true),
-        throwsA(isA<PlatformException>()),
+        throwsA(
+          isA<PlatformException>()
+              .having((e) => e.code, 'code', 'UNEXPECTED_ERROR')
+              .having(
+                (e) => e.message,
+                'message',
+                'Something went wrong natively',
+              ),
+        ),
+      );
+    });
+
+    test('macOS throws StateError when native method returns null', () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      OpenAtLogin.instance.initialize(
+        appName: 'AtFix',
+        appPath: '/Applications/AtFix.app',
+      );
+      returnNull = true;
+
+      expect(
+        () => OpenAtLogin.instance.isEnabled(),
+        throwsA(isA<StateError>()),
       );
     });
   });

@@ -36,9 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    if (PlatformChecker.isMacOS()) {
-      _loadOpenAtLoginStatus();
-    }
+    _loadOpenAtLoginStatus();
   }
 
   Future<void> _loadOpenAtLoginStatus() async {
@@ -614,8 +612,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ),
                       value: _openAtLoginEnabled,
-                      onChanged:
-                          _isLoadingOpenAtLogin ? null : _toggleOpenAtLogin,
+                      onChanged: _isLoadingOpenAtLogin
+                          ? null
+                          : _toggleOpenAtLogin,
                     ),
                     const SizedBox(height: 16),
                     const Divider(),

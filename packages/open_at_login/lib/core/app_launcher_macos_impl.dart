@@ -6,13 +6,13 @@ import 'package:open_at_login/core/app_launcher.dart';
 ///
 /// Under the hood, native macOS code connects to `LaunchAtLogin-Modern`
 /// (`SMAppService.mainApp`).
-class AppLauncherMacOSImpl extends AppLauncher {
-  /// Creates an [AppLauncherMacOSImpl] instance.
+class MacOSAppLauncher extends AppLauncher {
+  /// Creates an [MacOSAppLauncher] instance.
   ///
   /// Note: [appName], [appPath], and [args] are retained for architectural
   /// consistency across platforms, though macOS `LaunchAtLogin-Modern` operates
   /// directly on the application's bundle identifier.
-  const AppLauncherMacOSImpl({
+  const MacOSAppLauncher({
     required super.appName,
     required super.appPath,
     super.args = const [],
@@ -42,3 +42,6 @@ class AppLauncherMacOSImpl extends AppLauncher {
     });
   }
 }
+
+/// Backwards compatibility alias for [MacOSAppLauncher].
+typedef AppLauncherMacOSImpl = MacOSAppLauncher;
