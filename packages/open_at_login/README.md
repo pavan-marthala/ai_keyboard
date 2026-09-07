@@ -1,20 +1,23 @@
 # open_at_login
 
-A Flutter package for controlling whether a macOS Flutter application launches automatically when the user logs in.
+A Flutter package for controlling whether desktop Flutter applications (macOS and Windows) launch automatically when the user logs in.
 
-`open_at_login` provides a straightforward Flutter API to query, enable, and disable launch-at-login behavior on macOS using Apple's modern Service Management login-item APIs via [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern).
+`open_at_login` provides a unified, production-ready Flutter API to query, enable, and disable launch-at-login behavior on:
+- **macOS:** Apple's modern Service Management login-item APIs via [LaunchAtLogin-Modern](https://github.com/sindresorhus/LaunchAtLogin-Modern) (`SMAppService.mainApp`).
+- **Windows:** Both unpackaged Win32 applications (via `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`) and MSIX packaged applications (via `Windows.ApplicationModel.StartupTask`), automatically detected and routed at runtime.
 
 ---
 
 ## Features
 
+- **Unified desktop API:** Identical public Dart API across macOS and Windows.
 - **Check status:** Inspect whether the application is currently registered to launch at login.
 - **Enable launch at login:** Register the application to start automatically upon user login.
 - **Disable launch at login:** Unregister the application from launching at login.
-- **Modern macOS integration:** Uses Apple's modern macOS 13+ login-item mechanism via `LaunchAtLogin-Modern` (`SMAppService.mainApp`).
-- **Cross-platform ready:** Single API for macOS and Windows.
+- **Modern macOS integration:** Uses Apple's modern macOS 13+ login-item mechanism (`SMAppService.mainApp`).
+- **Dual Windows support:** Transparently handles both standalone unpackaged Win32 `.exe` and MSIX packaged distributions.
 - **Graceful no-op on other platforms:** Mobile, Linux, and Web safely no-op without requiring consumer platform checks.
-- **Clean Flutter API:** Simple singleton interface communicating over a standard Flutter `MethodChannel`.
+- **Clean Flutter architecture:** Singleton interface communicating over a standard Flutter `MethodChannel`.
 
 > **Platform Support:**
 >
@@ -29,6 +32,7 @@ A Flutter package for controlling whether a macOS Flutter application launches a
 - **Flutter SDK:** `>=1.17.0`
 - **Dart SDK:** `^3.13.2`
 - **macOS Deployment Target:** macOS 13.0 or later
+- **Windows Deployment Target:** Windows 10 (1809+) or Windows 11
 
 ---
 
@@ -232,6 +236,8 @@ For applications packaged and distributed as MSIX:
 - **User Settings Policy:** If the user has disabled the application's startup task in Windows Settings (`Settings > Apps > Startup`) or Task Manager, Windows policy prevents applications from programmatically overriding the setting. The plugin detects `DisabledByUser` and throws a descriptive `PlatformException` informing the user.
 
 ---
+
+## Usage
 
 ### 1. Import the Package
 
@@ -451,5 +457,6 @@ It demonstrates initialization, status checking, and toggling the launch-at-logi
 
 ## License & Repository
 
-- **Repository:** [https://github.com/pavan-marthala/ai_keyboard.git/packages/open_at_login](https://github.com/pavan-marthala/ai_keyboard.git/packages/open_at_login)
-- **License:** Refer to the [`LICENSE`](LICENSE) file in the root of the package.
+- **Repository:** [GitHub](https://github.com/pavan-marthala/ai_keyboard/tree/master/packages/open_at_login)
+- **License:** Released under the [MIT License](LICENSE). Copyright (c) 2026 Pavan Kalyan.
+
