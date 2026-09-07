@@ -49,7 +49,7 @@ class AiTransformer {
         let provider = try AiProviderFactory.createProvider(for: config.provider)
 
         // 5. Build command prompt
-        let prompt = promptForCommand(command)
+        let prompt = try promptForCommand(command)
 
         NSLog("[AiTransformer] Executing AI transform: command=\(command), provider=\(config.provider), model=\(config.modelId)")
 
@@ -66,18 +66,38 @@ class AiTransformer {
         return result
     }
 
-    private func promptForCommand(_ command: String) -> String {
-        switch command.lowercased() {
-        case "@fix":
-            return "Correct the user's text."
-        case "@rewrite":
-            return "Rewrite the following text while preserving its meaning."
-        case "@short":
-            return "Make the following text concise while preserving its meaning."
-        case "@expand":
-            return "Expand the following text with useful detail while preserving its original meaning."
-        default:
-            return "Transform the following text while preserving its meaning."
+    private func promptForCommand(_ command: String) throws -> String {
+        let normalized = command.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        let key: String
+        var variables: [String: String] = [:]
+
+        if normalized.hasPrefix("@translate") {
+            key = "translate"
+            if normalized.contains(":") {
+                let parts = normalized.split(separator: ":", maxSplits: 1).map(String.init)
+                let langCode = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
+                let langName = PromptRepository.supportedLanguages[langCode] ?? langCode
+                variables["language"] = langName
+            }
+        } else {
+            switch normalized {
+            case "@fix":
+                key = "fix"
+            case "@rewrite":
+                key = "rewrite"
+            case "@pro", "@professional":
+                key = "professional"
+            case "@casual":
+                key = "casual"
+            case "@short":
+                key = "short"
+            case "@expand":
+                key = "expand"
+            default:
+                key = normalized.hasPrefix("@") ? String(normalized.dropFirst()) : normalized
+            }
         }
+
+        return try PromptRepository.shared.getPrompt(key, variables: variables)
     }
 }

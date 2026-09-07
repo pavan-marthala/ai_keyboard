@@ -38,6 +38,8 @@
 		33CC11432044C79F0003C045 /* TextReplacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11422044C79F0003C045 /* TextReplacementService.swift */; };
 		33CC11452044C79F0003C045 /* CommandPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11442044C79F0003C045 /* CommandPrompt.swift */; };
 		33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* CommandDispatcher.swift */; };
+		AA1100022044C79F0003C045 /* ai_prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = AA1100012044C79F0003C045 /* ai_prompts.json */; };
+		AA1100042044C79F0003C045 /* PromptRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100032044C79F0003C045 /* PromptRepository.swift */; };
 		35CE073D304B10F500D074C6 /* atfix.icon in Resources */ = {isa = PBXBuildFile; fileRef = 35CE073C304B10F500D074C6 /* atfix.icon */; };
 		35CE0758304E931500D074C6 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 35CE0757304E931500D074C6 /* LaunchAtLogin */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
@@ -95,6 +97,8 @@
 		33CC11422044C79F0003C045 /* TextReplacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextReplacementService.swift; sourceTree = "<group>"; };
 		33CC11442044C79F0003C045 /* CommandPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPrompt.swift; sourceTree = "<group>"; };
 		33CC11462044C79F0003C045 /* CommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDispatcher.swift; sourceTree = "<group>"; };
+		AA1100012044C79F0003C045 /* ai_prompts.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "ai_prompts.json"; path = "../../shared/prompts/ai_prompts.json"; sourceTree = "<group>"; };
+		AA1100032044C79F0003C045 /* PromptRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptRepository.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -154,6 +158,7 @@
 				331C80D6294CF71000263BE5 /* RunnerTests */,
 				33CC10EE2044A3C60003C045 /* Products */,
 				D73912EC22F37F3D000D13A0 /* Frameworks */,
+				AA1100012044C79F0003C045 /* ai_prompts.json */,
 			);
 			sourceTree = "<group>";
 		};
@@ -196,6 +201,7 @@
 				33CC113A2044C79F0003C045 /* OpenAiCompatibleProvider.swift */,
 				33CC113C2044C79F0003C045 /* AiProviderFactory.swift */,
 				33CC113E2044C79F0003C045 /* AiTransformer.swift */,
+				AA1100032044C79F0003C045 /* PromptRepository.swift */,
 			);
 			path = AI;
 			sourceTree = "<group>";
@@ -360,6 +366,7 @@
 				33CC10F32044A3C60003C045 /* Assets.xcassets in Resources */,
 				35CE073D304B10F500D074C6 /* atfix.icon in Resources */,
 				33CC10F62044A3C60003C045 /* MainMenu.xib in Resources */,
+				AA1100022044C79F0003C045 /* ai_prompts.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,6 +439,7 @@
 				33CC113B2044C79F0003C045 /* OpenAiCompatibleProvider.swift in Sources */,
 				33CC113D2044C79F0003C045 /* AiProviderFactory.swift in Sources */,
 				33CC113F2044C79F0003C045 /* AiTransformer.swift in Sources */,
+				AA1100042044C79F0003C045 /* PromptRepository.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -50,14 +50,8 @@ class OpenAiCompatibleProvider: AiProvider {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = 20.0
 
-        let systemInstruction = """
-You are a text transformation engine inside a keyboard.
-Return only the transformed text.
-Do not add explanations, notes, quotes, or markdown.
-Preserve the user's intended meaning.
-"""
-
-        let userContent = prompt.isEmpty ? text : "\(prompt)\n\nText:\n\(text)"
+        let systemInstruction = prompt.isEmpty ? "You are a text transformation engine inside a keyboard application. Return ONLY the transformed text." : prompt
+        let userContent = text
 
         // Build Payload
         let payload: [String: Any] = [

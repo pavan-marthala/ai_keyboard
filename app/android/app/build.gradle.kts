@@ -82,3 +82,12 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.11.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 }
+
+val copySharedPrompts = tasks.register<Copy>("copySharedPrompts") {
+    from(rootProject.file("../../shared/prompts/ai_prompts.json"))
+    into(file("src/main/assets/prompts"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(copySharedPrompts)
+}

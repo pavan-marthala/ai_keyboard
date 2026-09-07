@@ -38,7 +38,7 @@ object CommandParser {
             return null
         }
 
-        val prompt = NativeCommandRegistry.getPrompt(baseTrigger, arguments) ?: return null
+        val prompt = NativeCommandRegistry.getPrompt(context, baseTrigger, arguments) ?: return null
         val statusMessage = NativeCommandRegistry.getStatusMessage(baseTrigger, arguments)
 
         val precedingTokens = tokens.take(tokens.size - 1)

@@ -305,7 +305,7 @@ class KeyboardController(
 
         val selectedText = textEditor.getSelectedText()
         if (selectedText != null) {
-            val prompt = NativeCommandRegistry.getPrompt(trigger, emptyMap())
+            val prompt = NativeCommandRegistry.getPrompt(context, trigger, emptyMap())
             val statusMsg = NativeCommandRegistry.getStatusMessage(trigger, emptyMap())
             if (prompt != null) {
                 executeSelectionTransformation(selectedText, prompt, statusMsg)
