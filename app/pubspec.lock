@@ -728,9 +728,10 @@ packages:
   open_at_login:
     dependency: "direct main"
     description:
-      path: "../packages/open_at_login"
-      relative: true
-    source: path
+      name: open_at_login
+      sha256: "63931254616b7435f434c9308a4e45039c15572a52e8fd8a719730cb7b01a8b8"
+      url: "https://pub.dev"
+    source: hosted
     version: "0.0.1"
   package_config:
     dependency: transitive

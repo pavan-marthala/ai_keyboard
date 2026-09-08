@@ -58,8 +58,7 @@ dependencies:
   drift: ^2.34.3
   path_provider: ^2.1.6
   path: ^1.9.1
-  open_at_login:
-    path: ../packages/open_at_login
+  open_at_login: ^0.0.1
 
   material_ui: any
   cupertino_ui: any
