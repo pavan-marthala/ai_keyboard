@@ -7,14 +7,20 @@ class PlatformChecker {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == TargetPlatform.iOS;
+    if (debugDefaultTargetPlatformOverride != null) {
+      return debugDefaultTargetPlatformOverride == TargetPlatform.iOS;
+    }
+    return Platform.isIOS;
   }
 
   static bool isAndroid() {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == TargetPlatform.android;
+    if (debugDefaultTargetPlatformOverride != null) {
+      return debugDefaultTargetPlatformOverride == TargetPlatform.android;
+    }
+    return Platform.isAndroid;
   }
 
   static bool isWeb() {
@@ -25,21 +31,30 @@ class PlatformChecker {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == TargetPlatform.linux;
+    if (debugDefaultTargetPlatformOverride != null) {
+      return debugDefaultTargetPlatformOverride == TargetPlatform.linux;
+    }
+    return Platform.isLinux;
   }
 
   static bool isMacOS() {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == TargetPlatform.macOS;
+    if (debugDefaultTargetPlatformOverride != null) {
+      return debugDefaultTargetPlatformOverride == TargetPlatform.macOS;
+    }
+    return Platform.isMacOS;
   }
 
   static bool isWindows() {
     if (kIsWeb) {
       return false;
     }
-    return defaultTargetPlatform == TargetPlatform.windows;
+    if (debugDefaultTargetPlatformOverride != null) {
+      return debugDefaultTargetPlatformOverride == TargetPlatform.windows;
+    }
+    return Platform.isWindows;
   }
 
   static bool isDesktop() {

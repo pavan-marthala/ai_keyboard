@@ -11,6 +11,8 @@ import 'package:atfix/features/playground/data/services/keyboard_status_service.
 import 'package:atfix/features/settings/domain/entities/ai_provider_metadata.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_state.dart';
+import 'package:atfix/features/shortcuts/domain/entities/desktop_shortcut.dart';
+import 'package:atfix/features/shortcuts/domain/repositories/desktop_shortcut_repository.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -31,6 +33,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
   bool _isKeyboardActive = false;
   bool _isCheckingStatus = true;
   List<DesktopCapability> _desktopCapabilities = [];
+  DesktopShortcut? _currentShortcut;
 
   @override
   void initState() {
@@ -55,6 +58,15 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
 
   Future<void> _checkKeyboardStatus() async {
     setState(() => _isCheckingStatus = true);
+    if (PlatformChecker.isMacOS() || PlatformChecker.isWindows()) {
+      try {
+        final shortcut = await getIt<DesktopShortcutRepository>().getShortcut();
+        if (mounted) {
+          _currentShortcut = shortcut;
+        }
+      } catch (_) {}
+    }
+
     if (PlatformChecker.isWindows()) {
       if (mounted) {
         setState(() {
@@ -63,7 +75,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
           _isCheckingStatus = false;
         });
       }
-    } else if (PlatformChecker.isDesktop()) {
+    } else if (PlatformChecker.isMacOS()) {
       final capabilities = await _desktopCapabilityRepository.getCapabilities();
       if (mounted) {
         final allEnabled =
@@ -358,10 +370,14 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
     final colors = context.appColors;
     final typo = context.appTypography;
 
-    if (PlatformChecker.isDesktop()) {
+    if (PlatformChecker.isMacOS() || PlatformChecker.isWindows()) {
       final missingCapabilities = _desktopCapabilities
           .where((c) => c.status != DesktopCapabilityStatus.enabled)
           .toList();
+
+      final isMacOS = PlatformChecker.isMacOS();
+      final shortcutStr = _currentShortcut?.displayString(isMacOS: isMacOS) ??
+          (isMacOS ? 'Control + Option + Space' : 'Ctrl + Alt + Space');
 
       return Card(
         color: _isKeyboardActive
@@ -403,7 +419,7 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
               const SizedBox(height: 8),
               Text(
                 PlatformChecker.isWindows()
-                    ? 'AtFix is ready. Select text in any application and press Ctrl + Alt + Space to invoke AI commands.'
+                    ? 'AtFix is ready. Select text in any application and press $shortcutStr to invoke AI commands.'
                     : _isKeyboardActive
                     ? 'AtFix has the necessary system permissions to detect commands and transform text.'
                     : 'AtFix requires system permissions to detect commands and interact with active text fields.',

@@ -24,6 +24,22 @@ class CommandShortcutManager : public CommandPromptDelegate {
   /// Manually triggers the shortcut workflow (for testing or menu actions).
   void TriggerShortcut();
 
+  /// Struct containing key and modifiers info.
+  struct ShortcutInfo {
+    std::string key;
+    std::vector<std::string> modifiers;
+  };
+
+  /// Dynamically registers a global shortcut.
+  /// If registration fails, previous shortcut remains active and unchanged.
+  bool RegisterShortcut(const std::string& key, const std::vector<std::string>& modifiers, bool persist = true);
+
+  /// Retrieves the active shortcut information.
+  ShortcutInfo GetRegisteredShortcutInfo() const;
+
+  static UINT KeyNameToVk(const std::string& key_name);
+  static UINT ModifiersToFlags(const std::vector<std::string>& modifiers);
+
   CommandPromptWindow& GetPromptWindow() { return prompt_window_; }
 
   // CommandPromptDelegate implementation
@@ -43,10 +59,18 @@ class CommandShortcutManager : public CommandPromptDelegate {
   ~CommandShortcutManager();
 
   static constexpr int kAtFixHotKeyId = 9001;
+  static constexpr int kCandidateHotKeyId = 9002;
 
   bool is_started_ = false;
+  bool is_registered_ = false;
+  int active_hotkey_id_ = kAtFixHotKeyId;
   HWND message_hwnd_ = nullptr;
   CommandPromptWindow prompt_window_;
+
+  std::string current_key_ = "space";
+  std::vector<std::string> current_modifiers_ = {"control", "alt"};
+  UINT current_vk_ = VK_SPACE;
+  UINT current_mod_flags_ = MOD_CONTROL | MOD_ALT;
 
   CommandSelectedCallback on_command_selected_;
   CancelledCallback on_cancelled_;

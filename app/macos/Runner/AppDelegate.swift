@@ -97,6 +97,19 @@ class AppDelegate: FlutterAppDelegate {
           } else {
             result(false)
           }
+        case "registerHotkey":
+          guard let args = call.arguments as? [String: Any],
+                let key = args["key"] as? String,
+                let modifiers = args["modifiers"] as? [String] else {
+            result(FlutterError(code: "INVALID_ARGS", message: "Missing key or modifiers", details: nil))
+            return
+          }
+          let success = CommandShortcutManager.shared.registerShortcut(key: key, modifiers: modifiers)
+          debugLog("[NATIVE] registerHotkey key=\(key) modifiers=\(modifiers) success=\(success)")
+          result(success)
+        case "getRegisteredHotkey":
+          let info = CommandShortcutManager.shared.currentShortcutInfo()
+          result(info)
         default:
           result(FlutterMethodNotImplemented)
         }

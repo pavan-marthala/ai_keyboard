@@ -3,6 +3,9 @@ import 'package:atfix/core/theme/app_theme.dart';
 import 'package:atfix/core/utils/app_buitton.dart';
 import 'package:atfix/core/utils/app_routes.dart';
 import 'package:atfix/core/utils/check_platforms.dart';
+import 'package:atfix/features/shortcuts/domain/entities/desktop_shortcut.dart';
+import 'package:atfix/features/shortcuts/domain/repositories/desktop_shortcut_repository.dart';
+import 'package:atfix/features/shortcuts/presentation/widgets/shortcut_recorder.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -42,12 +45,32 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
   int _currentPage = 0;
   bool _launchAtLogin = true;
   bool _hasAppliedLaunchAtLogin = false;
+  late DesktopShortcut _currentShortcut;
+  bool _isSavingShortcut = false;
+  String? _shortcutError;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    _currentShortcut = DesktopShortcut.defaultForPlatform(
+      isMacOS: PlatformChecker.isMacOS(),
+    );
+    _loadSavedShortcut();
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  Future<void> _loadSavedShortcut() async {
+    try {
+      final saved = await getIt<DesktopShortcutRepository>().getShortcut();
+      if (mounted) {
+        setState(() {
+          _currentShortcut = saved;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load saved shortcut: $e');
+    }
   }
 
   @override
@@ -80,6 +103,46 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
     );
   }
 
+  Future<void> _onHotkeyContinue() async {
+    setState(() {
+      _isSavingShortcut = true;
+      _shortcutError = null;
+    });
+
+    bool success = false;
+    try {
+      success = await getIt<DesktopShortcutRepository>()
+          .registerAndSaveShortcut(_currentShortcut);
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _shortcutError = 'Failed to register shortcut: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingShortcut = false;
+        });
+      }
+    }
+
+    if (!mounted) return;
+
+    if (success) {
+      if (PlatformChecker.isMacOS()) {
+        _nextPage();
+      } else {
+        _finishOnboarding();
+      }
+    } else if (_shortcutError == null) {
+      setState(() {
+        _shortcutError =
+            'Could not register shortcut. It may be reserved by the system or in use by another application.';
+      });
+    }
+  }
+
   void _finishOnboarding() {
     if (!_hasAppliedLaunchAtLogin) {
       if (PlatformChecker.isMacOS() || PlatformChecker.isWindows()) {
@@ -102,6 +165,7 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
+    final int pageCount = PlatformChecker.isMacOS() ? 3 : 2;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -117,26 +181,23 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
               constraints: const BoxConstraints(maxWidth: 680),
               child: Column(
                 children: [
-                  if (!PlatformChecker.isWindows()) ...[
-                    const SizedBox(height: 24),
-                    OnboardingPageIndicator(
-                      currentPage: _currentPage,
-                      pageCount: 2,
-                    ),
-                  ],
+                  const SizedBox(height: 24),
+                  OnboardingPageIndicator(
+                    currentPage: _currentPage,
+                    pageCount: pageCount,
+                  ),
                   const SizedBox(height: 16),
                   Expanded(
                     child: PageView(
                       controller: _pageController,
-                      physics: PlatformChecker.isWindows()
-                          ? const NeverScrollableScrollPhysics()
-                          : null,
+                      physics: const NeverScrollableScrollPhysics(),
                       onPageChanged: (index) {
                         setState(() => _currentPage = index);
                       },
                       children: [
                         _buildIntroductionPage(context),
-                        if (!PlatformChecker.isWindows())
+                        _buildHotkeyPage(context),
+                        if (PlatformChecker.isMacOS())
                           _buildEnableAccessPage(context),
                       ],
                     ),
@@ -252,19 +313,114 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
           ],
           const SizedBox(height: 28),
           AppButton(
-            text: PlatformChecker.isWindows() ? 'Get Started' : 'Continue',
+            text: 'Continue',
             width: double.infinity,
-            onPressed: PlatformChecker.isWindows()
-                ? _finishOnboarding
-                : _nextPage,
-            icon: Icon(
-              PlatformChecker.isWindows()
-                  ? Icons.check_rounded
-                  : Icons.arrow_forward_rounded,
+            onPressed: _nextPage,
+            icon: const Icon(
+              Icons.arrow_forward_rounded,
               size: 20,
             ),
           ),
           const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHotkeyPage(BuildContext context) {
+    final colors = context.appColors;
+    final typo = context.appTypography;
+    final isMacOS = PlatformChecker.isMacOS();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Set Global Shortcut',
+            style: typo.headlineMedium.copyWith(
+              fontWeight: FontWeight.w800,
+              color: colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Choose the keyboard shortcut you want to use to summon AtFix from any application.',
+            style: typo.bodyMedium.copyWith(
+              color: colors.textSecondary,
+              fontSize: 14,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 28),
+          ShortcutRecorder(
+            currentShortcut: _currentShortcut,
+            errorMessage: _shortcutError,
+            enabled: !_isSavingShortcut,
+            onShortcutChanged: (newShortcut) {
+              setState(() {
+                _currentShortcut = newShortcut;
+                _shortcutError = null;
+              });
+            },
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: _isSavingShortcut
+                  ? null
+                  : () {
+                      setState(() {
+                        _currentShortcut = DesktopShortcut.defaultForPlatform(
+                          isMacOS: isMacOS,
+                        );
+                        _shortcutError = null;
+                      });
+                    },
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('Reset to default'),
+              style: TextButton.styleFrom(
+                foregroundColor: colors.primary,
+                textStyle: typo.bodySmall.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: _isSavingShortcut ? null : _previousPage,
+                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                label: const Text('Back'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: colors.textPrimary,
+                  side: BorderSide(color: colors.border),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AppButton(
+                  text: isMacOS ? 'Continue' : 'Get Started',
+                  isLoading: _isSavingShortcut,
+                  onPressed: _isSavingShortcut ? null : _onHotkeyContinue,
+                  icon: Icon(
+                    isMacOS ? Icons.arrow_forward_rounded : Icons.check_rounded,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

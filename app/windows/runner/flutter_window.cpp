@@ -85,6 +85,39 @@ void FlutterWindow::SetupMethodChannels() {
             RemoveTrayIcon();
             ::PostQuitMessage(0);
             result->Success(flutter::EncodableValue(true));
+          } else if (method == "registerHotkey") {
+            const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+            std::string key;
+            std::vector<std::string> modifiers;
+
+            if (args) {
+              auto it_k = args->find(flutter::EncodableValue("key"));
+              if (it_k != args->end() && std::holds_alternative<std::string>(it_k->second)) {
+                key = std::get<std::string>(it_k->second);
+              }
+              auto it_m = args->find(flutter::EncodableValue("modifiers"));
+              if (it_m != args->end() && std::holds_alternative<flutter::EncodableList>(it_m->second)) {
+                const auto& list = std::get<flutter::EncodableList>(it_m->second);
+                for (const auto& item : list) {
+                  if (std::holds_alternative<std::string>(item)) {
+                    modifiers.push_back(std::get<std::string>(item));
+                  }
+                }
+              }
+            }
+
+            bool success = CommandShortcutManager::GetInstance().RegisterShortcut(key, modifiers);
+            result->Success(flutter::EncodableValue(success));
+          } else if (method == "getRegisteredHotkey") {
+            auto info = CommandShortcutManager::GetInstance().GetRegisteredShortcutInfo();
+            flutter::EncodableMap map;
+            map[flutter::EncodableValue("key")] = flutter::EncodableValue(info.key);
+            flutter::EncodableList list;
+            for (const auto& mod : info.modifiers) {
+              list.push_back(flutter::EncodableValue(mod));
+            }
+            map[flutter::EncodableValue("modifiers")] = flutter::EncodableValue(list);
+            result->Success(flutter::EncodableValue(map));
           } else {
             result->NotImplemented();
           }

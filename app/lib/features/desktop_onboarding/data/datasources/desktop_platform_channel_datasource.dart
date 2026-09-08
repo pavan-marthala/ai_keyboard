@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:atfix/core/utils/check_platforms.dart';
 import 'package:flutter/services.dart';
 import 'package:injectable/injectable.dart';
 
@@ -72,10 +73,38 @@ class DesktopPlatformChannelDataSource {
     } catch (_) {}
   }
 
+  Future<bool> registerHotkey(Map<String, dynamic> shortcutJson) async {
+    if (!PlatformChecker.isMacOS() && !PlatformChecker.isWindows()) return false;
+    try {
+      final bool? success = await _channel.invokeMethod<bool>(
+        'registerHotkey',
+        shortcutJson,
+      );
+      return success ?? false;
+    } on MissingPluginException {
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getRegisteredHotkey() async {
+    if (!PlatformChecker.isMacOS() && !PlatformChecker.isWindows()) return null;
+    try {
+      final result = await _channel.invokeMapMethod<String, dynamic>(
+        'getHotkey',
+      );
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> quitAtFixCompletely() async {
-    if (!Platform.isMacOS) return;
+    if (!PlatformChecker.isMacOS() && !PlatformChecker.isWindows()) return;
     try {
       await _channel.invokeMethod('quitAtFixCompletely');
     } catch (_) {}
   }
 }
+

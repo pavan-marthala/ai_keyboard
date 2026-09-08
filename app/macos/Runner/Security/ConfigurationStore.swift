@@ -86,5 +86,39 @@ final class ConfigurationStore {
         let t = trigger.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         return !getDisabledCommands().contains(t)
     }
+
+    // MARK: - Desktop Shortcut
+
+    private let keyDesktopShortcut = "desktop_shortcut"
+    private let keyFlutterDesktopShortcut = "flutter.desktop_shortcut"
+
+    /// Saves the configured global shortcut.
+    func saveShortcut(key: String, modifiers: [String]) {
+        let dict: [String: Any] = [
+            "key": key.lowercased().trimmingCharacters(in: .whitespacesAndNewlines),
+            "modifiers": modifiers.map { $0.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) }
+        ]
+        userDefaults.set(dict, forKey: keyDesktopShortcut)
+        userDefaults.synchronize()
+    }
+
+    /// Retrieves the saved global shortcut, if any.
+    func getShortcut() -> (key: String, modifiers: [String])? {
+        if let dict = userDefaults.dictionary(forKey: keyDesktopShortcut),
+           let key = dict["key"] as? String,
+           let modifiers = dict["modifiers"] as? [String] {
+            return (key, modifiers)
+        }
+
+        if let rawJson = userDefaults.string(forKey: keyFlutterDesktopShortcut),
+           let data = rawJson.data(using: .utf8),
+           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let key = dict["key"] as? String,
+           let modifiers = dict["modifiers"] as? [String] {
+            return (key, modifiers)
+        }
+
+        return nil
+    }
 }
 

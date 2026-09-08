@@ -153,5 +153,67 @@ bool ConfigurationStore::IsCommandEnabled(const std::string& trigger) {
   return disabled.find(t) == disabled.end();
 }
 
+void ConfigurationStore::SaveShortcut(
+    const std::string& key,
+    const std::vector<std::string>& modifiers) {
+  std::ostringstream oss;
+  for (size_t i = 0; i < modifiers.size(); ++i) {
+    if (i > 0) oss << ";";
+    oss << ToLower(modifiers[i]);
+  }
+
+  HKEY hKey = nullptr;
+  if (RegCreateKeyExW(
+          HKEY_CURRENT_USER, kRegistrySubKey, 0, nullptr,
+          REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr) == ERROR_SUCCESS) {
+    std::wstring wk = Utf8ToWide(ToLower(key));
+    std::wstring wm = Utf8ToWide(oss.str());
+
+    RegSetValueExW(hKey, L"shortcut_key", 0, REG_SZ,
+                   reinterpret_cast<const BYTE*>(wk.c_str()),
+                   static_cast<DWORD>((wk.size() + 1) * sizeof(wchar_t)));
+    RegSetValueExW(hKey, L"shortcut_modifiers", 0, REG_SZ,
+                   reinterpret_cast<const BYTE*>(wm.c_str()),
+                   static_cast<DWORD>((wm.size() + 1) * sizeof(wchar_t)));
+    RegCloseKey(hKey);
+  }
+}
+
+bool ConfigurationStore::GetShortcut(
+    std::string* key,
+    std::vector<std::string>* modifiers) {
+  wchar_t key_buf[256] = {0};
+  DWORD key_size = sizeof(key_buf);
+
+  if (RegGetValueW(HKEY_CURRENT_USER, kRegistrySubKey, L"shortcut_key",
+                   RRF_RT_REG_SZ, nullptr, key_buf, &key_size) != ERROR_SUCCESS) {
+    return false;
+  }
+
+  wchar_t mod_buf[512] = {0};
+  DWORD mod_size = sizeof(mod_buf);
+  if (RegGetValueW(HKEY_CURRENT_USER, kRegistrySubKey, L"shortcut_modifiers",
+                   RRF_RT_REG_SZ, nullptr, mod_buf, &mod_size) != ERROR_SUCCESS) {
+    return false;
+  }
+
+  if (key) {
+    *key = WideToUtf8(key_buf);
+  }
+  if (modifiers) {
+    modifiers->clear();
+    std::string mod_str = WideToUtf8(mod_buf);
+    std::stringstream ss(mod_str);
+    std::string item;
+    while (std::getline(ss, item, ';')) {
+      if (!item.empty()) {
+        modifiers->push_back(ToLower(item));
+      }
+    }
+  }
+
+  return true;
+}
+
 }  // namespace atfix
 

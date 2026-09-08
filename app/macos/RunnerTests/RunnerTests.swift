@@ -1,3 +1,4 @@
+import Carbon
 import Cocoa
 import FlutterMacOS
 import XCTest
@@ -86,6 +87,50 @@ class RunnerTests: XCTestCase {
         XCTAssertTrue(configStore.isCommandEnabled("@rewrite"))
         XCTAssertTrue(configStore.isCommandEnabled("@short"))
         XCTAssertTrue(configStore.isCommandEnabled("@expand"))
+    }
+
+    func testShortcutKeyCodeMapping() {
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "space"), 49)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "return"), 36)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "enter"), 36)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "tab"), 48)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "backspace"), 51)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "a"), 0)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "k"), 40)
+        XCTAssertEqual(CommandShortcutManager.keyCode(forKeyName: "f1"), 122)
+        XCTAssertNil(CommandShortcutManager.keyCode(forKeyName: "invalid_key_name"))
+    }
+
+    func testShortcutCarbonModifiers() {
+        let mods = CommandShortcutManager.carbonModifiers(for: ["control", "option"])
+        XCTAssertEqual(mods, UInt32(controlKey | optionKey))
+
+        let cmdMods = CommandShortcutManager.carbonModifiers(for: ["cmd", "shift"])
+        XCTAssertEqual(cmdMods, UInt32(cmdKey | shiftKey))
+    }
+
+    func testShortcutRegistrationAndPersistence() {
+        let manager = CommandShortcutManager.shared
+        let success = manager.registerShortcut(key: "space", modifiers: ["control", "option"], persist: true)
+        XCTAssertTrue(success, "Registering default Control + Option + Space should succeed")
+
+        let info = manager.currentShortcutInfo()
+        XCTAssertEqual(info["key"] as? String, "space")
+        XCTAssertEqual(info["modifiers"] as? [String], ["control", "option"])
+
+        let saved = ConfigurationStore.shared.getShortcut()
+        XCTAssertNotNil(saved)
+        XCTAssertEqual(saved?.key, "space")
+        XCTAssertEqual(saved?.modifiers, ["control", "option"])
+    }
+
+    func testInvalidShortcutRejection() {
+        let manager = CommandShortcutManager.shared
+        let badKey = manager.registerShortcut(key: "nonexistent_key", modifiers: ["control"])
+        XCTAssertFalse(badKey, "Invalid key name must be rejected")
+
+        let emptyMods = manager.registerShortcut(key: "space", modifiers: [])
+        XCTAssertFalse(emptyMods, "Empty modifiers must be rejected")
     }
 }
 

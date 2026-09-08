@@ -132,6 +132,15 @@ void main() {
             return null;
           });
 
+      const desktopChannel = MethodChannel('com.pk.atfix/desktop');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(desktopChannel, (MethodCall methodCall) async {
+            if (methodCall.method == 'registerHotkey') {
+              return true;
+            }
+            return null;
+          });
+
       SharedPreferences.setMockInitialValues({});
       await getIt.reset();
       await configureDependencies();
@@ -180,9 +189,14 @@ void main() {
         isFalse,
       );
 
-      // Click "Get Started" on Windows to complete onboarding
+      // Click "Continue" on Page 0 to navigate to Page 1 (Hotkey)
+      final continueButton = find.widgetWithText(AppButton, 'Continue');
+      expect(continueButton, findsOneWidget);
+      await tester.tap(continueButton);
+      await tester.pumpAndSettle();
+
+      // Click "Get Started" on Page 1 (Hotkey on Windows) to complete onboarding
       final getStartedButton = find.widgetWithText(AppButton, 'Get Started');
-      expect(getStartedButton, findsOneWidget);
       await tester.tap(getStartedButton);
       await tester.pumpAndSettle();
 
@@ -194,6 +208,8 @@ void main() {
       // Clean up
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(desktopChannel, null);
       debugDefaultTargetPlatformOverride = null;
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();
@@ -216,6 +232,15 @@ void main() {
               final args = methodCall.arguments as Map<dynamic, dynamic>;
               isEnabled = args['enabled'] as bool;
               return null;
+            }
+            return null;
+          });
+
+      const desktopChannel = MethodChannel('com.pk.atfix/desktop');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(desktopChannel, (MethodCall methodCall) async {
+            if (methodCall.method == 'registerHotkey') {
+              return true;
             }
             return null;
           });
@@ -271,7 +296,13 @@ void main() {
         isFalse,
       );
 
-      // Complete onboarding
+      // Navigate from Page 0 to Page 1 (Hotkey)
+      final continueButton = find.widgetWithText(AppButton, 'Continue');
+      expect(continueButton, findsOneWidget);
+      await tester.tap(continueButton);
+      await tester.pumpAndSettle();
+
+      // Complete onboarding via Get Started on Page 1
       final getStartedButton = find.widgetWithText(AppButton, 'Get Started');
       await tester.tap(getStartedButton);
       await tester.pumpAndSettle();
@@ -284,6 +315,8 @@ void main() {
       // Clean up
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(desktopChannel, null);
       debugDefaultTargetPlatformOverride = null;
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();

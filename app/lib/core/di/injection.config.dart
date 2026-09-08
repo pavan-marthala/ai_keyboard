@@ -51,6 +51,10 @@ import 'package:atfix/features/settings/domain/repositories/settings_repository.
     as _i261;
 import 'package:atfix/features/settings/presentation/bloc/settings_bloc.dart'
     as _i251;
+import 'package:atfix/features/shortcuts/data/repositories/desktop_shortcut_repository_impl.dart'
+    as _i685;
+import 'package:atfix/features/shortcuts/domain/repositories/desktop_shortcut_repository.dart'
+    as _i328;
 import 'package:dio/dio.dart' as _i361;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i558;
 import 'package:get_it/get_it.dart' as _i174;
@@ -82,6 +86,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i882.PromptRepository>(
       () => _i882.PromptRepositoryImpl(),
     );
+    gh.lazySingleton<_i328.DesktopShortcutRepository>(
+      () => _i685.DesktopShortcutRepositoryImpl(
+        gh<_i460.SharedPreferences>(),
+        gh<_i801.DesktopPlatformChannelDataSource>(),
+      ),
+    );
     gh.lazySingleton<_i527.DesktopCapabilityRepository>(
       () => _i362.DesktopCapabilityRepositoryImpl(
         gh<_i460.SharedPreferences>(),
@@ -106,12 +116,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1021.CredentialsRepository>(
       () => _i871.CredentialsRepositoryImpl(gh<_i558.FlutterSecureStorage>()),
     );
-    gh.lazySingleton<_i146.CommandRegistry>(
-      () => _i146.CommandRegistryImpl(gh<_i882.PromptRepository>()),
-    );
     gh.factory<_i1065.DesktopOnboardingBloc>(
       () =>
           _i1065.DesktopOnboardingBloc(gh<_i527.DesktopCapabilityRepository>()),
+    );
+    gh.lazySingleton<_i146.CommandRegistry>(
+      () => _i146.CommandRegistryImpl(gh<_i882.PromptRepository>()),
     );
     gh.lazySingleton<_i675.AiRepository>(
       () => _i793.AiRepositoryImpl(

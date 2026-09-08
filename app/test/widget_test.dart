@@ -1,17 +1,29 @@
 import 'package:atfix/core/di/injection.dart';
 import 'package:atfix/main.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  const desktopChannel = MethodChannel('com.pk.atfix/desktop');
+
   setUp(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(desktopChannel, (call) async {
+          if (call.method == 'isAccessibilityGranted') return true;
+          if (call.method == 'getInputMonitoringStatus') return 'granted';
+          if (call.method == 'registerHotkey') return true;
+          return null;
+        });
     SharedPreferences.setMockInitialValues({});
     await configureDependencies();
   });
 
   tearDown(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(desktopChannel, null);
     await getIt.reset();
   });
 

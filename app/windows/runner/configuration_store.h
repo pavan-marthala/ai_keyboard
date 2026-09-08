@@ -37,6 +37,12 @@ class ConfigurationStore {
   /// Checks whether a command trigger is currently enabled.
   bool IsCommandEnabled(const std::string& trigger);
 
+  /// Saves global shortcut key and modifiers.
+  void SaveShortcut(const std::string& key, const std::vector<std::string>& modifiers);
+
+  /// Retrieves global shortcut key and modifiers. Returns true if present.
+  bool GetShortcut(std::string* key, std::vector<std::string>* modifiers);
+
  private:
   ConfigurationStore() = default;
   ~ConfigurationStore() = default;

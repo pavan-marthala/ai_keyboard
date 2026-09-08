@@ -15,6 +15,9 @@ import 'package:atfix/features/commands/presentation/bloc/command_state.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_bloc.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_event.dart';
 import 'package:atfix/features/settings/presentation/bloc/settings_state.dart';
+import 'package:atfix/features/shortcuts/domain/entities/desktop_shortcut.dart';
+import 'package:atfix/features/shortcuts/domain/repositories/desktop_shortcut_repository.dart';
+import 'package:atfix/features/shortcuts/presentation/widgets/shortcut_recorder.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:open_at_login/open_at_login.dart';
@@ -32,11 +35,73 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _obscureApiKey = true;
   bool _openAtLoginEnabled = false;
   bool _isLoadingOpenAtLogin = false;
+  DesktopShortcut? _currentShortcut;
+  bool _isSavingShortcut = false;
+  String? _shortcutError;
 
   @override
   void initState() {
     super.initState();
     _loadOpenAtLoginStatus();
+    _loadShortcut();
+  }
+
+  Future<void> _loadShortcut() async {
+    if (!PlatformChecker.isMacOS() && !PlatformChecker.isWindows()) return;
+    try {
+      final shortcut = await getIt<DesktopShortcutRepository>().getShortcut();
+      if (mounted) {
+        setState(() {
+          _currentShortcut = shortcut;
+        });
+      }
+    } catch (e) {
+      debugPrint('Failed to load shortcut: $e');
+    }
+  }
+
+  Future<void> _updateShortcut(DesktopShortcut candidate) async {
+    setState(() {
+      _isSavingShortcut = true;
+      _shortcutError = null;
+    });
+
+    try {
+      final success = await getIt<DesktopShortcutRepository>()
+          .registerAndSaveShortcut(candidate);
+
+      if (!mounted) return;
+
+      if (success) {
+        setState(() {
+          _currentShortcut = candidate;
+          _shortcutError = null;
+        });
+        showSuccessToast(message: 'Global shortcut updated');
+      } else {
+        setState(() {
+          _shortcutError =
+              'Could not register shortcut. It may be in use by another application.';
+        });
+        showErrorToast(
+          message:
+              'Could not register shortcut. Previous shortcut remains active.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _shortcutError = 'Failed to update shortcut: $e';
+        });
+        showErrorToast(message: 'Failed to update shortcut: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingShortcut = false;
+        });
+      }
+    }
   }
 
   Future<void> _loadOpenAtLoginStatus() async {
@@ -593,8 +658,55 @@ class _SettingsPageState extends State<SettingsPage> {
                     );
                   },
                 ),
-                if (PlatformChecker.isDesktop()) ...[
+                if (PlatformChecker.isMacOS() ||
+                    PlatformChecker.isWindows()) ...[
                   const SizedBox(height: 32),
+                  const Divider(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Global Shortcut',
+                    style: typo.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Choose the keyboard shortcut you want to use to summon AtFix from any application.',
+                    style: typo.bodySmall.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_currentShortcut != null) ...[
+                    ShortcutRecorder(
+                      currentShortcut: _currentShortcut!,
+                      errorMessage: _shortcutError,
+                      enabled: !_isSavingShortcut,
+                      onShortcutChanged: _updateShortcut,
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _isSavingShortcut
+                            ? null
+                            : () => _updateShortcut(
+                                  DesktopShortcut.defaultForPlatform(
+                                    isMacOS: PlatformChecker.isMacOS(),
+                                  ),
+                                ),
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Reset to default'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: colors.primary,
+                          textStyle: typo.bodySmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
                   const Divider(),
                   const SizedBox(height: 16),
                   Text(
@@ -603,34 +715,35 @@ class _SettingsPageState extends State<SettingsPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (PlatformChecker.isMacOS() ||
-                      PlatformChecker.isWindows()) ...[
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        'Launch AtFix at Login',
-                        style: typo.titleMedium.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Launch AtFix at Login',
+                      style: typo.titleMedium.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
-                      subtitle: Text(
-                        'Start AtFix automatically in the background when you log into your Mac.',
-                        style: typo.bodySmall.copyWith(
-                          color: colors.textSecondary,
-                        ),
-                      ),
-                      value: _openAtLoginEnabled,
-                      onChanged: _isLoadingOpenAtLogin
-                          ? null
-                          : _toggleOpenAtLogin,
                     ),
-                    const SizedBox(height: 16),
-                    const Divider(),
-                  ],
+                    subtitle: Text(
+                      PlatformChecker.isMacOS()
+                          ? 'Start AtFix automatically in the background when you log into your Mac.'
+                          : 'Start AtFix automatically in the background when you log into Windows.',
+                      style: typo.bodySmall.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    ),
+                    value: _openAtLoginEnabled,
+                    onChanged: _isLoadingOpenAtLogin
+                        ? null
+                        : _toggleOpenAtLogin,
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(),
                   const SizedBox(height: 16),
                   Text(
-                    'Closing the window or pressing ⌘Q keeps AtFix running in the background. Use this button if you need to shut down the process completely.',
+                    PlatformChecker.isMacOS()
+                        ? 'Closing the window or pressing ⌘Q keeps AtFix running in the background. Use this button if you need to shut down the process completely.'
+                        : 'Closing the window keeps AtFix running in the background. Use this button if you need to shut down the process completely.',
                     style: typo.bodyMedium.copyWith(
                       color: colors.textSecondary,
                     ),

@@ -33,7 +33,7 @@ final GoRouter _appRouter = GoRouter(
   navigatorKey: rootNavigatorKey,
   debugLogDiagnostics: true,
   redirect: (context, state) {
-    if (PlatformChecker.isDesktop()) {
+    if (PlatformChecker.isMacOS() || PlatformChecker.isWindows()) {
       final repository = getIt<DesktopCapabilityRepository>();
       final isCompleted = repository.isOnboardingCompleted();
       final isOnboarding = state.matchedLocation == AppRoutes.desktopOnboarding;
