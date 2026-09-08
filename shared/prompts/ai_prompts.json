@@ -5,6 +5,7 @@
       "command": "@fix",
       "label": "Fix",
       "actionLabel": "Fixing...",
+      "description": "Fix grammar, spelling, and punctuation",
       "order": 1,
       "requiresInput": false,
       "inputType": null,
@@ -14,6 +15,7 @@
       "command": "@rewrite",
       "label": "Rewrite",
       "actionLabel": "Rewriting...",
+      "description": "Rewrite text for clarity and structure",
       "order": 2,
       "requiresInput": false,
       "inputType": null,
@@ -23,6 +25,7 @@
       "command": "@professional",
       "label": "Professional",
       "actionLabel": "Making professional...",
+      "description": "Make the tone professional and formal",
       "order": 3,
       "requiresInput": false,
       "inputType": null,
@@ -31,6 +34,7 @@
     "casual": {
       "command": "@casual",
       "label": "Casual",
+      "description": "Make the tone casual and friendly",
       "actionLabel": "Making casual...",
       "order": 4,
       "requiresInput": false,
@@ -40,6 +44,7 @@
     "short": {
       "command": "@short",
       "label": "Shorten",
+      "description": "Shorten text while preserving meaning",
       "actionLabel": "Shortening...",
       "order": 5,
       "requiresInput": false,
@@ -49,6 +54,7 @@
     "expand": {
       "command": "@expand",
       "label": "Expand",
+      "description": "Expand text with more detail",
       "actionLabel": "Expanding...",
       "order": 6,
       "requiresInput": false,
@@ -58,6 +64,7 @@
     "translate": {
       "command": "@translate",
       "label": "Translate",
+      "description": "Translate input text to English",
       "actionLabel": "Translating...",
       "order": 7,
       "requiresInput": true,

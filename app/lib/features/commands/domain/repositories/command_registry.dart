@@ -42,7 +42,7 @@ class CommandRegistryImpl implements CommandRegistry {
         return CommandEntity(
           trigger: cmd.command,
           name: cmd.label,
-          description: cmd.actionLabel,
+          description: cmd.description,
           prompt: cmd.system,
           enabled: !_disabledTriggers.contains(cmd.command.toLowerCase()),
         );
@@ -66,7 +66,7 @@ class CommandRegistryImpl implements CommandRegistry {
     return CommandEntity(
       trigger: def.command,
       name: def.label,
-      description: def.actionLabel,
+      description: def.description,
       prompt: def.system,
       enabled: !_disabledTriggers.contains(def.command.toLowerCase()),
     );

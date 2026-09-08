@@ -60,6 +60,7 @@ void main() {
       expect(cmd!.id, equals('professional'));
       expect(cmd.label, equals('Professional'));
       expect(cmd.actionLabel, equals('Making professional...'));
+      expect(cmd.description, equals('Make the tone professional and formal'));
       expect(cmd.requiresInput, isFalse);
       expect(cmd.inputType, isNull);
 
@@ -146,6 +147,13 @@ void main() {
       expect(entities.length, equals(7));
       expect(entities.any((e) => e.trigger == '@professional'), isTrue);
       expect(entities.any((e) => e.trigger == '@pro'), isFalse);
+
+      final fix = entities.firstWhere((e) => e.trigger == '@fix');
+      expect(fix.description, equals('Fix grammar, spelling, and punctuation'));
+
+      final findProfessional = registry.findByTrigger('@professional');
+      expect(findProfessional, isNotNull);
+      expect(findProfessional!.description, equals('Make the tone professional and formal'));
 
       registry.setDisabledTriggers({'@rewrite', '@casual'});
       final updated = registry.commands;

@@ -3,6 +3,7 @@ class CommandDefinition {
   final String command;
   final String label;
   final String actionLabel;
+  final String description;
   final int order;
   final bool requiresInput;
   final String? inputType;
@@ -13,6 +14,7 @@ class CommandDefinition {
     required this.command,
     required this.label,
     required this.actionLabel,
+    required this.description,
     required this.order,
     required this.requiresInput,
     this.inputType,
@@ -46,6 +48,9 @@ class CommandDefinition {
       throw FormatException('Command actionLabel cannot be empty for id "$id"');
     }
 
+    final rawDescription = (json['description'] as String?)?.trim() ?? '';
+    final description = rawDescription.isNotEmpty ? rawDescription : actionLabel;
+
     final order = json['order'] as int? ?? 0;
     if (order <= 0) {
       throw FormatException('Command order must be a positive integer for id "$id"');
@@ -69,6 +74,7 @@ class CommandDefinition {
       command: rawCommand,
       label: label,
       actionLabel: actionLabel,
+      description: description,
       order: order,
       requiresInput: requiresInput,
       inputType: inputType,
