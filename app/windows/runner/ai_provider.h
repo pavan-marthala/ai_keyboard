@@ -18,6 +18,7 @@ class AiFailure : public std::runtime_error {
     kServer,
     kDisabledCommand,
     kTextTooLong,
+    kValidation,
     kUnknown
   };
 
@@ -26,6 +27,10 @@ class AiFailure : public std::runtime_error {
 
   Type GetType() const { return type_; }
   const std::string& GetUserMessage() const { return message_; }
+
+  static AiFailure Validation(const std::string& message) {
+    return AiFailure(Type::kValidation, message);
+  }
 
   static AiFailure MissingApiKey() {
     return AiFailure(Type::kMissingApiKey, "API key missing. Please configure your API key in Settings.");

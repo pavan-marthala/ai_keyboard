@@ -12,6 +12,8 @@
 #pragma comment(lib, "dwmapi.lib")
 
 using namespace Gdiplus;
+using atfix::PromptRepository;
+using atfix::CommandDefinition;
 
 namespace {
 
@@ -147,7 +149,7 @@ void CommandPromptWindow::Show(const std::wstring& selected_text, HWND target_hw
 
   // Dynamically load non-input commands from PromptRepository
   chips_.clear();
-  const auto& commands = PromptRepository::GetInstance().GetCommands();
+  const auto& commands = atfix::PromptRepository::GetInstance().GetCommands();
   for (const auto& def : commands) {
     if (def.requires_input) continue;
     CommandChip chip;
@@ -304,7 +306,7 @@ void CommandPromptWindow::PostError(const std::wstring& command, const std::wstr
 
 std::wstring CommandPromptWindow::ActionLabelForCommand(const std::wstring& command) {
   std::string cmd_utf8 = Utf8FromUtf16(command);
-  std::string label = PromptRepository::GetInstance().GetActionLabel(cmd_utf8);
+  std::string label = atfix::PromptRepository::GetInstance().GetActionLabel(cmd_utf8);
   return Utf16FromUtf8(label);
 }
 

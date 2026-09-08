@@ -38,7 +38,7 @@ std::string AiTransformer::ResolvePromptForCommand(
 
   // Strictly reject deprecated @pro
   if (normalized == "@pro" || normalized == "pro") {
-    throw AiFailure(AiFailure::Type::kValidation, "@pro is deprecated and not supported");
+    throw AiFailure::Validation("@pro is deprecated and not supported");
   }
 
   std::string base_trigger = normalized;
