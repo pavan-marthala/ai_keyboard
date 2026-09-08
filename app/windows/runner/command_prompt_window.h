@@ -6,6 +6,21 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <cmath>
+
+namespace atfix {
+
+// Custom Win32 window messages for thread-safe UI communication
+constexpr UINT WM_ATFIX_PROMPT_CLOSE = WM_APP + 201;
+constexpr UINT WM_ATFIX_PROMPT_ERROR = WM_APP + 202;
+
+/// Payload for asynchronous error dispatch to prompt UI thread.
+struct PromptErrorPayload {
+  std::wstring command;
+  std::wstring message;
+};
+
+}  // namespace atfix
 
 /// Delegate interface for CommandPromptWindow events.
 class CommandPromptDelegate {
@@ -40,14 +55,20 @@ class CommandPromptWindow {
   /// Presents the floating prompt card near the cursor with the specified selected text.
   void Show(const std::wstring& selected_text, HWND target_hwnd, DWORD target_pid);
 
-  /// Dismisses and hides the prompt window.
+  /// Dismisses and hides the prompt window (must run on owning UI thread).
   void Close();
+
+  /// Thread-safe close: posts WM_ATFIX_PROMPT_CLOSE to the prompt HWND owning thread.
+  void PostClose();
 
   /// Updates loading spinner and status text for running commands.
   void UpdateLoadingState(const std::vector<std::wstring>& running_commands);
 
-  /// Displays an error message inside the status area.
+  /// Displays an error message inside the status area (must run on owning UI thread).
   void ShowError(const std::wstring& command, const std::wstring& message);
+
+  /// Thread-safe error dispatch: posts WM_ATFIX_PROMPT_ERROR with payload to owning thread.
+  void PostError(const std::wstring& command, const std::wstring& message);
 
   bool IsVisible() const;
 
@@ -55,6 +76,21 @@ class CommandPromptWindow {
   HWND GetTargetHwnd() const { return target_hwnd_; }
   DWORD GetTargetPid() const { return target_pid_; }
   const std::wstring& GetOriginalSelectedText() const { return selected_text_; }
+
+  // Centralized metric/scaling mechanism
+  int Scale(int logicalPixels) const {
+    return static_cast<int>(std::round(logicalPixels * scale_));
+  }
+  float Scale(float logicalPixels) const {
+    return logicalPixels * scale_;
+  }
+  float ScaleFont(float logicalPoints) const {
+    return logicalPoints * scale_;
+  }
+
+  UINT GetDpi() const { return dpi_; }
+  float GetScale() const { return scale_; }
+  void UpdateDpi(UINT dpi);
 
  private:
   static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
@@ -70,6 +106,7 @@ class CommandPromptWindow {
   void OnKeyDown(WPARAM key);
   void TriggerSelectedCommand();
   void AnimateSpinner();
+  void UpdateDpiFromMonitorOrWindow(HMONITOR monitor);
 
   static std::wstring ActionLabelForCommand(const std::wstring& command);
 
@@ -80,6 +117,10 @@ class CommandPromptWindow {
   DWORD target_pid_ = 0;
   std::wstring selected_text_;
   std::wstring truncated_preview_;
+
+  // DPI state
+  UINT dpi_ = 96;
+  float scale_ = 1.0f;
 
   // Status state
   bool is_expanded_ = false;
@@ -95,7 +136,7 @@ class CommandPromptWindow {
   RECT close_button_rect_ = {0, 0, 0, 0};
   bool is_close_hovered_ = false;
 
-  // Layout metrics (matching macOS CommandPrompt.swift)
+  // Logical layout metrics (matching macOS CommandPrompt.swift)
   static constexpr int kHorizontalPadding = 20;
   static constexpr int kVerticalPadding = 18;
   static constexpr int kHeaderHeight = 22;
@@ -112,6 +153,13 @@ class CommandPromptWindow {
   static constexpr int kCloseButtonSize = 22;
   static constexpr int kMinPanelWidth = 380;
 
+  // Logical font sizes
+  static constexpr float kTitleFontSize = 10.5f;
+  static constexpr float kPreviewFontSize = 9.0f;
+  static constexpr float kChipFontSize = 9.5f;
+  static constexpr float kStatusFontSize = 9.0f;
+
+  // Scaled physical pixel dimensions
   int panel_width_ = kMinPanelWidth;
   int panel_height_ = 128;
   int title_y_ = kVerticalPadding;

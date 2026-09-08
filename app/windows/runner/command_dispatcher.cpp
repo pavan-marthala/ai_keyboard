@@ -128,9 +128,9 @@ void CommandDispatcher::Dispatch(
 
       std::wstring transformed_wide = Utf8ToWide(transformed_utf8);
 
-      // Close prompt window
+      // Close prompt window thread-safely via PostMessage
       if (prompt) {
-        prompt->Close();
+        prompt->PostClose();
       }
 
       // Replace text in target window
@@ -141,15 +141,15 @@ void CommandDispatcher::Dispatch(
 
     } catch (const AiFailure& failure) {
       if (!execution->is_cancelled.load() && prompt) {
-        prompt->ShowError(execution->command, Utf8ToWide(failure.GetUserMessage()));
+        prompt->PostError(execution->command, Utf8ToWide(failure.GetUserMessage()));
       }
     } catch (const std::exception& ex) {
       if (!execution->is_cancelled.load() && prompt) {
-        prompt->ShowError(execution->command, Utf8ToWide(ex.what()));
+        prompt->PostError(execution->command, Utf8ToWide(ex.what()));
       }
     } catch (...) {
       if (!execution->is_cancelled.load() && prompt) {
-        prompt->ShowError(execution->command, L"Unexpected error during transformation.");
+        prompt->PostError(execution->command, L"Unexpected error during transformation.");
       }
     }
 

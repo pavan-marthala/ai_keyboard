@@ -6,6 +6,7 @@ import 'package:atfix/core/utils/check_platforms.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:open_at_login/open_at_login.dart';
 
 import '../bloc/desktop_onboarding_bloc.dart';
 import '../bloc/desktop_onboarding_event.dart';
@@ -39,6 +40,8 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
     with WidgetsBindingObserver {
   late final PageController _pageController;
   int _currentPage = 0;
+  bool _launchAtLogin = true;
+  bool _hasAppliedLaunchAtLogin = false;
 
   @override
   void initState() {
@@ -78,6 +81,16 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
   }
 
   void _finishOnboarding() {
+    if (!_hasAppliedLaunchAtLogin) {
+      if (PlatformChecker.isMacOS() || PlatformChecker.isWindows()) {
+        _hasAppliedLaunchAtLogin = true;
+        try {
+          OpenAtLogin.instance.setEnabled(_launchAtLogin);
+        } catch (e) {
+          debugPrint('Failed to apply launch at login: $e');
+        }
+      }
+    }
     final bloc = context.read<DesktopOnboardingBloc>();
     if (bloc.state.isCompleted) {
       context.go(AppRoutes.playground);
@@ -193,7 +206,51 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
           ),
           const SizedBox(height: 28),
           const DesktopCommandPreviewCard(),
-          const SizedBox(height: 36),
+          if (PlatformChecker.isMacOS() || PlatformChecker.isWindows()) ...[
+            const SizedBox(height: 20),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _launchAtLogin = !_launchAtLogin;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _launchAtLogin,
+                        activeColor: colors.primary,
+                        checkColor: colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        onChanged: (val) {
+                          setState(() {
+                            _launchAtLogin = val ?? false;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Launch AtFix at login',
+                      style: typo.bodyMedium.copyWith(
+                        color: colors.textPrimary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 28),
           AppButton(
             text: PlatformChecker.isWindows() ? 'Get Started' : 'Continue',
             width: double.infinity,
