@@ -1,3 +1,4 @@
+import 'package:atfix/features/commands/data/generated/generated_command_definitions.dart';
 import 'package:atfix/features/commands/data/repositories/prompt_repository.dart';
 import 'package:atfix/features/commands/domain/repositories/command_registry.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -88,58 +89,23 @@ void main() {
       expect(prompt, isNot(contains('{{language}}')));
     });
 
-    test('throws FormatException if @pro is present in JSON', () {
-      const maliciousJson = '''
-      {
-        "version": 2,
-        "commands": {
-          "professional": {
-            "command": "@professional",
-            "label": "Professional",
-            "actionLabel": "Making professional...",
-            "order": 1,
-            "requiresInput": false,
-            "system": "Test system prompt"
-          },
-          "pro": {
-            "command": "@pro",
-            "label": "Pro",
-            "actionLabel": "Making professional...",
-            "order": 2,
-            "requiresInput": false,
-            "system": "Test system prompt"
-          }
-        }
-      }
-      ''';
-
-      expect(
-        () => PromptRepositoryImpl.fromString(maliciousJson),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('throws FormatException if canonical @professional is missing', () {
-      const missingProfessionalJson = '''
-      {
-        "version": 2,
-        "commands": {
-          "fix": {
-            "command": "@fix",
-            "label": "Fix",
-            "actionLabel": "Fixing...",
-            "order": 1,
-            "requiresInput": false,
-            "system": "Test system prompt"
-          }
-        }
-      }
-      ''';
-
-      expect(
-        () => PromptRepositoryImpl.fromString(missingProfessionalJson),
-        throwsA(isA<FormatException>()),
-      );
+    test('initializes with custom generated definitions when provided', () {
+      final customRepo = PromptRepositoryImpl([
+        const GeneratedCommandDefinition(
+          id: 'custom',
+          command: '@custom',
+          label: 'Custom',
+          actionLabel: 'Customizing...',
+          description: 'Custom command',
+          order: 1,
+          requiresInput: false,
+          inputType: null,
+          system: 'Custom system prompt',
+        ),
+      ]);
+      expect(customRepo.commands.length, equals(1));
+      expect(customRepo.getCommand('@custom')?.label, equals('Custom'));
+      expect(customRepo.getPrompt('custom'), equals('Custom system prompt'));
     });
 
     test('CommandRegistry reflects repository commands and supports disabling triggers', () {

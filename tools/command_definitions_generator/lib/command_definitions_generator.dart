@@ -28,6 +28,20 @@ class CommandDefinitionsGenerator {
               CppGenerator(),
             ];
 
+  /// Relative destination paths within the repository for platform-local source generation.
+  static const Map<String, String> platformLocalPaths = {
+    'dart/generated_command_definitions.dart':
+        'app/lib/features/commands/data/generated/generated_command_definitions.dart',
+    'kotlin/GeneratedCommandDefinitions.kt':
+        'app/android/app/src/main/kotlin/com/pk/atfix/generated/GeneratedCommandDefinitions.kt',
+    'swift/GeneratedCommandDefinitions.swift':
+        'app/macos/Runner/Generated/GeneratedCommandDefinitions.swift',
+    'cpp/generated_command_definitions.h':
+        'app/windows/runner/generated/generated_command_definitions.h',
+    'cpp/generated_command_definitions.cpp':
+        'app/windows/runner/generated/generated_command_definitions.cpp',
+  };
+
   /// Finds the repository root by locating `shared/prompts/ai_prompts.json` upwards.
   static Directory findRepoRoot([Directory? startDir]) {
     var current = startDir ?? Directory.current;
@@ -68,12 +82,6 @@ class CommandDefinitionsGenerator {
     return p.join(root.path, 'shared', 'prompts', 'ai_prompts.json');
   }
 
-  /// Default output directory pointing to `generated/commands/`.
-  static String defaultOutputDir([Directory? repoRoot]) {
-    final root = repoRoot ?? findRepoRoot();
-    return p.join(root.path, 'generated', 'commands');
-  }
-
   /// Generates code files in memory without writing to disk.
   Map<String, String> generateInMemory(String jsonContent) {
     final commands = CommandDefinitionValidator.validateJson(jsonContent);
@@ -85,10 +93,17 @@ class CommandDefinitionsGenerator {
     return results;
   }
 
-  /// Executes the full generation pipeline from disk to disk.
+  /// Executes the generation pipeline.
+  ///
+  /// If [outputDir] is provided, it acts as an isolated output-root override, writing
+  /// files into `outputDir/<target>/<file>` (used for isolated testing).
+  ///
+  /// If [outputDir] is null or omitted, files are written directly to platform-local
+  /// paths in the repository (`app/lib/...`, `app/android/...`, `app/macos/...`, `app/windows/...`).
   List<File> run({
     required String inputPath,
-    required String outputDir,
+    String? outputDir,
+    Directory? repoRoot,
   }) {
     final inputFile = File(inputPath);
     if (!inputFile.existsSync()) {
@@ -97,14 +112,17 @@ class CommandDefinitionsGenerator {
 
     final jsonContent = inputFile.readAsStringSync();
     final generatedMap = generateInMemory(jsonContent);
+    final root = repoRoot ?? findRepoRoot(inputFile.parent);
 
     final writtenFiles = <File>[];
     for (final entry in generatedMap.entries) {
-      final relPath = entry.key;
-      final content = entry.value;
-      final targetFile = File(p.join(outputDir, relPath));
+      final targetRelPath = outputDir != null
+          ? p.join(outputDir, entry.key)
+          : p.join(root.path, platformLocalPaths[entry.key] ?? entry.key);
+
+      final targetFile = File(targetRelPath);
       targetFile.parent.createSync(recursive: true);
-      targetFile.writeAsStringSync(content, flush: true);
+      targetFile.writeAsStringSync(entry.value, flush: true);
       writtenFiles.add(targetFile);
     }
 

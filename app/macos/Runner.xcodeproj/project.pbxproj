@@ -11,6 +11,7 @@
 			isa = PBXAggregateTarget;
 			buildConfigurationList = 33CC111B2044C6BA0003C045 /* Build configuration list for PBXAggregateTarget "Flutter Assemble" */;
 			buildPhases = (
+				AA5500012044C79F0003C045 /* Generate Command Definitions */,
 				33CC111E2044C6BF0003C045 /* ShellScript */,
 			);
 			dependencies = (
@@ -40,6 +41,7 @@
 		33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* CommandDispatcher.swift */; };
 		AA1100022044C79F0003C045 /* ai_prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = AA1100012044C79F0003C045 /* ai_prompts.json */; };
 		AA1100042044C79F0003C045 /* PromptRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100032044C79F0003C045 /* PromptRepository.swift */; };
+		AA2200032044C79F0003C045 /* GeneratedCommandDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */; };
 		35CE073D304B10F500D074C6 /* atfix.icon in Resources */ = {isa = PBXBuildFile; fileRef = 35CE073C304B10F500D074C6 /* atfix.icon */; };
 		35CE0758304E931500D074C6 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 35CE0757304E931500D074C6 /* LaunchAtLogin */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
@@ -99,6 +101,7 @@
 		33CC11462044C79F0003C045 /* CommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDispatcher.swift; sourceTree = "<group>"; };
 		AA1100012044C79F0003C045 /* ai_prompts.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "ai_prompts.json"; path = "../../shared/prompts/ai_prompts.json"; sourceTree = "<group>"; };
 		AA1100032044C79F0003C045 /* PromptRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptRepository.swift; sourceTree = "<group>"; };
+		AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedCommandDefinitions.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -215,6 +218,14 @@
 			path = Security;
 			sourceTree = "<group>";
 		};
+		AA2200012044C79F0003C045 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */,
+			);
+			path = Generated;
+			sourceTree = "<group>";
+		};
 		33CEB47122A05771004F2AC0 /* Flutter */ = {
 			isa = PBXGroup;
 			children = (
@@ -235,6 +246,7 @@
 				33CC11502044C79F0003C045 /* Command */,
 				33CC11602044C79F0003C045 /* AI */,
 				33CC11702044C79F0003C045 /* Security */,
+				AA2200012044C79F0003C045 /* Generated */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -373,6 +385,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		AA5500012044C79F0003C045 /* Generate Command Definitions */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 0;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/../../shared/prompts/ai_prompts.json",
+			);
+			name = "Generate Command Definitions";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Runner/Generated/GeneratedCommandDefinitions.swift",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -e\nREPO_ROOT=\"$SRCROOT/../..\"\nCANONICAL_JSON=\"$REPO_ROOT/shared/prompts/ai_prompts.json\"\n\nif [ -n \"$FLUTTER_ROOT\" ] && [ -x \"$FLUTTER_ROOT/bin/dart\" ]; then\n    DART_BIN=\"$FLUTTER_ROOT/bin/dart\"\nelif [ -f \"$REPO_ROOT/app/android/local.properties\" ]; then\n    FLUTTER_DIR=$(grep 'flutter.sdk=' \"$REPO_ROOT/app/android/local.properties\" | cut -d'=' -f2)\n    if [ -x \"$FLUTTER_DIR/bin/dart\" ]; then\n        DART_BIN=\"$FLUTTER_DIR/bin/dart\"\n    fi\nfi\n\nif [ -z \"$DART_BIN\" ]; then\n    DART_BIN=$(which dart || true)\nfi\n\nif [ -z \"$DART_BIN\" ]; then\n    echo \"Error: dart executable not found\" >&2\n    exit 1\nfi\n\n\"$DART_BIN\" run \"$REPO_ROOT/tools/command_definitions_generator/bin/generate.dart\" --input=\"$CANONICAL_JSON\"\n";
+		};
 		3399D490228B24CF009A79C7 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -440,6 +473,7 @@
 				33CC113D2044C79F0003C045 /* AiProviderFactory.swift in Sources */,
 				33CC113F2044C79F0003C045 /* AiTransformer.swift in Sources */,
 				AA1100042044C79F0003C045 /* PromptRepository.swift in Sources */,
+				AA2200032044C79F0003C045 /* GeneratedCommandDefinitions.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

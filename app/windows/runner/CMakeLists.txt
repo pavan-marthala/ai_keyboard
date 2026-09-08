@@ -5,11 +5,32 @@ project(runner LANGUAGES CXX)
 # top-level CMakeLists.txt, not the value here, or `flutter run` will no longer
 # work.
 #
+# Command definitions code generation
+set(COMMAND_DEFS_JSON "${CMAKE_CURRENT_SOURCE_DIR}/../../../shared/prompts/ai_prompts.json")
+set(COMMAND_DEFS_GEN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+set(COMMAND_DEFS_CPP "${COMMAND_DEFS_GEN_DIR}/generated_command_definitions.cpp")
+set(COMMAND_DEFS_H "${COMMAND_DEFS_GEN_DIR}/generated_command_definitions.h")
+
+find_program(DART_EXE NAMES dart.bat dart flutter.bat flutter)
+
+add_custom_command(
+  OUTPUT "${COMMAND_DEFS_CPP}" "${COMMAND_DEFS_H}"
+  COMMAND ${DART_EXE} run "${CMAKE_CURRENT_SOURCE_DIR}/../../../tools/command_definitions_generator/bin/generate.dart" --input="${COMMAND_DEFS_JSON}"
+  DEPENDS "${COMMAND_DEFS_JSON}"
+  COMMENT "Generating command definitions from ai_prompts.json"
+  VERBATIM
+)
+
+add_custom_target(generate_command_definitions
+  DEPENDS "${COMMAND_DEFS_CPP}" "${COMMAND_DEFS_H}"
+)
+
 # Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME} WIN32
   "credential_store.cpp"
   "configuration_store.cpp"
   "prompt_repository.cpp"
+  "generated/generated_command_definitions.cpp"
   "open_ai_compatible_provider.cpp"
   "ai_transformer.cpp"
   "command_dispatcher.cpp"
@@ -25,6 +46,8 @@ add_executable(${BINARY_NAME} WIN32
   "Runner.rc"
   "runner.exe.manifest"
 )
+
+add_dependencies(${BINARY_NAME} generate_command_definitions)
 
 # Apply the standard set of build settings. This can be removed for applications
 # that need different build settings.

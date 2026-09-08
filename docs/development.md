@@ -52,6 +52,9 @@ This updates:
 - `*.freezed.dart`
 - `*.g.dart`
 
+> [!NOTE]
+> Command definitions (`shared/prompts/ai_prompts.json`) are automatically generated into strongly typed definitions across Flutter, Android, macOS, and Windows during standard build and test executions (`flutter test`, `flutter run`, Gradle, Xcode, CMake) without requiring manual execution.
+
 ---
 
 ## 3. Running the Application

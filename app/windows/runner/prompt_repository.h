@@ -5,19 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include "generated/generated_command_definitions.h"
+
 namespace atfix {
 
-/// Schema v2 definition for an AtFix AI command.
-struct CommandDefinition {
-  std::string id;
-  std::string command;
-  std::string label;
-  std::string action_label;
-  int order{0};
-  bool requires_input{false};
-  std::string input_type;
-  std::string system;
-};
+using CommandDefinition = atfix::generated::GeneratedCommandDefinition;
 
 /// Repository responsible for loading and resolving canonical AI commands and prompts.
 /// Mirrors macOS PromptRepository.swift and Android NativeCommandRegistry.kt.
@@ -52,10 +44,6 @@ class PromptRepository {
   PromptRepository();
   ~PromptRepository() = default;
 
-  void LoadFromFile();
-  void InitializeFallbacks();
-  bool ParseJson(const std::string& json_str);
-
   std::vector<CommandDefinition> commands_;
   std::unordered_map<std::string, size_t> command_by_id_;
   std::unordered_map<std::string, size_t> command_by_trigger_;
@@ -66,3 +54,4 @@ class PromptRepository {
 }  // namespace atfix
 
 #endif  // RUNNER_PROMPT_REPOSITORY_H_
+

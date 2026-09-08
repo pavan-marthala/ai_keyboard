@@ -5,7 +5,6 @@ import 'package:command_definitions_generator/command_definitions_generator.dart
 void main(List<String> args) {
   final repoRoot = CommandDefinitionsGenerator.findRepoRoot();
   final defaultInput = CommandDefinitionsGenerator.defaultInputPath(repoRoot);
-  final defaultOutput = CommandDefinitionsGenerator.defaultOutputDir(repoRoot);
 
   final parser = ArgParser()
     ..addOption(
@@ -17,8 +16,7 @@ void main(List<String> args) {
     ..addOption(
       'output',
       abbr: 'o',
-      help: 'Output directory for generated source files.',
-      defaultsTo: defaultOutput,
+      help: 'Optional isolated output directory override (defaults to platform-local paths in repository).',
     )
     ..addFlag(
       'help',
@@ -44,14 +42,30 @@ void main(List<String> args) {
   }
 
   final inputPath = parsed['input'] as String;
-  final outputDir = parsed['output'] as String;
+  final outputArg = parsed['output'] as String?;
 
   try {
     final generator = CommandDefinitionsGenerator();
-    final writtenFiles = generator.run(
-      inputPath: inputPath,
-      outputDir: outputDir,
-    );
+    final bool isAssetTransformer = outputArg != null && outputArg.toLowerCase().endsWith('.json');
+
+    final List<File> writtenFiles;
+    if (isAssetTransformer) {
+      // Flutter asset transformer mode:
+      // 1. Generate platform-local files across Flutter, Android, macOS, Windows
+      writtenFiles = generator.run(
+        inputPath: inputPath,
+        outputDir: null,
+      );
+      // 2. Write/copy the validated asset file to the requested transformer destination
+      final destFile = File(outputArg);
+      destFile.parent.createSync(recursive: true);
+      File(inputPath).copySync(destFile.path);
+    } else {
+      writtenFiles = generator.run(
+        inputPath: inputPath,
+        outputDir: outputArg,
+      );
+    }
 
     stdout.writeln('Successfully generated ${writtenFiles.length} source file(s) from $inputPath:');
     for (final file in writtenFiles) {

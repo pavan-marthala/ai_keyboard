@@ -49,3 +49,10 @@ devtools_options.yaml
 
 # Widget Preview related
 .widget_preview/
+
+# Command definitions generated platform directories
+/lib/features/commands/data/generated/
+/android/app/src/main/kotlin/com/pk/atfix/generated/
+/macos/Runner/Generated/
+/windows/runner/generated/
+

@@ -88,6 +88,35 @@ val copySharedPrompts = tasks.register<Copy>("copySharedPrompts") {
     into(file("src/main/assets/prompts"))
 }
 
+val generateCommandDefinitions = tasks.register<Exec>("generateCommandDefinitions") {
+    val inputFile = rootProject.file("../../shared/prompts/ai_prompts.json")
+    val outputKotlinFile = file("src/main/kotlin/com/pk/atfix/generated/GeneratedCommandDefinitions.kt")
+    inputs.file(inputFile)
+    outputs.file(outputKotlinFile)
+
+    workingDir = rootProject.file("../..")
+
+    val flutterSdkDir = localProperties.getProperty("flutter.sdk")
+        ?: System.getenv("FLUTTER_ROOT")
+        ?: ""
+    val isWindows = org.apache.tools.ant.taskdefs.condition.Os.isFamily(org.apache.tools.ant.taskdefs.condition.Os.FAMILY_WINDOWS)
+    val dartExe = if (flutterSdkDir.isNotEmpty()) {
+        val binName = if (isWindows) "dart.bat" else "dart"
+        rootProject.file("$flutterSdkDir/bin/$binName").absolutePath
+    } else {
+        if (isWindows) "dart.bat" else "dart"
+    }
+
+    commandLine(
+        dartExe,
+        "run",
+        "tools/command_definitions_generator/bin/generate.dart",
+        "--input=${inputFile.absolutePath}"
+    )
+}
+
 tasks.named("preBuild") {
     dependsOn(copySharedPrompts)
+    dependsOn(generateCommandDefinitions)
 }
+
