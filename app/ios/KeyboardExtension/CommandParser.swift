@@ -83,9 +83,9 @@ class CommandParser {
                 statusMessage: "✨ Rewriting...",
                 arguments: [:]
             )
-        case "@pro":
+        case "@professional":
             return ParsedCommand(
-                baseTrigger: "@pro",
+                baseTrigger: "@professional",
                 cleanText: cleanText,
                 fullMatchLength: fullMatchLength,
                 prompt: "Rewrite the user's text in a clear, professional tone. Return ONLY the transformed text.",

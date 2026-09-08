@@ -5,6 +5,8 @@
 #include <cmath>
 #include <algorithm>
 #include <memory>
+#include "prompt_repository.h"
+#include "utils.h"
 
 #pragma comment(lib, "gdiplus.lib")
 #pragma comment(lib, "dwmapi.lib")
@@ -143,16 +145,19 @@ void CommandPromptWindow::Show(const std::wstring& selected_text, HWND target_hw
     truncated_preview_ = L"\"" + preview + L"\"";
   }
 
-  // Built-in commands matching specifications
+  // Dynamically load non-input commands from PromptRepository
   chips_.clear();
-  std::vector<std::wstring> cmd_names = {L"@fix", L"@rewrite", L"@pro", L"@casual", L"@short", L"@expand"};
-  for (const auto& name : cmd_names) {
+  const auto& commands = PromptRepository::GetInstance().GetCommands();
+  for (const auto& def : commands) {
+    if (def.requires_input) continue;
     CommandChip chip;
-    chip.command = name;
+    chip.command = Utf16FromUtf8(def.command);
     chips_.push_back(chip);
   }
   focused_chip_index_ = 0;
-  chips_[0].is_focused = true;
+  if (!chips_.empty()) {
+    chips_[0].is_focused = true;
+  }
 
   is_expanded_ = false;
   is_loading_ = false;
@@ -298,14 +303,11 @@ void CommandPromptWindow::PostError(const std::wstring& command, const std::wstr
 }
 
 std::wstring CommandPromptWindow::ActionLabelForCommand(const std::wstring& command) {
-  if (command == L"@fix") return L"Fixing grammar & spelling...";
-  if (command == L"@rewrite") return L"Rewriting text...";
-  if (command == L"@pro") return L"Making professional...";
-  if (command == L"@casual") return L"Making casual...";
-  if (command == L"@short") return L"Shortening text...";
-  if (command == L"@expand") return L"Expanding text...";
-  return L"Transforming with " + command + L"...";
+  std::string cmd_utf8 = Utf8FromUtf16(command);
+  std::string label = PromptRepository::GetInstance().GetActionLabel(cmd_utf8);
+  return Utf16FromUtf8(label);
 }
+
 
 void CommandPromptWindow::UpdateLayout() {
   title_y_ = Scale(kVerticalPadding);

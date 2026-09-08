@@ -1,7 +1,7 @@
 package com.pk.atfix.command
 
 import android.content.Context
-
+import com.pk.atfix.ai.CommandDefinition
 import com.pk.atfix.ai.PromptRepository
 
 object NativeCommandRegistry {
@@ -33,57 +33,57 @@ object NativeCommandRegistry {
         return !disabled.contains(trigger.lowercase())
     }
 
+    fun getCommands(context: Context? = null): List<CommandDefinition> {
+        val repo = context?.let { PromptRepository.getInstance(it) }
+            ?: PromptRepository.getInstanceOrNull()
+            ?: return emptyList()
+        return repo.getCommands()
+    }
+
     fun getPrompt(context: Context, baseTrigger: String, args: Map<String, String>): String? {
         val repo = PromptRepository.getInstance(context)
         return resolvePrompt(repo, baseTrigger, args)
     }
 
     fun getPrompt(baseTrigger: String, args: Map<String, String>, context: Context? = null): String? {
-        val repo = context?.let { PromptRepository.getInstance(it) } ?: PromptRepository.getInstanceOrNull()
+        val repo = context?.let { PromptRepository.getInstance(it) }
+            ?: PromptRepository.getInstanceOrNull()
             ?: return null
         return resolvePrompt(repo, baseTrigger, args)
     }
 
     private fun resolvePrompt(repo: PromptRepository, baseTrigger: String, args: Map<String, String>): String? {
-        val key = when (baseTrigger.lowercase()) {
-            "@fix" -> "fix"
-            "@rewrite" -> "rewrite"
-            "@pro" -> "professional"
-            "@casual" -> "casual"
-            "@short" -> "short"
-            "@expand" -> "expand"
-            "@translate" -> "translate"
-            else -> return null
-        }
+        val clean = baseTrigger.lowercase().trim()
+        if (clean == "@pro" || clean == "pro") return null
 
+        val cmd = repo.getCommand(clean) ?: return null
         return try {
-            if (key == "translate") {
+            if (cmd.id == "translate") {
                 val langCode = args["language"]?.lowercase() ?: ""
                 val langName = supportedLanguages[langCode] ?: return null
-                repo.getPrompt(key, mapOf("language" to langName))
+                repo.getPrompt(cmd.id, mapOf("language" to langName))
             } else {
-                repo.getPrompt(key)
+                repo.getPrompt(cmd.id)
             }
         } catch (e: Exception) {
             null
         }
     }
 
-    fun getStatusMessage(baseTrigger: String, args: Map<String, String>): String {
-        return when (baseTrigger.lowercase()) {
-            "@fix" -> "✨ Fixing..."
-            "@rewrite" -> "✨ Rewriting..."
-            "@pro" -> "✨ Making professional..."
-            "@casual" -> "✨ Making casual..."
-            "@short" -> "✨ Shortening..."
-            "@expand" -> "✨ Expanding..."
-            "@translate" -> {
-                val langCode = args["language"]?.lowercase() ?: ""
-                val langName = supportedLanguages[langCode] ?: "language"
-                "✨ Translating to $langName..."
-            }
-            else -> "✨ Transforming..."
+    fun getStatusMessage(baseTrigger: String, args: Map<String, String>, context: Context? = null): String {
+        val clean = baseTrigger.lowercase().trim()
+        if (clean == "@pro" || clean == "pro") return "✨ Transforming..."
+
+        val repo = context?.let { PromptRepository.getInstance(it) } ?: PromptRepository.getInstanceOrNull()
+        val cmd = repo?.getCommand(clean)
+
+        if (cmd?.id == "translate") {
+            val langCode = args["language"]?.lowercase() ?: ""
+            val langName = supportedLanguages[langCode] ?: "language"
+            return "✨ Translating to $langName..."
         }
+
+        val label = cmd?.actionLabel ?: "Transforming..."
+        return "✨ $label"
     }
 }
-

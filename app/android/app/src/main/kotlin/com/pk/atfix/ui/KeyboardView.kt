@@ -1591,21 +1591,14 @@ class KeyboardView @JvmOverloads constructor(
 
         toolbarContainer.removeAllViews()
 
-        val commands = listOf(
-            "@fix" to "✓ Fix",
-            "@rewrite" to "↻ Rewrite",
-            "@pro" to "Pro",
-            "@casual" to "Casual",
-            "@short" to "Short",
-            "@expand" to "Expand",
-            "@translate" to "🌐 Translate"
-        )
+        val commands = NativeCommandRegistry.getCommands(context)
 
-        for ((trigger, label) in commands) {
+        for (cmd in commands) {
+            val trigger = cmd.command
             if (NativeCommandRegistry.isCommandEnabled(context, trigger)) {
-                val chip = createChipView(label, ChipStyle.COMMAND) {
+                val chip = createChipView(cmd.label, ChipStyle.COMMAND) {
                     if (controller.isTransforming) return@createChipView
-                    if (trigger == "@translate") {
+                    if (cmd.requiresInput && cmd.inputType == "language") {
                         showLanguageSelectorPopup()
                     } else {
                         controller.onCommandButtonClicked(trigger)

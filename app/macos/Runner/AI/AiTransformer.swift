@@ -66,38 +66,36 @@ class AiTransformer {
         return result
     }
 
-    private func promptForCommand(_ command: String) throws -> String {
+    static func resolvePromptKey(for command: String) -> (key: String, variables: [String: String]) {
         let normalized = command.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let key: String
         var variables: [String: String] = [:]
 
+        if normalized == "@pro" || normalized == "pro" {
+            // Strictly reject deprecated @pro
+            return ("pro", [:])
+        }
+
         if normalized.hasPrefix("@translate") {
-            key = "translate"
+            let key = "translate"
             if normalized.contains(":") {
                 let parts = normalized.split(separator: ":", maxSplits: 1).map(String.init)
                 let langCode = parts.count > 1 ? parts[1].trimmingCharacters(in: .whitespacesAndNewlines) : ""
                 let langName = PromptRepository.supportedLanguages[langCode] ?? langCode
                 variables["language"] = langName
             }
-        } else {
-            switch normalized {
-            case "@fix":
-                key = "fix"
-            case "@rewrite":
-                key = "rewrite"
-            case "@pro", "@professional":
-                key = "professional"
-            case "@casual":
-                key = "casual"
-            case "@short":
-                key = "short"
-            case "@expand":
-                key = "expand"
-            default:
-                key = normalized.hasPrefix("@") ? String(normalized.dropFirst()) : normalized
-            }
+            return (key, variables)
         }
 
-        return try PromptRepository.shared.getPrompt(key, variables: variables)
+        if let def = PromptRepository.shared.command(for: normalized) {
+            return (def.id, variables)
+        }
+
+        let key = normalized.hasPrefix("@") ? String(normalized.dropFirst()) : normalized
+        return (key, variables)
+    }
+
+    private func promptForCommand(_ command: String) throws -> String {
+        let resolved = Self.resolvePromptKey(for: command)
+        return try PromptRepository.shared.getPrompt(resolved.key, variables: resolved.variables)
     }
 }

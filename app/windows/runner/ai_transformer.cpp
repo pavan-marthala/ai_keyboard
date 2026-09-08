@@ -35,36 +35,35 @@ std::string AiTransformer::ResolvePromptForCommand(
     const std::string& command,
     std::unordered_map<std::string, std::string>& out_variables) {
   std::string normalized = ToLower(command);
-  std::string key;
 
-  if (normalized.rfind("@translate", 0) == 0) {
-    key = "translate";
-    size_t colon_pos = normalized.find(':');
-    if (colon_pos != std::string::npos) {
-      std::string lang_code = normalized.substr(colon_pos + 1);
-      std::string lang_name = PromptRepository::GetInstance().GetLanguageName(lang_code);
-      out_variables["language"] = lang_name;
-    } else {
-      out_variables["language"] = "English";
-    }
-  } else if (normalized == "@fix") {
-    key = "fix";
-  } else if (normalized == "@rewrite") {
-    key = "rewrite";
-  } else if (normalized == "@pro" || normalized == "@professional") {
-    key = "professional";
-  } else if (normalized == "@casual") {
-    key = "casual";
-  } else if (normalized == "@short") {
-    key = "short";
-  } else if (normalized == "@expand") {
-    key = "expand";
-  } else {
-    key = (normalized.rfind("@", 0) == 0) ? normalized.substr(1) : normalized;
+  // Strictly reject deprecated @pro
+  if (normalized == "@pro" || normalized == "pro") {
+    throw AiFailure(AiFailure::Type::kValidation, "@pro is deprecated and not supported");
   }
 
+  std::string base_trigger = normalized;
+  size_t colon_pos = normalized.find(':');
+  if (colon_pos != std::string::npos) {
+    base_trigger = normalized.substr(0, colon_pos);
+    std::string arg = normalized.substr(colon_pos + 1);
+    std::string lang_name = PromptRepository::GetInstance().GetLanguageName(arg);
+    out_variables["language"] = lang_name;
+  }
+
+  const auto* def = PromptRepository::GetInstance().FindCommand(base_trigger);
+  if (def) {
+    if (def->requires_input && def->input_type == "language" &&
+        out_variables.find("language") == out_variables.end()) {
+      out_variables["language"] = "English";
+    }
+    return PromptRepository::GetInstance().GetPrompt(def->id, out_variables);
+  }
+
+  // Fallback for generic key
+  std::string key = (normalized.rfind("@", 0) == 0) ? normalized.substr(1) : normalized;
   return PromptRepository::GetInstance().GetPrompt(key, out_variables);
 }
+
 
 std::string AiTransformer::Transform(const std::string& command, const std::string& text) {
   std::string trimmed = text;

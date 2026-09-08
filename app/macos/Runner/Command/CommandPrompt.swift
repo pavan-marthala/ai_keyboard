@@ -182,9 +182,13 @@ final class CommandPrompt: NSObject, NSWindowDelegate {
 
     // MARK: - Presentation
 
+    static var defaultCommands: [String] {
+        return PromptRepository.shared.getCommands().filter { !$0.requiresInput }.map { $0.command }
+    }
+
     func show(selectedText: String) {
         close()
-        let commands = ["@fix", "@rewrite", "@short", "@expand"]
+        let commands = Self.defaultCommands
 
         let horizontalPadding = promptHorizontalPadding
         let verticalPadding = promptVerticalPadding
@@ -378,14 +382,12 @@ final class CommandPrompt: NSObject, NSWindowDelegate {
         }
     }
 
+    static func actionLabel(for command: String) -> String {
+        return PromptRepository.shared.actionLabel(for: command)
+    }
+
     private func actionLabelForCommand(_ command: String) -> String {
-        switch command.lowercased() {
-        case "@fix": return "Fixing..."
-        case "@rewrite": return "Rewriting..."
-        case "@short": return "Shortening..."
-        case "@expand": return "Expanding..."
-        default: return "Transforming..."
-        }
+        return Self.actionLabel(for: command)
     }
 
     private func repositionTopAnchoredViews(forHeight height: CGFloat) {

@@ -113,7 +113,7 @@ class KeyboardView: UIView {
         let commands: [(String, String)] = [
             ("@fix", "Fix"),
             ("@rewrite", "Rewrite"),
-            ("@pro", "Pro"),
+            ("@professional", "Professional"),
             ("@casual", "Casual"),
             ("@short", "Short"),
             ("@expand", "Expand"),

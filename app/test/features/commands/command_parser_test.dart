@@ -106,6 +106,46 @@ void main() {
       expect(result, isNull);
     });
 
+    test('should parse @professional command successfully', () {
+      const input = 'This needs to look formal @professional';
+      final result = CommandParser.parse(
+        input: input,
+        availableCommands: testCommands,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.cleanText, equals('This needs to look formal'));
+      expect(result.command.trigger, equals('@professional'));
+      expect(result.prompt, contains('professional'));
+    });
+
+    test('should strictly reject deprecated @pro command', () {
+      const input = 'This needs to look formal @pro';
+      final result = CommandParser.parse(
+        input: input,
+        availableCommands: testCommands,
+      );
+
+      expect(result, isNull);
+    });
+
+    test('should dynamically provide all 7 canonical commands in schema v2 order', () {
+      final triggers = testCommands.map((c) => c.trigger).toList();
+      expect(
+        triggers,
+        equals([
+          '@fix',
+          '@rewrite',
+          '@professional',
+          '@casual',
+          '@short',
+          '@expand',
+          '@translate',
+        ]),
+      );
+      expect(triggers.contains('@pro'), isFalse);
+    });
+
     test('should return null for empty input or no text before trigger', () {
       expect(
         CommandParser.parse(input: '   ', availableCommands: testCommands),
@@ -119,3 +159,4 @@ void main() {
     });
   });
 }
+

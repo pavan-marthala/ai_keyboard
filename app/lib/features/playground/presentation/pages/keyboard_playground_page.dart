@@ -292,9 +292,9 @@ class _KeyboardPlaygroundPageState extends State<KeyboardPlaygroundPage>
                     CommandChip(
                       avatar: Icon(Icons.work, size: 14, color: colors.primary),
                       label: 'Professional',
-                      command: '@pro',
+                      command: '@professional',
                       onPressed: () => _populateExample(
-                        'hey send me the report when you can @pro ',
+                        'hey send me the report when you can @professional ',
                       ),
                     ),
                     CommandChip(

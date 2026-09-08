@@ -196,7 +196,7 @@ class _DesktopOnboardingViewState extends State<_DesktopOnboardingView>
           ),
           const SizedBox(height: 16),
           Text(
-            "Use simple commands such as @fix, @rewrite, @pro, or @casual to transform your text without leaving the application you're working in.",
+            "Use simple commands such as @fix, @rewrite, @professional, or @casual to transform your text without leaving the application you're working in.",
             textAlign: TextAlign.center,
             style: typo.bodyMedium.copyWith(
               color: colors.textSecondary,

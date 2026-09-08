@@ -17,7 +17,7 @@ class DesktopCommandPreviewCard extends StatelessWidget {
         color: colors.accent2,
       ),
       (
-        trigger: '@pro',
+        trigger: '@professional',
         label: 'Professional workplace tone',
         color: colors.success,
       ),

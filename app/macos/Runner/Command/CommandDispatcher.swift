@@ -32,7 +32,7 @@ final class CommandExecutionContext {
     }
 }
 
-/// Dispatches selected desktop commands (@fix, @rewrite, @short, @expand) to
+/// Dispatches selected desktop commands (@fix, @rewrite, @professional, @casual, @short, @expand) to
 /// the native AI transformer, coordinates asynchronous execution and cancellation,
 /// updates prompt feedback, and triggers text replacement on success.
 final class CommandDispatcher {
