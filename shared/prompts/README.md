@@ -5,6 +5,7 @@ This directory contains the canonical AI system prompt and command definitions f
 ## Purpose
 
 `ai_prompts.json` serves as the single source of truth for AI command metadata and system prompts. By centralizing these definitions:
+
 - Supported commands, display labels, action/status messages, explicit ordering, and input requirements are driven dynamically.
 - All platforms (Flutter, Android, macOS, Windows) discover and render commands dynamically without maintaining hardcoded command lists or duplicating prompts.
 - Canonical AI system instructions remain consistent across platforms.
@@ -69,6 +70,7 @@ This directory contains the canonical AI system prompt and command definitions f
 ### Variable Interpolation
 
 The `translate` prompt contains a placeholder:
+
 - `{{language}}`: Replaced with the target language display name (e.g. `English`, `Spanish`, `French`, `German`, `Italian`, `Portuguese`, `Hindi`, `Telugu`, `Kannada`, `Tamil`).
 
 ---
@@ -76,5 +78,20 @@ The `translate` prompt contains a placeholder:
 ## Adding a New Command
 
 To add a new command to AtFix:
+
 1. Add an entry under `"commands"` in `shared/prompts/ai_prompts.json` with a unique ID key, `command`, `label`, `actionLabel`, `order`, `requiresInput`, `inputType`, and `system`.
-2. All platforms (`PromptRepository` on Android, macOS, Windows, and Flutter) will automatically discover the command, sort it according to `order`, display its `label`, handle its `actionLabel`, and route text transformations to its `system` prompt without requiring platform-specific switch statements.
+2. Run the command definition generator from the repository root:
+
+   ```bash
+   dart run tools/command_definitions_generator/bin/generate.dart --input=shared/prompts/ai_prompts.json
+   ```
+
+3. Run tests to ensure consistency and functionality:
+
+   ```bash
+   cd tools/command_definitions_generator && dart test
+   cd ../../app && flutter test
+   ```
+
+4. Commit both `shared/prompts/ai_prompts.json` and the updated platform generated source files under `app/`.
+5. All platforms (`PromptRepository` on Android, macOS, Windows, and Flutter) will dynamically discover the command, sort it according to `order`, display its `label`, handle its `actionLabel`, and route text transformations to its `system` prompt without requiring platform-specific switch statements.

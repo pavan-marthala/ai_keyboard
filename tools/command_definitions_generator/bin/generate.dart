@@ -46,26 +46,10 @@ void main(List<String> args) {
 
   try {
     final generator = CommandDefinitionsGenerator();
-    final bool isAssetTransformer = outputArg != null && outputArg.toLowerCase().endsWith('.json');
-
-    final List<File> writtenFiles;
-    if (isAssetTransformer) {
-      // Flutter asset transformer mode:
-      // 1. Generate platform-local files across Flutter, Android, macOS, Windows
-      writtenFiles = generator.run(
-        inputPath: inputPath,
-        outputDir: null,
-      );
-      // 2. Write/copy the validated asset file to the requested transformer destination
-      final destFile = File(outputArg);
-      destFile.parent.createSync(recursive: true);
-      File(inputPath).copySync(destFile.path);
-    } else {
-      writtenFiles = generator.run(
-        inputPath: inputPath,
-        outputDir: outputArg,
-      );
-    }
+    final writtenFiles = generator.run(
+      inputPath: inputPath,
+      outputDir: outputArg,
+    );
 
     stdout.writeln('Successfully generated ${writtenFiles.length} source file(s) from $inputPath:');
     for (final file in writtenFiles) {

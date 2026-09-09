@@ -29,9 +29,3 @@ service-account*.json
 # Logs
 *.log
 generated/*
-
-# Command definitions generated platform directories
-/app/lib/features/commands/data/generated/
-/app/android/app/src/main/kotlin/com/pk/atfix/generated/
-/app/macos/Runner/Generated/
-/app/windows/runner/generated/

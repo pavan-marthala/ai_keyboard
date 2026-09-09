@@ -63,8 +63,6 @@ dependencies:
   material_ui: any
   cupertino_ui: any
 dev_dependencies:
-  command_definitions_generator:
-    path: ../tools/command_definitions_generator
   build_runner: ^2.16.0
   flutter_lints: ^6.0.0
   flutter_test:
@@ -84,11 +82,6 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
-
-  assets:
-    - path: assets/prompts/ai_prompts.json
-      transformers:
-        - package: command_definitions_generator
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

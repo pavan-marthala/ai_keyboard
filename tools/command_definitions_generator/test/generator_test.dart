@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:command_definitions_generator/command_definitions_generator.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
@@ -251,6 +252,46 @@ void main() {
       } finally {
         tempDir1.deleteSync(recursive: true);
         tempDir2.deleteSync(recursive: true);
+      }
+    });
+
+    test('13. Committed platform generated files match generation from canonical ai_prompts.json', () {
+      final repoRoot = CommandDefinitionsGenerator.findRepoRoot();
+      final canonicalPath = CommandDefinitionsGenerator.defaultInputPath(repoRoot);
+      final tempDir = Directory.systemTemp.createTempSync('gen_consistency_check_');
+
+      try {
+        final generatedFiles = generator.run(
+          inputPath: canonicalPath,
+          outputDir: tempDir.path,
+        );
+
+        expect(generatedFiles.length, equals(5));
+
+        for (final generatedFile in generatedFiles) {
+          final relKey = p.relative(generatedFile.path, from: tempDir.path);
+          final committedRelPath = CommandDefinitionsGenerator.platformLocalPaths[relKey];
+          expect(committedRelPath, isNotNull, reason: 'Unknown target generated file key: $relKey');
+
+          final committedFile = File(p.join(repoRoot.path, committedRelPath!));
+          expect(
+            committedFile.existsSync(),
+            isTrue,
+            reason: 'Committed generated file missing: ${committedFile.path}',
+          );
+
+          final generatedContent = generatedFile.readAsStringSync();
+          final committedContent = committedFile.readAsStringSync();
+
+          expect(
+            committedContent,
+            equals(generatedContent),
+            reason: 'Committed file at ${committedFile.path} is out of sync with canonical $canonicalPath.\n'
+                'Please run: dart run tools/command_definitions_generator/bin/generate.dart --input=shared/prompts/ai_prompts.json',
+          );
+        }
+      } finally {
+        tempDir.deleteSync(recursive: true);
       }
     });
   });

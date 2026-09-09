@@ -53,7 +53,13 @@ This updates:
 - `*.g.dart`
 
 > [!NOTE]
-> Command definitions (`shared/prompts/ai_prompts.json`) are automatically generated into strongly typed definitions across Flutter, Android, macOS, and Windows during standard build and test executions (`flutter test`, `flutter run`, Gradle, Xcode, CMake) without requiring manual execution.
+> Command definitions (`shared/prompts/ai_prompts.json`) are compiled into strongly typed source files for Flutter, Android, macOS, and Windows, which are **committed to Git**. Standard build and test executions (`flutter test`, `flutter run`, Gradle, Xcode, CMake) consume the committed files directly and do not run the generator. When modifying command definitions, regenerate using:
+>
+> ```bash
+> dart run tools/command_definitions_generator/bin/generate.dart --input=shared/prompts/ai_prompts.json
+> ```
+>
+> and commit both the JSON and the generated files.
 
 ---
 

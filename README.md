@@ -24,6 +24,7 @@ AtFix is an open-source, multi-platform AI writing assistant and keyboard availa
 - [Repository Structure](#repository-structure)
 - [Development Prerequisites](#development-prerequisites)
 - [Setup & Installation](#setup--installation)
+- [Command Definitions](#command-definitions)
 - [Running the App](#running-the-app)
 - [Testing](#testing)
 - [Security & Privacy](#security--privacy)
@@ -205,6 +206,39 @@ For architectural diagrams and data flows, see [app/README.md](app/README.md) an
    ```bash
    dart run build_runner build --delete-conflicting-outputs
    ```
+
+---
+
+## Command Definitions
+
+### Source of Truth
+
+- `shared/prompts/ai_prompts.json` is the single canonical source of truth for command metadata, triggers, and AI system prompts.
+- Strongly typed command definition files across Flutter (Dart), Android (Kotlin), macOS (Swift), and Windows (C++) are **committed directly to Git**.
+- Normal development and application builds (`flutter run`, `flutter test`, `flutter build`, Android Gradle, macOS Xcode, Windows CMake) do **NOT** require running the generator.
+
+### When Changing Command Definitions
+
+1. **Edit**:
+   `shared/prompts/ai_prompts.json`
+2. **Run the generator**:
+
+   ```bash
+   dart run tools/command_definitions_generator/bin/generate.dart --input=shared/prompts/ai_prompts.json
+   ```
+
+3. **Review**:
+   Inspect the generated platform source files.
+4. **Run tests**:
+
+   ```bash
+   cd tools/command_definitions_generator && dart test
+   cd ../../app && flutter test
+   ```
+
+5. **Commit BOTH**:
+   - `shared/prompts/ai_prompts.json`
+   - Generated platform source files under `app/`
 
 ---
 
