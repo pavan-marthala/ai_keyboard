@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="process_text_bg">#FFFFFFFF</color>
+    <color name="process_text_card_bg">#F8FAFC</color>
+    <color name="process_text_primary">#2563EB</color>
+    <color name="process_text_primary_pressed">#1D4ED8</color>
+    <color name="process_text_title">#0F172A</color>
+    <color name="process_text_body">#334155</color>
+    <color name="process_text_muted">#64748B</color>
+    <color name="process_text_border">#E2E8F0</color>
+    <color name="process_text_error">#DC2626</color>
+    <color name="process_text_success">#16A34A</color>
+</resources>
