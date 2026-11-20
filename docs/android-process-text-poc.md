@@ -43,13 +43,13 @@ Android provides a native, secure Inter-Process Communication (IPC) contract for
 
 ### 2.3 Layered Architecture
 1. **Controller (`com.pk.atfix.action.ProcessTextController`)**:
-   * Pure, decoupled Kotlin controller responsible for extracting incoming text and flags from intents, validating inputs, resolving the canonical `@fix` prompt from `PromptRepository`, executing the transformation, constructing result intents, and formatting error messages.
+   * Pure, decoupled Kotlin controller responsible for extracting incoming text and flags from intents, validating inputs, resolving the canonical prompt for **any** generated command from `PromptRepository` (including `{{language}}` interpolation for `@translate`), executing the transformation, constructing result intents, and formatting error messages.
 2. **Activity (`com.pk.atfix.action.ProcessTextActivity`)**:
-   * A lightweight `ComponentActivity` themed with `Theme.AtFix.Dialog`.
-   * Floating, centered card (88% display width, max 420dp) with background dimming.
-   * Manages UI states: Idle/Input, Loading Spinner, Read-Only Result Card, and Error/Retry.
+   * A lightweight `ComponentActivity` themed with `Theme.AtFix.BottomSheet` — a translucent full-screen host with a dim overlay and a rounded bottom sheet anchored to the bottom of the display.
+   * Presents three parts: **1 · Pick an action** (all canonical commands), **2 · Translate: pick language** (searchable list), and **3 · Result** (ORIGINAL / CORRECTED preview with **Replace**, **Copy**, and **Try again**).
+   * Also manages loading and error/retry states, styled with the same tokens.
 3. **AI Pipeline Reuse**:
-   * Reuses the production native `AiTextTransformer` and `PromptRepository` (backed by committed generated command definitions from `shared/prompts/ai_prompts.json`).
+   * Reuses the production native `AiTextTransformer` and `PromptRepository` (backed by committed generated command definitions from `shared/prompts/ai_prompts.json`). Command triggers and labels come from the generated definitions; only display copy is held in the Activity.
 4. **Zero Impact on Keyboard**:
    * `KeyboardService`, `KeyboardView`, and `KeyboardController` remain 100% untouched and operational.
 
@@ -62,10 +62,10 @@ A critical discovery in Android's `ACTION_PROCESS_TEXT` system contract is the d
 | Characteristic | Editable Text (`isReadOnly = false`) | Read-Only Text (`isReadOnly = true`) |
 |---|---|---|
 | **Typical Context** | `EditText`, messaging input fields, document editors, web inputs | Web pages in Chrome, read-only PDF/ebook viewers, social feeds |
-| **User Flow** | User selects text → Taps **AtFix** → Taps **✨ Fix Grammar (@fix)** | User selects text → Taps **AtFix** → Sees `Read-Only` badge → Taps **✨ Fix Grammar (@fix)** |
-| **System Behavior** | AtFix sends `RESULT_OK` with transformed text extra; calling app automatically replaces selected text inline | Host view is non-editable; calling app *cannot* replace text inline |
-| **AtFix UX Solution** | Dialog closes immediately upon AI completion; text is replaced in-place in the host app | Dialog displays **TRANSFORMED RESULT** card with a **📋 Copy to Clipboard** button |
-| **Fallback/Safety** | Tapping Close (✕) or outside sends `RESULT_CANCELED`, preserving the user's original text unmodified | Original text remains completely safe |
+| **User Flow** | Select text → tap **AtFix** → pick a command (or language) → review the preview → tap **Replace** | Select text → tap **AtFix** → pick a command → review the preview → tap **Copy** |
+| **System Behavior** | On **Replace**, AtFix sends `RESULT_OK` with the transformed text extra; the host replaces the selection | Host view is non-editable; the calling app *cannot* replace text inline |
+| **AtFix UX Solution** | Bottom sheet shows ORIGINAL and CORRECTED cards; **Replace** applies, **Copy** copies without returning a result, **Try again** re-runs | Read-only note is shown; **Copy** writes to the clipboard and returns `RESULT_CANCELED` (origin untouched) |
+| **Fallback/Safety** | Close (✕), dimmed backdrop, or back sends `RESULT_CANCELED`, preserving the original text | Original text remains completely safe |
 
 ---
 
@@ -80,7 +80,7 @@ An editable-field scenario counts as **PASS** only when the host application's s
 | Suite | Location | Covers | Status |
 |---|---|---|---|
 | Local JVM unit tests | `app/android/app/src/test/java/com/pk/atfix/action/ProcessTextControllerTest.kt` | Intent parsing/validation, exact-text preservation, canonical `@fix` resolution, missing-prompt failure, success/error result intents, read-only flag, long/Unicode/multiline pass-through | **PASS** (19/19) |
-| Device instrumentation tests | `app/android/app/src/androidTest/java/com/pk/atfix/action/ProcessTextEndToEndTest.kt` | End-to-end host replacement via a test host activity, dialog states, read-only result/copy action, cancel/dismissal/error preservation, recreation safety | **PASS** (8/8 on an Android 37 emulator). Clipboard *content* is not asserted in the headless harness because Android restricts clipboard writes to foreground user-initiated contexts; it remains a manual-matrix item. |
+| Device instrumentation tests | `app/android/app/src/androidTest/java/com/pk/atfix/action/ProcessTextEndToEndTest.kt` | Command picker (all 7 canonical commands, `@professional`, no `@pro`), end-to-end host replacement after explicit **Replace**, translate language picker incl. Japanese, read-only **Copy** (no replacement), cancel/dim/error preservation, recreation safety | **PASS** (10/10 on an Android 37 emulator). Clipboard *content* is not asserted in the headless harness because Android restricts clipboard writes to foreground user-initiated contexts; it remains a manual-matrix item. |
 
 The instrumentation suite uses a test-only host activity (`ProcessTextHostTestActivity`) that selects its own text, launches AtFix with `ACTION_PROCESS_TEXT`, and applies the returned `EXTRA_PROCESS_TEXT` exactly as a standard editable host would. This makes host replacement an automated assertion rather than a logcat observation. A deterministic controller seam avoids network calls.
 
@@ -133,5 +133,5 @@ Each row must record device, API level, and host app version, and must state sep
 4. **Single result**: The activity delivers at most one result and treats `RESULT_CANCELED` as the default, so cancellation, errors, and lifecycle changes preserve the original text.
 5. **Permissions and keyboard independence**: No `AccessibilityService`, no `SYSTEM_ALERT_WINDOW`, no background service, and no dependence on AtFix being the active IME. The user's preferred keyboard is unaffected.
 6. **Phase 2 (reliability)**: Execute the matrix in §4.4 across real apps/devices/API levels and record app-specific limitations.
-7. **Phase 3 (commands)**: Expand beyond `@fix` using the existing shared generated command definitions (`@fix`, `@rewrite`, `@professional`, `@casual`, `@short`, `@expand`, `@translate`) without duplicating prompt text.
+7. **Commands (implemented in the bottom sheet)**: The picker exposes all seven canonical commands from the generated definitions (`@fix`, `@rewrite`, `@professional`, `@casual`, `@short`, `@expand`, `@translate`); `@translate` opens a searchable language list, including Japanese (`@translate:ja`), and interpolates the target language into the canonical prompt. No prompt text is duplicated.
 8. **Keyboard coexistence**: Keep the AtFix IME until the selected-text approach is validated and its retirement is explicitly approved.

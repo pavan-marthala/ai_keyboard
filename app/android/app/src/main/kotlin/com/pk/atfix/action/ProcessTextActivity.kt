@@ -6,16 +6,23 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pk.atfix.R
+import com.pk.atfix.ai.PromptRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -23,10 +30,8 @@ import kotlinx.coroutines.launch
 private const val TAG = "ProcessTextActivity"
 
 /**
- * Android ACTION_PROCESS_TEXT entrypoint activity.
- *
- * Invoked when a user selects text in any application and chooses "AtFix"
- * from the system text-selection floating menu.
+ * ACTION_PROCESS_TEXT entrypoint. Presents AtFix as a native bottom sheet with
+ * three parts: command picker, translate language picker, and result preview.
  */
 class ProcessTextActivity : ComponentActivity() {
 
@@ -34,41 +39,64 @@ class ProcessTextActivity : ComponentActivity() {
         /** Test-only: runs @fix immediately on creation so tests need no UI clicks. */
         const val EXTRA_AUTO_FIX_FOR_TESTS = "com.pk.atfix.action.AUTO_FIX_FOR_TESTS"
 
-        /**
-         * Test-only seam. Instrumentation sets a deterministic controller before
-         * launching the activity; production always uses the real pipeline.
-         */
+        /** Test-only seam supplying a deterministic controller. */
         @Volatile
         var controllerFactoryForTests: (() -> ProcessTextController)? = null
     }
 
+    private data class ActionDisplay(
+        val id: String,
+        val title: String,
+        val description: String,
+        val iconRes: Int
+    )
+
+    private data class LanguageDisplay(
+        val code: String,
+        val name: String,
+        val nativeName: String
+    )
+
+    // UI copy only. Command ids/triggers come from the generated definitions.
+    private val actionDisplays = mapOf(
+        "fix" to ActionDisplay("fix", "Fix Grammar", "Grammar, spelling, punctuation, caps", R.drawable.ic_done),
+        "rewrite" to ActionDisplay("rewrite", "Rewrite", "Paraphrase, same meaning", R.drawable.ic_atfix_rewrite),
+        "professional" to ActionDisplay("professional", "Professional Tone", "Formal, clear workplace tone", R.drawable.ic_atfix_professional),
+        "casual" to ActionDisplay("casual", "Casual Tone", "Friendly, conversational phrasing", R.drawable.ic_atfix_casual),
+        "short" to ActionDisplay("short", "Shorten", "Condense into a concise version", R.drawable.ic_atfix_shorten),
+        "expand" to ActionDisplay("expand", "Expand", "Add detail and clarity, no new claims", R.drawable.ic_atfix_expand),
+        "translate" to ActionDisplay("translate", "Translate", "Choose a target language", R.drawable.ic_atfix_translate)
+    )
+
+    private val suggestedLanguages = listOf(
+        LanguageDisplay("es", "Spanish", "Español"),
+        LanguageDisplay("hi", "Hindi", "हिन्दी"),
+        LanguageDisplay("fr", "French", "Français"),
+        LanguageDisplay("de", "German", "Deutsch"),
+        LanguageDisplay("te", "Telugu", "తెలుగు"),
+        LanguageDisplay("ja", "Japanese", "日本語"),
+        LanguageDisplay("pt", "Portuguese", "Português")
+    )
+
     private val controller: ProcessTextController =
         controllerFactoryForTests?.invoke() ?: ProcessTextController()
+
     private var currentRequest: ProcessTextRequest? = null
     private var resultDelivered = false
     private var transformationJob: Job? = null
+    private var lastTrigger: String = "@fix"
+    private var lastLanguageCode: String? = null
+    private var lastTransformedText: String = ""
 
-    // UI elements
-    private lateinit var tvTitle: TextView
-    private lateinit var tvReadOnlyBadge: TextView
-    private lateinit var btnClose: ImageButton
-    private lateinit var tvSelectedText: TextView
-    private lateinit var containerActions: LinearLayout
-    private lateinit var btnFix: Button
-    private lateinit var containerLoading: LinearLayout
-    private lateinit var tvLoadingStatus: TextView
-    private lateinit var containerResult: LinearLayout
-    private lateinit var tvTransformedResult: TextView
-    private lateinit var btnCopyResult: Button
-    private lateinit var containerError: LinearLayout
-    private lateinit var tvErrorMessage: TextView
-    private lateinit var btnRetry: Button
-    private lateinit var btnCancelError: Button
+    private lateinit var sheetDim: View
+    private lateinit var sheetContent: FrameLayout
+    private lateinit var sheetLoading: LinearLayout
+    private lateinit var sheetLoadingText: TextView
+    private lateinit var sheetError: LinearLayout
+    private lateinit var sheetErrorMessage: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Default result is CANCELED so closing without action preserves original text
         setResult(Activity.RESULT_CANCELED)
 
         val request = controller.extractRequest(intent)
@@ -78,80 +106,199 @@ class ProcessTextActivity : ComponentActivity() {
         }
         currentRequest = request
 
-        Log.i(TAG, "onCreate: request = $request")
-        setContentView(R.layout.activity_process_text)
-        bindViews()
-        populateUI(request)
+        setContentView(R.layout.sheet_process_text)
+        bindRootViews()
+        showActions()
 
         if (intent.getBooleanExtra(EXTRA_AUTO_FIX_FOR_TESTS, false)) {
-            triggerFixTransformation()
+            runTransformation("@fix", null)
         }
     }
 
-    override fun onStart() {
-        super.onStart()
-        window?.let { win ->
-            val displayMetrics = resources.displayMetrics
-            val targetWidth = (displayMetrics.widthPixels * 0.88).toInt().coerceAtMost(
-                (420 * displayMetrics.density).toInt()
-            )
-            win.setLayout(targetWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT)
-        }
+    private fun bindRootViews() {
+        sheetDim = findViewById(R.id.sheetDim)
+        sheetContent = findViewById(R.id.sheetContent)
+        sheetLoading = findViewById(R.id.sheetLoading)
+        sheetLoadingText = findViewById(R.id.sheetLoadingText)
+        sheetError = findViewById(R.id.sheetError)
+        sheetErrorMessage = findViewById(R.id.sheetErrorMessage)
+
+        sheetDim.setOnClickListener { deliverCanceledResult() }
+        findViewById<View>(R.id.sheetRetry).setOnClickListener { retryTransformation() }
+        findViewById<View>(R.id.sheetErrorCancel).setOnClickListener { deliverCanceledResult() }
     }
 
-    private fun bindViews() {
-        tvTitle = findViewById(R.id.tvTitle)
-        tvReadOnlyBadge = findViewById(R.id.tvReadOnlyBadge)
-        btnClose = findViewById(R.id.btnClose)
-        tvSelectedText = findViewById(R.id.tvSelectedText)
-        containerActions = findViewById(R.id.containerActions)
-        btnFix = findViewById(R.id.btnFix)
-        containerLoading = findViewById(R.id.containerLoading)
-        tvLoadingStatus = findViewById(R.id.tvLoadingStatus)
-        containerResult = findViewById(R.id.containerResult)
-        tvTransformedResult = findViewById(R.id.tvTransformedResult)
-        btnCopyResult = findViewById(R.id.btnCopyResult)
-        containerError = findViewById(R.id.containerError)
-        tvErrorMessage = findViewById(R.id.tvErrorMessage)
-        btnRetry = findViewById(R.id.btnRetry)
-        btnCancelError = findViewById(R.id.btnCancelError)
+    private fun showScreen(view: View) {
+        sheetContent.removeAllViews()
+        sheetContent.addView(view)
+        sheetContent.visibility = View.VISIBLE
+        sheetLoading.visibility = View.GONE
+        sheetError.visibility = View.GONE
+    }
 
-        btnClose.setOnClickListener {
-            Log.i(TAG, "btnClose clicked: cancelling")
+    private fun showLoading(message: String) {
+        sheetContent.visibility = View.GONE
+        sheetError.visibility = View.GONE
+        sheetLoadingText.text = message
+        sheetLoading.visibility = View.VISIBLE
+    }
+
+    private fun showError(message: String) {
+        Log.w(TAG, "showError: $message")
+        sheetContent.visibility = View.GONE
+        sheetLoading.visibility = View.GONE
+        sheetErrorMessage.text = message
+        sheetError.visibility = View.VISIBLE
+    }
+
+    private fun showActions() {
+        val view = LayoutInflater.from(this)
+            .inflate(R.layout.sheet_content_actions, sheetContent, false)
+        val selectedText = currentRequest?.selectedText.orEmpty()
+        view.findViewById<TextView>(R.id.sheetSelectedText).text = selectedText
+        view.findViewById<View>(R.id.sheetReadOnlyNote).visibility =
+            if (currentRequest?.isReadOnly == true) View.VISIBLE else View.GONE
+        view.findViewById<View>(R.id.sheetClose).setOnClickListener { deliverCanceledResult() }
+
+        val list = view.findViewById<LinearLayout>(R.id.sheetActionList)
+        list.removeAllViews()
+        val commands = PromptRepository.getInstance(this).getCommands()
+        for (definition in commands) {
+            val display = actionDisplays[definition.id] ?: continue
+            val row = LayoutInflater.from(this)
+                .inflate(R.layout.item_sheet_action, list, false)
+            row.findViewById<ImageView>(R.id.actionIcon).setImageResource(display.iconRes)
+            row.findViewById<TextView>(R.id.actionTitle).text = display.title
+            row.findViewById<TextView>(R.id.actionDescription).text = display.description
+            row.findViewById<TextView>(R.id.actionCommand).text =
+                if (definition.id == "translate") "@translate" else definition.command
+            if (list.childCount == 0) {
+                row.findViewById<View>(R.id.actionRow).setBackgroundResource(R.drawable.bg_atfix_row_highlighted)
+            }
+            row.setOnClickListener {
+                if (definition.id == "translate") {
+                    showLanguages()
+                } else {
+                    runTransformation(definition.command, null)
+                }
+            }
+            list.addView(row)
+        }
+        showScreen(view)
+    }
+
+    private fun showLanguages() {
+        val view = LayoutInflater.from(this)
+            .inflate(R.layout.sheet_content_languages, sheetContent, false)
+        view.findViewById<View>(R.id.sheetBack).setOnClickListener { showActions() }
+
+        val list = view.findViewById<LinearLayout>(R.id.sheetLanguageList)
+        val empty = view.findViewById<TextView>(R.id.sheetNoLanguages)
+        val search = view.findViewById<EditText>(R.id.sheetLanguageSearch)
+
+        fun render(query: String) {
+            list.removeAllViews()
+            val filtered = suggestedLanguages.filter { language ->
+                language.name.contains(query, true) ||
+                    language.nativeName.contains(query, true) ||
+                    language.code.contains(query, true)
+            }
+            empty.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
+            filtered.forEachIndexed { index, language ->
+                val row = LayoutInflater.from(this)
+                    .inflate(R.layout.item_sheet_language, list, false)
+                row.findViewById<TextView>(R.id.languageName).text = language.name
+                row.findViewById<TextView>(R.id.languageNative).text = language.nativeName
+                row.findViewById<TextView>(R.id.languageCommand).text = "@translate:${language.code}"
+                if (index == 0) {
+                    row.findViewById<View>(R.id.languageRow).setBackgroundResource(R.drawable.bg_atfix_row_highlighted)
+                }
+                row.setOnClickListener { runTransformation("@translate", language.code) }
+                list.addView(row)
+            }
+        }
+
+        search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) = render(s?.toString().orEmpty())
+        })
+        render("")
+        showScreen(view)
+    }
+
+    private fun showResult(text: String, trigger: String, languageCode: String?) {
+        Log.i(TAG, "showResult: trigger=$trigger, length=${text.length}")
+        lastTransformedText = text
+        val view = LayoutInflater.from(this)
+            .inflate(R.layout.sheet_content_result, sheetContent, false)
+        val display = actionDisplays.values.firstOrNull {
+            trigger.equals("@${it.id}", ignoreCase = true)
+        }
+        view.findViewById<TextView>(R.id.sheetResultTitle).text = display?.title ?: "Result"
+        view.findViewById<TextView>(R.id.sheetResultCommand).text =
+            if (languageCode != null) "$trigger:$languageCode" else trigger
+        view.findViewById<TextView>(R.id.sheetOriginalText).text = currentRequest?.selectedText.orEmpty()
+        view.findViewById<TextView>(R.id.sheetCorrectedText).text = text
+
+        view.findViewById<View>(R.id.sheetResultBack).setOnClickListener { showActions() }
+        view.findViewById<Button>(R.id.sheetReplace).setOnClickListener {
+            if (currentRequest?.isReadOnly == true) {
+                copyToClipboard(text)
+                Toast.makeText(this, "Copied — this text is read-only", Toast.LENGTH_SHORT).show()
+                deliverCanceledResult()
+            } else {
+                deliverResult(Activity.RESULT_OK, controller.createSuccessResultIntent(text))
+            }
+        }
+        view.findViewById<Button>(R.id.sheetCopy).setOnClickListener {
+            copyToClipboard(text)
+            Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
             deliverCanceledResult()
         }
-
-        btnFix.setOnClickListener {
-            Log.i(TAG, "btnFix clicked")
-            triggerFixTransformation()
+        view.findViewById<Button>(R.id.sheetTryAgain).setOnClickListener {
+            runTransformation(trigger, languageCode)
         }
+        showScreen(view)
+    }
 
-        btnRetry.setOnClickListener {
-            Log.i(TAG, "btnRetry clicked")
-            triggerFixTransformation()
-        }
+    private fun runTransformation(trigger: String, languageCode: String?) {
+        val request = currentRequest ?: return
+        if (resultDelivered || isFinishing) return
 
-        btnCancelError.setOnClickListener {
-            Log.i(TAG, "btnCancelError clicked: cancelling")
-            deliverCanceledResult()
+        Log.i(TAG, "runTransformation: trigger=$trigger, language=$languageCode")
+        lastTrigger = trigger
+        lastLanguageCode = languageCode
+        transformationJob?.cancel()
+
+        val display = actionDisplays.values.firstOrNull { trigger.equals("@${it.id}", ignoreCase = true) }
+        showLoading("${display?.title ?: "Transforming"}…")
+
+        transformationJob = lifecycleScope.launch {
+            val result = controller.executeCommand(this@ProcessTextActivity, request, trigger, languageCode)
+            if (!isActive || resultDelivered || isFinishing) {
+                Log.i(TAG, "Discarding transformation result: activity no longer active")
+                return@launch
+            }
+            when (result) {
+                is ProcessTextResult.Success -> showResult(result.transformedText, result.trigger, languageCode)
+                is ProcessTextResult.Failure -> showError(result.errorMessage)
+            }
         }
     }
 
-    /**
-     * Delivers at most one result to the host application. Every result path goes
-     * through here so a late or duplicate callback cannot replace the host text twice.
-     */
+    private fun retryTransformation() = runTransformation(lastTrigger, lastLanguageCode)
+
+    private fun copyToClipboard(text: String) {
+        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        clipboard?.setPrimaryClip(ClipData.newPlainText("AtFix", text))
+    }
+
+    /** Delivers at most one result so a late callback cannot replace host text twice. */
     private fun deliverResult(resultCode: Int, data: Intent? = null) {
-        if (resultDelivered) {
-            Log.i(TAG, "deliverResult ignored: a result was already delivered")
-            return
-        }
+        if (resultDelivered) return
         resultDelivered = true
-        if (data == null) {
-            setResult(resultCode)
-        } else {
-            setResult(resultCode, data)
-        }
+        if (data == null) setResult(resultCode) else setResult(resultCode, data)
         finish()
     }
 
@@ -163,89 +310,8 @@ class ProcessTextActivity : ComponentActivity() {
         super.onDestroy()
     }
 
-    private fun populateUI(request: ProcessTextRequest) {
-        tvSelectedText.text = request.selectedText
-        if (request.isReadOnly) {
-            tvReadOnlyBadge.visibility = View.VISIBLE
-        } else {
-            tvReadOnlyBadge.visibility = View.GONE
-        }
-    }
-
-    private fun triggerFixTransformation() {
-        val request = currentRequest ?: return
-        if (resultDelivered || isFinishing) {
-            Log.i(TAG, "triggerFixTransformation ignored: activity already finishing or result delivered")
-            return
-        }
-        Log.i(TAG, "triggerFixTransformation: starting @fix for '${request.selectedText}', isReadOnly=${request.isReadOnly}")
-
-        transformationJob?.cancel()
-
-        // Switch to loading state
-        containerActions.visibility = View.GONE
-        containerError.visibility = View.GONE
-        containerResult.visibility = View.GONE
-        containerLoading.visibility = View.VISIBLE
-        tvLoadingStatus.text = "Fixing grammar (@fix)..."
-
-        transformationJob = lifecycleScope.launch {
-            val result = controller.executeFix(this@ProcessTextActivity, request)
-            if (!isActive || resultDelivered || isFinishing) {
-                Log.i(TAG, "Discarding transformation result: activity no longer active")
-                return@launch
-            }
-            Log.i(TAG, "triggerFixTransformation result: $result")
-            containerLoading.visibility = View.GONE
-
-            when (result) {
-                is ProcessTextResult.Success -> {
-                    handleTransformationSuccess(result)
-                }
-                is ProcessTextResult.Failure -> {
-                    handleTransformationFailure(result.errorMessage)
-                }
-            }
-        }
-    }
-
-    private fun handleTransformationSuccess(result: ProcessTextResult.Success) {
-        Log.i(TAG, "handleTransformationSuccess: transformedText='${result.transformedText}', isReadOnly=${result.isReadOnly}")
-        if (!result.isReadOnly) {
-            // Editable text: return transformed text to caller for in-place replacement
-            val resultIntent = controller.createSuccessResultIntent(result.transformedText)
-            Log.i(TAG, "Editable text: delivering RESULT_OK with transformed text")
-            deliverResult(Activity.RESULT_OK, resultIntent)
-        } else {
-            // Read-only text: cannot be directly replaced; present result with Copy action
-            Log.i(TAG, "Read-only text: displaying result UI")
-            containerActions.visibility = View.GONE
-            containerError.visibility = View.GONE
-            containerResult.visibility = View.VISIBLE
-            tvTransformedResult.text = result.transformedText
-
-            btnCopyResult.setOnClickListener {
-                Log.i(TAG, "btnCopyResult clicked")
-                copyToClipboard(result.transformedText)
-                Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
-                val resultIntent = controller.createSuccessResultIntent(result.transformedText)
-                deliverResult(Activity.RESULT_OK, resultIntent)
-            }
-        }
-    }
-
-    private fun handleTransformationFailure(errorMessage: String) {
-        Log.w(TAG, "handleTransformationFailure: errorMessage='$errorMessage'")
-        containerActions.visibility = View.GONE
-        containerResult.visibility = View.GONE
-        containerLoading.visibility = View.GONE
-        containerError.visibility = View.VISIBLE
-        tvErrorMessage.text = errorMessage
-    }
-
-    private fun copyToClipboard(text: String) {
-        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        val clip = ClipData.newPlainText("AtFix", text)
-        clipboard?.setPrimaryClip(clip)
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        deliverCanceledResult()
     }
 }

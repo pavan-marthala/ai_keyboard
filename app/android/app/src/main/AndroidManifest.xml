@@ -41,8 +41,9 @@
             android:name=".action.ProcessTextActivity"
             android:label="AtFix"
             android:exported="true"
-            android:theme="@style/Theme.AtFix.Dialog"
+            android:theme="@style/Theme.AtFix.BottomSheet"
             android:excludeFromRecents="true"
+            android:windowSoftInputMode="stateHidden|adjustResize"
             android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.PROCESS_TEXT" />

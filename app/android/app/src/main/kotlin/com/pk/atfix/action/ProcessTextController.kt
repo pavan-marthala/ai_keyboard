@@ -5,6 +5,7 @@ import android.content.Intent
 import com.pk.atfix.ai.AiFailure
 import com.pk.atfix.ai.AiResult
 import com.pk.atfix.ai.PromptRepository
+import com.pk.atfix.command.NativeCommandRegistry
 import com.pk.atfix.transform.AiTextTransformer
 
 /**
@@ -21,7 +22,8 @@ data class ProcessTextRequest(
 sealed class ProcessTextResult {
     data class Success(
         val transformedText: String,
-        val isReadOnly: Boolean
+        val isReadOnly: Boolean,
+        val trigger: String = "@fix"
     ) : ProcessTextResult()
 
     data class Failure(
@@ -80,15 +82,27 @@ class ProcessTextController(
     /**
      * Resolves the canonical @fix system prompt from the given repository.
      */
-    fun resolveFixPrompt(repo: PromptRepository): String? {
-        val command = repo.getCommand("@fix")
-        if (command != null && repo.hasPrompt(command.id)) {
-            return repo.getPrompt(command.id)
+    fun resolveFixPrompt(repo: PromptRepository): String? = resolvePrompt(repo, "@fix", null)
+
+    /**
+     * Resolves the canonical system prompt for any generated command definition.
+     * For @translate, [languageCode] is interpolated into the {{language}} placeholder.
+     */
+    fun resolvePrompt(
+        repo: PromptRepository,
+        trigger: String,
+        languageCode: String? = null
+    ): String? {
+        val command = repo.getCommand(trigger) ?: return null
+        if (!repo.hasPrompt(command.id)) return null
+
+        if (command.id == "translate") {
+            val languageName = languageCode
+                ?.let { NativeCommandRegistry.supportedLanguages[it.lowercase()] }
+                ?: return null
+            return repo.getPrompt(command.id, mapOf("language" to languageName))
         }
-        if (repo.hasPrompt("fix")) {
-            return repo.getPrompt("fix")
-        }
-        return null
+        return repo.getPrompt(command.id)
     }
 
     /**
@@ -99,44 +113,55 @@ class ProcessTextController(
     }
 
     /**
-     * Executes the @fix transformation with explicit repo and executor.
+     * Executes a transformation with an explicit repo and executor.
      */
-    suspend fun executeFix(
+    suspend fun executeCommand(
         request: ProcessTextRequest,
+        trigger: String,
         repo: PromptRepository,
-        executor: TextTransformExecutor
+        executor: TextTransformExecutor,
+        languageCode: String? = null
     ): ProcessTextResult {
-        val prompt = resolveFixPrompt(repo)
-            ?: return ProcessTextResult.Failure("Canonical @fix prompt definition not found.")
+        val prompt = resolvePrompt(repo, trigger, languageCode)
+            ?: return ProcessTextResult.Failure("Canonical $trigger prompt definition not found.")
 
         return try {
-            val result = executor.transform(request.selectedText, prompt)
-            when (result) {
-                is AiResult.Success -> {
-                    ProcessTextResult.Success(
-                        transformedText = result.data,
-                        isReadOnly = request.isReadOnly
-                    )
-                }
-                is AiResult.Failure -> {
-                    ProcessTextResult.Failure(formatErrorMessage(result.failure))
-                }
+            when (val result = executor.transform(request.selectedText, prompt)) {
+                is AiResult.Success -> ProcessTextResult.Success(
+                    transformedText = result.data,
+                    isReadOnly = request.isReadOnly,
+                    trigger = trigger
+                )
+                is AiResult.Failure -> ProcessTextResult.Failure(formatErrorMessage(result.failure))
             }
         } catch (e: Exception) {
             ProcessTextResult.Failure("Unexpected error during text transformation: ${e.localizedMessage ?: e.message}")
         }
     }
 
-    /**
-     * Executes the @fix transformation for the given [request].
-     */
-    suspend fun executeFix(context: Context, request: ProcessTextRequest): ProcessTextResult {
-        return executeFix(
-            request = request,
-            repo = promptRepositoryProvider(context),
-            executor = transformExecutorFactory(context)
-        )
-    }
+    /** Backwards-compatible @fix convenience wrapper. */
+    suspend fun executeFix(
+        request: ProcessTextRequest,
+        repo: PromptRepository,
+        executor: TextTransformExecutor
+    ): ProcessTextResult = executeCommand(request, "@fix", repo, executor)
+
+    /** Executes a transformation using the real pipeline for the given [request]. */
+    suspend fun executeCommand(
+        context: Context,
+        request: ProcessTextRequest,
+        trigger: String,
+        languageCode: String? = null
+    ): ProcessTextResult = executeCommand(
+        request = request,
+        trigger = trigger,
+        repo = promptRepositoryProvider(context),
+        executor = transformExecutorFactory(context),
+        languageCode = languageCode
+    )
+
+    suspend fun executeFix(context: Context, request: ProcessTextRequest): ProcessTextResult =
+        executeCommand(context, request, "@fix")
 
     /**
      * Constructs the standard Android Intent with EXTRA_PROCESS_TEXT to return the

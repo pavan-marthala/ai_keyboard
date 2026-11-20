@@ -197,6 +197,39 @@ class ProcessTextControllerTest {
     }
 
     @Test
+    fun testResolvePromptInterpolatesJapaneseForTranslate() {
+        val controller = ProcessTextController()
+
+        val prompt = controller.resolvePrompt(repo, "@translate", "ja")
+
+        assertNotNull(prompt)
+        assertTrue(prompt!!.contains("Japanese"))
+    }
+
+    @Test
+    fun testResolvePromptRejectsUnsupportedLanguage() {
+        val controller = ProcessTextController()
+        assertNull(controller.resolvePrompt(repo, "@translate", "zz"))
+    }
+
+    @Test
+    fun testExecuteCommandUsesRequestedTrigger() = runBlocking {
+        val controller = ProcessTextController()
+        var receivedPrompt = ""
+        val executor = TextTransformExecutor { _, prompt ->
+            receivedPrompt = prompt
+            AiResult.Success("rewritten")
+        }
+        val request = ProcessTextRequest(selectedText = "some text", isReadOnly = false)
+
+        val result = controller.executeCommand(request, "@rewrite", repo, executor)
+
+        assertTrue(result is ProcessTextResult.Success)
+        assertEquals("@rewrite", (result as ProcessTextResult.Success).trigger)
+        assertTrue(receivedPrompt.contains("Rewrite the user's text"))
+    }
+
+    @Test
     fun testExtractRequestPreservesSurroundingWhitespace() {
         val controller = ProcessTextController()
         val selected = "  hello world\n  "

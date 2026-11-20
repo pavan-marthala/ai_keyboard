@@ -25,4 +25,20 @@
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:windowCloseOnTouchOutside">true</item>
     </style>
+
+    <!-- Full-screen translucent host for the selected-text bottom sheet. -->
+    <style name="Theme.AtFix.BottomSheet" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@style/AtFixSheetAnimation</item>
+    </style>
+
+    <style name="AtFixSheetAnimation">
+        <item name="android:windowEnterAnimation">@anim/sheet_slide_in</item>
+        <item name="android:windowExitAnimation">@anim/sheet_slide_out</item>
+    </style>
 </resources>

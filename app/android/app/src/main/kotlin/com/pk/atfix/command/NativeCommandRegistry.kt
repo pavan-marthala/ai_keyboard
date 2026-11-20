@@ -18,6 +18,7 @@ object NativeCommandRegistry {
         "pt" to "Portuguese",
         "hi" to "Hindi",
         "te" to "Telugu",
+        "ja" to "Japanese",
         "kn" to "Kannada",
         "ta" to "Tamil"
     )
