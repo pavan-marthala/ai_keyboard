@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -15,6 +16,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pk.atfix.R
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 private const val TAG = "ProcessTextActivity"
@@ -27,8 +30,23 @@ private const val TAG = "ProcessTextActivity"
  */
 class ProcessTextActivity : ComponentActivity() {
 
-    private val controller = ProcessTextController()
+    companion object {
+        /** Test-only: runs @fix immediately on creation so tests need no UI clicks. */
+        const val EXTRA_AUTO_FIX_FOR_TESTS = "com.pk.atfix.action.AUTO_FIX_FOR_TESTS"
+
+        /**
+         * Test-only seam. Instrumentation sets a deterministic controller before
+         * launching the activity; production always uses the real pipeline.
+         */
+        @Volatile
+        var controllerFactoryForTests: (() -> ProcessTextController)? = null
+    }
+
+    private val controller: ProcessTextController =
+        controllerFactoryForTests?.invoke() ?: ProcessTextController()
     private var currentRequest: ProcessTextRequest? = null
+    private var resultDelivered = false
+    private var transformationJob: Job? = null
 
     // UI elements
     private lateinit var tvTitle: TextView
@@ -55,7 +73,7 @@ class ProcessTextActivity : ComponentActivity() {
 
         val request = controller.extractRequest(intent)
         if (request == null) {
-            finish()
+            deliverCanceledResult()
             return
         }
         currentRequest = request
@@ -64,6 +82,10 @@ class ProcessTextActivity : ComponentActivity() {
         setContentView(R.layout.activity_process_text)
         bindViews()
         populateUI(request)
+
+        if (intent.getBooleanExtra(EXTRA_AUTO_FIX_FOR_TESTS, false)) {
+            triggerFixTransformation()
+        }
     }
 
     override fun onStart() {
@@ -96,8 +118,7 @@ class ProcessTextActivity : ComponentActivity() {
 
         btnClose.setOnClickListener {
             Log.i(TAG, "btnClose clicked: cancelling")
-            setResult(Activity.RESULT_CANCELED)
-            finish()
+            deliverCanceledResult()
         }
 
         btnFix.setOnClickListener {
@@ -112,9 +133,34 @@ class ProcessTextActivity : ComponentActivity() {
 
         btnCancelError.setOnClickListener {
             Log.i(TAG, "btnCancelError clicked: cancelling")
-            setResult(Activity.RESULT_CANCELED)
-            finish()
+            deliverCanceledResult()
         }
+    }
+
+    /**
+     * Delivers at most one result to the host application. Every result path goes
+     * through here so a late or duplicate callback cannot replace the host text twice.
+     */
+    private fun deliverResult(resultCode: Int, data: Intent? = null) {
+        if (resultDelivered) {
+            Log.i(TAG, "deliverResult ignored: a result was already delivered")
+            return
+        }
+        resultDelivered = true
+        if (data == null) {
+            setResult(resultCode)
+        } else {
+            setResult(resultCode, data)
+        }
+        finish()
+    }
+
+    private fun deliverCanceledResult() = deliverResult(Activity.RESULT_CANCELED)
+
+    override fun onDestroy() {
+        transformationJob?.cancel()
+        transformationJob = null
+        super.onDestroy()
     }
 
     private fun populateUI(request: ProcessTextRequest) {
@@ -128,7 +174,13 @@ class ProcessTextActivity : ComponentActivity() {
 
     private fun triggerFixTransformation() {
         val request = currentRequest ?: return
+        if (resultDelivered || isFinishing) {
+            Log.i(TAG, "triggerFixTransformation ignored: activity already finishing or result delivered")
+            return
+        }
         Log.i(TAG, "triggerFixTransformation: starting @fix for '${request.selectedText}', isReadOnly=${request.isReadOnly}")
+
+        transformationJob?.cancel()
 
         // Switch to loading state
         containerActions.visibility = View.GONE
@@ -137,8 +189,12 @@ class ProcessTextActivity : ComponentActivity() {
         containerLoading.visibility = View.VISIBLE
         tvLoadingStatus.text = "Fixing grammar (@fix)..."
 
-        lifecycleScope.launch {
+        transformationJob = lifecycleScope.launch {
             val result = controller.executeFix(this@ProcessTextActivity, request)
+            if (!isActive || resultDelivered || isFinishing) {
+                Log.i(TAG, "Discarding transformation result: activity no longer active")
+                return@launch
+            }
             Log.i(TAG, "triggerFixTransformation result: $result")
             containerLoading.visibility = View.GONE
 
@@ -158,9 +214,8 @@ class ProcessTextActivity : ComponentActivity() {
         if (!result.isReadOnly) {
             // Editable text: return transformed text to caller for in-place replacement
             val resultIntent = controller.createSuccessResultIntent(result.transformedText)
-            setResult(Activity.RESULT_OK, resultIntent)
-            Log.i(TAG, "Editable text: setResult(RESULT_OK), finishing activity")
-            finish()
+            Log.i(TAG, "Editable text: delivering RESULT_OK with transformed text")
+            deliverResult(Activity.RESULT_OK, resultIntent)
         } else {
             // Read-only text: cannot be directly replaced; present result with Copy action
             Log.i(TAG, "Read-only text: displaying result UI")
@@ -174,8 +229,7 @@ class ProcessTextActivity : ComponentActivity() {
                 copyToClipboard(result.transformedText)
                 Toast.makeText(this, "Copied to clipboard", Toast.LENGTH_SHORT).show()
                 val resultIntent = controller.createSuccessResultIntent(result.transformedText)
-                setResult(Activity.RESULT_OK, resultIntent)
-                finish()
+                deliverResult(Activity.RESULT_OK, resultIntent)
             }
         }
     }

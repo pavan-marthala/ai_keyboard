@@ -69,57 +69,48 @@ A critical discovery in Android's `ACTION_PROCESS_TEXT` system contract is the d
 
 ---
 
-## 4. Verification & Device Testing
+## 4. Verification Status
 
-### 4.1 Test Environment
-* **Physical Device**: OnePlus Nord CE 3 5G (`CPH2491`)
-* **OS / Android Version**: Android 16 (API 36 / OxygenOS / ColorOS base)
-* **Architecture**: `arm64-v8a`
-* **Connected via**: Wireless ADB (`192.168.0.134:43453`)
+### 4.1 Corrected pass criteria
 
-### 4.2 Test Scenarios & Results
+An editable-field scenario counts as **PASS** only when the host application's selected text is **observed to change** to the transformed text. Observing `setResult(RESULT_OK)` in logcat proves only that AtFix returned a result; it does **not** prove that the host applied it. The two are recorded separately below.
 
-#### Test 1: Editable Text Replacement Flow
-* **Input Text**: `"helo wrld"` (`isReadOnly = false`)
-* **Invocation**: Launched via `ACTION_PROCESS_TEXT`
-* **Action**: Tapped `✨ Fix Grammar (@fix)`
-* **Logcat Verification**:
-  ```text
-  ProcessTextActivity: triggerFixTransformation: starting @fix for 'helo wrld', isReadOnly=false
-  ProcessTextActivity: triggerFixTransformation result: Success(transformedText=Hello world, isReadOnly=false)
-  ProcessTextActivity: handleTransformationSuccess: transformedText='Hello world', isReadOnly=false
-  ProcessTextActivity: Editable text: setResult(RESULT_OK), finishing activity
-  ```
-* **Result**: **PASS**. Activity returned `RESULT_OK` with `"Hello world"` and finished cleanly.
+### 4.2 Automated coverage
 
-#### Test 2: Read-Only Text with Clipboard Fallback Flow
-* **Input Text**: `"speling eror"` (`isReadOnly = true`)
-* **Invocation**: Launched via `ACTION_PROCESS_TEXT` with `EXTRA_PROCESS_TEXT_READONLY = true`
-* **Action**: `Read-Only` badge displayed; tapped `✨ Fix Grammar (@fix)`
-* **Logcat Verification**:
-  ```text
-  ProcessTextActivity: triggerFixTransformation: starting @fix for 'speling eror', isReadOnly=true
-  ProcessTextActivity: triggerFixTransformation result: Success(transformedText=spelling error, isReadOnly=true)
-  ProcessTextActivity: handleTransformationSuccess: transformedText='spelling error', isReadOnly=true
-  ProcessTextActivity: Read-only text: displaying result UI
-  ```
-* **UI Inspection**: "TRANSFORMED RESULT" showed `"spelling error"` with `"📋 Copy to Clipboard"` button.
-* **Clipboard Copy**: Tapped copy button; toast displayed `"Copied to clipboard"`, result intent returned, activity finished cleanly.
-* **Result**: **PASS**.
+| Suite | Location | Covers | Status |
+|---|---|---|---|
+| Local JVM unit tests | `app/android/app/src/test/java/com/pk/atfix/action/ProcessTextControllerTest.kt` | Intent parsing/validation, exact-text preservation, canonical `@fix` resolution, missing-prompt failure, success/error result intents, read-only flag, long/Unicode/multiline pass-through | **PASS** (19/19) |
+| Device instrumentation tests | `app/android/app/src/androidTest/java/com/pk/atfix/action/ProcessTextEndToEndTest.kt` | End-to-end host replacement via a test host activity, dialog states, read-only result/copy action, cancel/dismissal/error preservation, recreation safety | **PASS** (8/8 on an Android 37 emulator). Clipboard *content* is not asserted in the headless harness because Android restricts clipboard writes to foreground user-initiated contexts; it remains a manual-matrix item. |
 
-#### Test 3: Cancellation Flow
-* **Action**: User taps close button (✕) or outside the dialog window
-* **Result**: `setResult(Activity.RESULT_CANCELED)` returned; activity finishes without altering host text.
-* **Result**: **PASS**.
+The instrumentation suite uses a test-only host activity (`ProcessTextHostTestActivity`) that selects its own text, launches AtFix with `ACTION_PROCESS_TEXT`, and applies the returned `EXTRA_PROCESS_TEXT` exactly as a standard editable host would. This makes host replacement an automated assertion rather than a logcat observation. A deterministic controller seam avoids network calls.
 
-#### Test 4: Unit Test Suite
-* **File**: `app/android/app/src/test/java/com/pk/atfix/action/ProcessTextControllerTest.kt`
-* **Tests**: 12 automated unit tests covering intent parsing, null handling, empty text rejection, `@fix` resolution, success result intents, read-only result formatting, and error state mapping.
-* **Result**: **PASS** (12/12 passed via `./gradlew :app:testDebugUnitTest`).
+### 4.3 Historical manual observations (single device, unverified host replacement)
 
-#### Test 5: Flutter Suite Regression Check
-* **Execution**: `flutter test`
-* **Result**: **PASS** (90/90 tests passed, zero regressions across desktop, platform channels, and shared prompt repositories).
+These were recorded previously on a OnePlus Nord CE 3 5G (`CPH2491`), Android 16 (API 36, OxygenOS/ColorOS), `arm64-v8a`, over wireless ADB.
+
+| Scenario | Input | Observed | Classification |
+|---|---|---|---|
+| Editable flow | `"helo wrld"`, `isReadOnly=false` | Logcat showed the AI result `"Hello world"` and `setResult(RESULT_OK)`; activity finished cleanly | **Result returned only** — host text replacement was **not** observed |
+| Read-only flow | `"speling eror"`, `isReadOnly=true` | Read-only badge and result card shown; copy button produced a toast and result intent | **PASS for UI/clipboard fallback**; originating text untouched |
+| Cancellation | Close / outside tap | `RESULT_CANCELED` returned | **PASS** for preserving original text |
+| Flutter regression | `flutter test` | 90/90 reported | Historical claim; not re-run here |
+
+### 4.4 Verification matrix to complete
+
+Each row must record device, API level, and host app version, and must state separately whether the result was returned and whether host replacement was observed.
+
+| Scenario | Host / field type | Device · API · app version | Result returned | Host replacement observed | Status |
+|---|---|---|---|---|---|
+| Editable inline replacement | Standard `EditText` | — | — | — | PENDING |
+| Editable inline replacement | Messaging input | — | — | — | PENDING |
+| Editable inline replacement | Web form (`WebView`/Chrome) | — | — | — | PENDING |
+| Long / Unicode / multiline selection | Editable | — | — | — | PENDING |
+| Read-only fallback | Browser article selection | — | — | — | PENDING |
+| Read-only fallback | PDF/document reader | — | — | — | PENDING |
+| Cancel / outside tap | Editable | — | — | — | PENDING |
+| AI error / missing key | Editable | — | — | — | PENDING |
+| Rotation / background during transformation | Editable | — | — | — | PENDING |
+| Third-party keyboard active | Editable | — | — | — | PENDING |
 
 ---
 
@@ -134,14 +125,13 @@ A critical discovery in Android's `ACTION_PROCESS_TEXT` system contract is the d
 
 ---
 
-## 6. Key Findings & Recommendations for Future Phases
+## 6. Known Limitations & Future Phases
 
-1. **System Menu Integration**:
-   * When text is selected in standard `TextView` / `EditText` / WebView, Android populates the floating text selection menu (Cut, Copy, Paste, Share, Select all, **AtFix**).
-   * In-place replacement works automatically in standard editable fields (`EditText`, `TextInputEditText`, Web forms) that support `setResult` handling.
-2. **Read-Only Context Support**:
-   * Browsers (Chrome, Firefox) and document readers designate text selections as read-only. Providing an immediate "Copy to Clipboard" button in AtFix solves the lack of in-place editing in those environments.
-3. **Recommended Phase 2 Expansions**:
-   * **Multiple Command Support**: Expand the dialog from supporting only `@fix` to presenting the full set of canonical commands (`@fix`, `@professional`, `@casual`, `@shorten`, `@elaborate`, `@summarize`, `@reply`).
-   * **Streaming Preview**: Stream AI tokens directly into the dialog card before applying or copying.
-   * **Keyboard Coexistence**: Keep the AtFix IME keyboard for high-frequency typing/rephrasing while offering `ACTION_PROCESS_TEXT` for users who prefer Gboard, SwiftKey, or Samsung Keyboard.
+1. **Host-dependent replacement**: In-place replacement depends on the originating application handling the returned `EXTRA_PROCESS_TEXT` result. Standard editable views normally do; some apps (and all read-only contexts) do not. Treat replacement as a per-app capability, not a platform guarantee.
+2. **Read-only contexts**: Browsers, PDF viewers, and social feeds generally report read-only selections. AtFix shows the transformed text with a **Copy to Clipboard** action; it never attempts in-place edits there.
+3. **Selection fidelity**: Empty or whitespace-only selections are rejected. The exact selected text — including leading/trailing whitespace — is passed to the transformation pipeline; only emptiness validation trims.
+4. **Single result**: The activity delivers at most one result and treats `RESULT_CANCELED` as the default, so cancellation, errors, and lifecycle changes preserve the original text.
+5. **Permissions and keyboard independence**: No `AccessibilityService`, no `SYSTEM_ALERT_WINDOW`, no background service, and no dependence on AtFix being the active IME. The user's preferred keyboard is unaffected.
+6. **Phase 2 (reliability)**: Execute the matrix in §4.4 across real apps/devices/API levels and record app-specific limitations.
+7. **Phase 3 (commands)**: Expand beyond `@fix` using the existing shared generated command definitions (`@fix`, `@rewrite`, `@professional`, `@casual`, `@short`, `@expand`, `@translate`) without duplicating prompt text.
+8. **Keyboard coexistence**: Keep the AtFix IME until the selected-text approach is validated and its retirement is explicitly approved.

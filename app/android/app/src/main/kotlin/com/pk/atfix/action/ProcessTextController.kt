@@ -56,8 +56,8 @@ class ProcessTextController(
             return null
         }
 
-        val selectedText = textExtra?.toString()?.trim() ?: return null
-        if (selectedText.isEmpty()) {
+        val selectedText = textExtra?.toString() ?: return null
+        if (selectedText.isBlank()) {
             return null
         }
 
@@ -81,8 +81,14 @@ class ProcessTextController(
      * Resolves the canonical @fix system prompt from the given repository.
      */
     fun resolveFixPrompt(repo: PromptRepository): String? {
-        return repo.getCommand("@fix")?.let { cmd -> repo.getPrompt(cmd.id) }
-            ?: repo.getPrompt("fix")
+        val command = repo.getCommand("@fix")
+        if (command != null && repo.hasPrompt(command.id)) {
+            return repo.getPrompt(command.id)
+        }
+        if (repo.hasPrompt("fix")) {
+            return repo.getPrompt("fix")
+        }
+        return null
     }
 
     /**

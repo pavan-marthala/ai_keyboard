@@ -51,6 +51,11 @@
             </intent-filter>
         </activity>
 
+        <!-- Test-only host for ACTION_PROCESS_TEXT instrumentation; no intent filter. -->
+        <activity
+            android:name=".action.ProcessTextHostTestActivity"
+            android:exported="false" />
+
         <!-- FileProvider for Rich Content Insertion -->
         <provider
             android:name="androidx.core.content.FileProvider"

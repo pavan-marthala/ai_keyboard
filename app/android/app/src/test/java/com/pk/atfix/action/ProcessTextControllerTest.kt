@@ -8,7 +8,12 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@RunWith(RobolectricTestRunner::class)
+@Config(manifest = Config.NONE, sdk = [33])
 class ProcessTextControllerTest {
 
     private lateinit var repo: PromptRepository
@@ -165,5 +170,96 @@ class ProcessTextControllerTest {
         assertTrue(controller.formatErrorMessage(AiFailure.HttpError(500, "Server Error")).contains("500"))
         assertTrue(controller.formatErrorMessage(AiFailure.InvalidResponse).contains("invalid response"))
         assertTrue(controller.formatErrorMessage(AiFailure.ContextChanged).contains("cancelled"))
+    }
+
+    @Test
+    fun testCreateSuccessResultIntentCarriesExactTransformedText() {
+        val controller = ProcessTextController()
+        val transformed = "  Héllo,\nworld! @#$  "
+
+        val intent = controller.createSuccessResultIntent(transformed)
+
+        assertEquals(transformed, intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT))
+        assertFalse(intent.hasExtra(Intent.EXTRA_PROCESS_TEXT_READONLY))
+    }
+
+    @Test
+    fun testExecuteFixFailureHasNoTransformedText() = runBlocking {
+        val controller = ProcessTextController()
+        val executor = TextTransformExecutor { _, _ -> AiResult.Failure(AiFailure.InvalidResponse) }
+        val request = ProcessTextRequest(selectedText = "some text", isReadOnly = false)
+
+        val result = controller.executeFix(request, repo, executor)
+
+        assertTrue(result is ProcessTextResult.Failure)
+        assertFalse(result is ProcessTextResult.Success)
+        assertTrue((result as ProcessTextResult.Failure).errorMessage.contains("invalid response"))
+    }
+
+    @Test
+    fun testExtractRequestPreservesSurroundingWhitespace() {
+        val controller = ProcessTextController()
+        val selected = "  hello world\n  "
+
+        val request = controller.extractRequest(Intent.ACTION_PROCESS_TEXT, selected, false)
+
+        assertNotNull(request)
+        assertEquals(selected, request?.selectedText)
+    }
+
+    @Test
+    fun testResolveFixPromptReturnsNullWhenDefinitionMissing() {
+        val controller = ProcessTextController()
+        val emptyRepo = PromptRepository(emptyList())
+
+        assertNull(controller.resolveFixPrompt(emptyRepo))
+    }
+
+    @Test
+    fun testExecuteFixFailsWhenPromptUnavailable() = runBlocking {
+        val controller = ProcessTextController()
+        var transformCalled = false
+        val executor = TextTransformExecutor { _, _ ->
+            transformCalled = true
+            AiResult.Success("should not happen")
+        }
+        val request = ProcessTextRequest(selectedText = "some text", isReadOnly = false)
+
+        val result = controller.executeFix(request, PromptRepository(emptyList()), executor)
+
+        assertFalse("No transformation may run without the canonical prompt", transformCalled)
+        assertTrue(result is ProcessTextResult.Failure)
+        assertTrue((result as ProcessTextResult.Failure).errorMessage.contains("prompt definition not found"))
+    }
+
+    @Test
+    fun testExecuteFixPassesLongUnicodeMultilineTextIntact() = runBlocking {
+        val controller = ProcessTextController()
+        val original = ("日本語 — naïve café 😀\nsecond line\twith\ttabs\n" + "x".repeat(600))
+        var received: String? = null
+        val executor = TextTransformExecutor { text, _ ->
+            received = text
+            AiResult.Success("transformed")
+        }
+        val request = ProcessTextRequest(selectedText = original, isReadOnly = false)
+
+        controller.executeFix(request, repo, executor)
+
+        assertEquals(original, received)
+    }
+
+    @Test
+    fun testExtractRequestFromIntentCarriesReadOnlyFlag() {
+        val controller = ProcessTextController()
+        val intent = Intent(Intent.ACTION_PROCESS_TEXT).apply {
+            putExtra(Intent.EXTRA_PROCESS_TEXT, "read only selection")
+            putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true)
+        }
+
+        val request = controller.extractRequest(intent)
+
+        assertNotNull(request)
+        assertEquals("read only selection", request?.selectedText)
+        assertTrue(request!!.isReadOnly)
     }
 }
