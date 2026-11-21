@@ -38,12 +38,12 @@
 		33CC11432044C79F0003C045 /* TextReplacementService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11422044C79F0003C045 /* TextReplacementService.swift */; };
 		33CC11452044C79F0003C045 /* CommandPrompt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11442044C79F0003C045 /* CommandPrompt.swift */; };
 		33CC11472044C79F0003C045 /* CommandDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33CC11462044C79F0003C045 /* CommandDispatcher.swift */; };
-		AA1100022044C79F0003C045 /* ai_prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = AA1100012044C79F0003C045 /* ai_prompts.json */; };
-		AA1100042044C79F0003C045 /* PromptRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100032044C79F0003C045 /* PromptRepository.swift */; };
-		AA2200032044C79F0003C045 /* GeneratedCommandDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */; };
 		35CE073D304B10F500D074C6 /* atfix.icon in Resources */ = {isa = PBXBuildFile; fileRef = 35CE073C304B10F500D074C6 /* atfix.icon */; };
 		35CE0758304E931500D074C6 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 35CE0757304E931500D074C6 /* LaunchAtLogin */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		AA1100022044C79F0003C045 /* ai_prompts.json in Resources */ = {isa = PBXBuildFile; fileRef = AA1100012044C79F0003C045 /* ai_prompts.json */; };
+		AA1100042044C79F0003C045 /* PromptRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1100032044C79F0003C045 /* PromptRepository.swift */; };
+		AA2200032044C79F0003C045 /* GeneratedCommandDefinitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,9 +98,6 @@
 		33CC11422044C79F0003C045 /* TextReplacementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextReplacementService.swift; sourceTree = "<group>"; };
 		33CC11442044C79F0003C045 /* CommandPrompt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandPrompt.swift; sourceTree = "<group>"; };
 		33CC11462044C79F0003C045 /* CommandDispatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommandDispatcher.swift; sourceTree = "<group>"; };
-		AA1100012044C79F0003C045 /* ai_prompts.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "ai_prompts.json"; path = "../../shared/prompts/ai_prompts.json"; sourceTree = "<group>"; };
-		AA1100032044C79F0003C045 /* PromptRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptRepository.swift; sourceTree = "<group>"; };
-		AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedCommandDefinitions.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -111,6 +108,9 @@
 		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		9740EEB21CF90195004384FC /* Debug.xcconfig */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		AA1100012044C79F0003C045 /* ai_prompts.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = ai_prompts.json; path = ../../shared/prompts/ai_prompts.json; sourceTree = "<group>"; };
+		AA1100032044C79F0003C045 /* PromptRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptRepository.swift; sourceTree = "<group>"; };
+		AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeneratedCommandDefinitions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -217,14 +217,6 @@
 			path = Security;
 			sourceTree = "<group>";
 		};
-		AA2200012044C79F0003C045 /* Generated */ = {
-			isa = PBXGroup;
-			children = (
-				AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */,
-			);
-			path = Generated;
-			sourceTree = "<group>";
-		};
 		33CEB47122A05771004F2AC0 /* Flutter */ = {
 			isa = PBXGroup;
 			children = (
@@ -253,6 +245,14 @@
 				35CE073C304B10F500D074C6 /* atfix.icon */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		AA2200012044C79F0003C045 /* Generated */ = {
+			isa = PBXGroup;
+			children = (
+				AA2200022044C79F0003C045 /* GeneratedCommandDefinitions.swift */,
+			);
+			path = Generated;
 			sourceTree = "<group>";
 		};
 		D73912EC22F37F3D000D13A0 /* Frameworks */ = {
@@ -800,7 +800,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
-				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
 				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
 				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
